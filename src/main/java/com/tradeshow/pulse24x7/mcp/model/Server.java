@@ -1,23 +1,28 @@
 package com.tradeshow.pulse24x7.mcp.model;
 
-public class Server {
-    private int serverId;
-    private String serverURL;
-    private String createdTime;
-    private String serverName;
+import java.sql.Timestamp;
 
-    public Server(int serverId,String serverName, String serverURL, String createdTime) {
-        this.serverId = serverId;
-        this.serverName = serverName;
-        this.serverURL = serverURL;
-        this.createdTime = createdTime;
+public class Server {
+    private Integer serverId;
+    private String serverName;
+    private String serverUrl;
+    private Timestamp createdAt;
+
+    public Server() {
     }
 
-    public int getServerId(){
+    public Server(Integer serverId, String serverName, String serverUrl, Timestamp createdAt) {
+        this.serverId = serverId;
+        this.serverName = serverName;
+        this.serverUrl = serverUrl;
+        this.createdAt = createdAt;
+    }
+
+    public Integer getServerId() {
         return serverId;
     }
 
-    public void setServerId(int serverId) {
+    public void setServerId(Integer serverId) {
         this.serverId = serverId;
     }
 
@@ -29,19 +34,29 @@ public class Server {
         this.serverName = serverName;
     }
 
-    public String getServerURL() {
-        return serverURL;
+    public String getServerUrl() {
+        return serverUrl;
     }
 
-    public void setServerURL(String serverURL) {
-        this.serverURL = serverURL;
+    public void setServerUrl(String serverUrl) {
+        this.serverUrl = serverUrl;
     }
 
-    public String getCreatedTime() {
-        return createdTime;
+    public Timestamp getCreatedAt() {
+        return createdAt;
     }
 
-    public void setCreatedTime(String createdTime) {
-        this.createdTime = createdTime;
+    public void setCreatedAt(Timestamp createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    @Override
+    public String toString() {
+        return "Server{" +
+                "serverId=" + serverId +
+                ", serverName='" + serverName + '\'' +
+                ", serverUrl='" + serverUrl + '\'' +
+                ", createdAt=" + createdAt +
+                '}';
     }
 }

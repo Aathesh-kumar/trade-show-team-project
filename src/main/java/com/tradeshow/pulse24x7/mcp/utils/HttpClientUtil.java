@@ -1,0 +1,136 @@
+package com.tradeshow.pulse24x7.mcp.utils;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.protocol.HttpClientContext;
+import org.apache.hc.core5.http.*;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+
+public class HttpClientUtil {
+    private static final Logger logger = LogManager.getLogger(HttpClientUtil.class);
+
+    public static JsonObject doPost(String url, Map<String, String> headers, String jsonPayload) {
+        logger.info("Initiating POST request to: " + url);
+        
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            URI uri = new URI(url);
+            HttpHost target = new HttpHost(uri.getScheme(), uri.getHost(), uri.getPort());
+            HttpPost httpPost = new HttpPost(uri);
+
+            // Add headers
+            if (headers != null) {
+                headers.forEach((key, value) -> {
+                    httpPost.addHeader(key, value);
+                    logger.debug("Added header: " + key +" = "+ value);
+                });
+            }
+
+            // Add JSON payload
+            if (jsonPayload != null && !jsonPayload.isEmpty()) {
+                httpPost.setEntity(new StringEntity(jsonPayload, ContentType.APPLICATION_JSON));
+                logger.debug("Request payload: {}", jsonPayload);
+            }
+
+            HttpClientContext context = HttpClientContext.create();
+
+            try (ClassicHttpResponse response = client.executeOpen(target, httpPost, context)) {
+                int statusCode = response.getCode();
+                HttpEntity responseEntity = response.getEntity();
+                String responseBody = (responseEntity != null)
+                        ? EntityUtils.toString(responseEntity, StandardCharsets.UTF_8)
+                        : "{}";
+
+                logger.info("POST response status: {}", statusCode);
+                logger.debug("POST response body: {}", responseBody);
+
+                if (statusCode >= 200 && statusCode < 300) {
+                    return JsonParser.parseString(responseBody).getAsJsonObject();
+                } else {
+                    logger.error("POST failed | Status: {} | Body: {}", statusCode, responseBody);
+                    throw new RuntimeException("POST failed with status: " + statusCode);
+                }
+            }
+
+        } catch (ParseException e) {
+            logger.error("Failed to parse response body", e);
+            throw new RuntimeException("Failed to parse response body", e);
+        } catch (URISyntaxException e) {
+            logger.error("Invalid URL: {}", url, e);
+            throw new RuntimeException("Invalid URL: " + url, e);
+        } catch (IOException e) {
+            logger.error("POST request failed for URL: {}", url, e);
+            throw new RuntimeException("POST request failed for URL: " + url, e);
+        }
+    }
+
+    public static JsonObject doGet(String url, Map<String, String> headers) {
+        logger.info("Initiating GET request to: {}", url);
+        
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            URI uri = new URI(url);
+            HttpHost target = new HttpHost(uri.getScheme(), uri.getHost(), uri.getPort());
+            HttpGet httpGet = new HttpGet(uri);
+
+            // Add headers
+            if (headers != null) {
+                headers.forEach((key, value) -> {
+                    httpGet.addHeader(key, value);
+                    logger.debug("Added header: {} = {}", key, value);
+                });
+            }
+
+            HttpClientContext context = HttpClientContext.create();
+
+            try (ClassicHttpResponse response = client.executeOpen(target, httpGet, context)) {
+                int statusCode = response.getCode();
+                HttpEntity responseEntity = response.getEntity();
+                String responseBody = (responseEntity != null)
+                        ? EntityUtils.toString(responseEntity, StandardCharsets.UTF_8)
+                        : "{}";
+
+                logger.info("GET response status: {}", statusCode);
+                logger.debug("GET response body: {}", responseBody);
+
+                if (statusCode >= 200 && statusCode < 300) {
+                    return JsonParser.parseString(responseBody).getAsJsonObject();
+                } else {
+                    logger.error("GET failed | Status: {} | Body: {}", statusCode, responseBody);
+                    throw new RuntimeException("GET failed with status: " + statusCode);
+                }
+            }
+
+        } catch (ParseException e) {
+            logger.error("Failed to parse response body", e);
+            throw new RuntimeException("Failed to parse response body", e);
+        } catch (URISyntaxException e) {
+            logger.error("Invalid URL: {}", url, e);
+            throw new RuntimeException("Invalid URL: " + url, e);
+        } catch (IOException e) {
+            logger.error("GET request failed for URL: {}", url, e);
+            throw new RuntimeException("GET request failed for URL: " + url, e);
+        }
+    }
+
+    public static boolean isServerReachable(String url) {
+        try {
+            doGet(url, null);
+            return true;
+        } catch (Exception e) {
+            logger.warn("Server not reachable: {}", url);
+            return false;
+        }
+    }
+}

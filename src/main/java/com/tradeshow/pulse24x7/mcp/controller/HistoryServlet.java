@@ -1,8 +1,9 @@
 package com.tradeshow.pulse24x7.mcp.controller;
 
 import com.google.gson.JsonObject;
-import com.tradeshow.pulse24x7.mcp.model.Tool;
+import com.tradeshow.pulse24x7.mcp.model.ServerHistory;
 import com.tradeshow.pulse24x7.mcp.model.ToolHistory;
+import com.tradeshow.pulse24x7.mcp.service.ServerService;
 import com.tradeshow.pulse24x7.mcp.service.ToolService;
 import com.tradeshow.pulse24x7.mcp.utils.Constants;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
@@ -19,37 +20,35 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@WebServlet("/tool/*")
-public class ToolServlet extends HttpServlet {
-    private static final Logger logger = LogManager.getLogger(ToolServlet.class);
+@WebServlet("/history/*")
+public class HistoryServlet extends HttpServlet {
+    private static final Logger logger = LogManager.getLogger(HistoryServlet.class);
+    private ServerService serverService;
     private ToolService toolService;
 
     @Override
     public void init() throws ServletException {
         super.init();
+        serverService = new ServerService();
         toolService = new ToolService();
-        logger.info("ToolServlet initialized");
+        logger.info("HistoryServlet initialized");
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
             throws ServletException, IOException {
-        logger.info("GET request to ToolServlet: {}", req.getPathInfo());
-
+        logger.info("GET request to HistoryServlet: {}", req.getPathInfo());
+        
         resp.setContentType(Constants.CONTENT_TYPE_JSON);
         resp.setCharacterEncoding("UTF-8");
-
+        
         String pathInfo = req.getPathInfo();
-
+        
         try {
-            if (pathInfo == null || pathInfo.equals("/")) {
-                handleGetToolsByServer(req, resp);
-            } else if (pathInfo.equals("/active")) {
-                handleGetActiveTools(req, resp);
-            } else if (pathInfo.equals("/history")) {
+            if (pathInfo != null && pathInfo.equals("/server")) {
+                handleGetServerHistory(req, resp);
+            } else if (pathInfo != null && pathInfo.equals("/tool")) {
                 handleGetToolHistory(req, resp);
-            } else if (pathInfo.matches("/\\d+")) {
-                handleGetToolById(req, resp, pathInfo);
             } else {
                 sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
             }
@@ -59,92 +58,56 @@ public class ToolServlet extends HttpServlet {
         }
     }
 
-    private void handleGetToolsByServer(HttpServletRequest req, HttpServletResponse resp)
+    private void handleGetServerHistory(HttpServletRequest req, HttpServletResponse resp) 
             throws IOException {
         String serverIdStr = req.getParameter("serverId");
-
+        String hoursStr = req.getParameter("hours");
+        
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
             sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-
+        
         try {
             Integer serverId = Integer.parseInt(serverIdStr);
-            List<Tool> tools = toolService.getToolsByServer(serverId);
-
-            if (tools.isEmpty()) {
-                logger.info("No tools found for server ID: {}", serverId);
-            }
-
-            sendSuccessResponse(resp, tools);
+            int hours = hoursStr != null ? Integer.parseInt(hoursStr) : 24;
+            
+            List<ServerHistory> history = serverService.getServerHistoryLastHours(serverId, hours);
+            Double uptimePercent = serverService.getUptimePercent(serverId);
+            
+            Map<String, Object> responseData = new HashMap<>();
+            responseData.put("history", history);
+            responseData.put("uptimePercent", uptimePercent);
+            responseData.put("hours", hours);
+            
+            sendSuccessResponse(resp, responseData);
         } catch (NumberFormatException e) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp, "Invalid parameters", HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 
-    private void handleGetActiveTools(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String serverIdStr = req.getParameter("serverId");
-
-        if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        try {
-            Integer serverId = Integer.parseInt(serverIdStr);
-            List<Tool> tools = toolService.getAvailableTools(serverId);
-
-            if (tools.isEmpty()) {
-                logger.info("No active tools found for server ID: {}", serverId);
-            }
-
-            sendSuccessResponse(resp, tools);
-        } catch (NumberFormatException e) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
-        }
-    }
-
-    private void handleGetToolById(HttpServletRequest req, HttpServletResponse resp, String pathInfo)
-            throws IOException {
-        try {
-            String toolIdStr = pathInfo.substring(1); // Remove leading '/'
-            Integer toolId = Integer.parseInt(toolIdStr);
-
-            Tool tool = toolService.getToolById(toolId);
-
-            if (tool == null) {
-                sendErrorResponse(resp, "Tool not found", HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-
-            sendSuccessResponse(resp, tool);
-        } catch (NumberFormatException e) {
-            sendErrorResponse(resp, "Invalid tool ID", HttpServletResponse.SC_BAD_REQUEST);
-        }
-    }
-
-    private void handleGetToolHistory(HttpServletRequest req, HttpServletResponse resp)
+    private void handleGetToolHistory(HttpServletRequest req, HttpServletResponse resp) 
             throws IOException {
         String toolIdStr = req.getParameter("toolId");
         String hoursStr = req.getParameter("hours");
-
+        
         if (toolIdStr == null || toolIdStr.trim().isEmpty()) {
             sendErrorResponse(resp, "Tool ID is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-
+        
         try {
             Integer toolId = Integer.parseInt(toolIdStr);
-            int hours = hoursStr != null ? Integer.parseInt(hoursStr) : 24; // Default 24 hours
-
+            int hours = hoursStr != null ? Integer.parseInt(hoursStr) : 24;
+            
             List<ToolHistory> history = toolService.getToolHistoryLastHours(toolId, hours);
             Double availabilityPercent = toolService.getToolAvailabilityPercent(toolId);
-
+            
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("history", history);
             responseData.put("availabilityPercent", availabilityPercent);
-
+            responseData.put("hours", hours);
+            
             sendSuccessResponse(resp, responseData);
         } catch (NumberFormatException e) {
             sendErrorResponse(resp, "Invalid parameters", HttpServletResponse.SC_BAD_REQUEST);
@@ -157,7 +120,7 @@ public class ToolServlet extends HttpServlet {
         resp.getWriter().write(response.toString());
     }
 
-    private void sendErrorResponse(HttpServletResponse resp, String message, int statusCode)
+    private void sendErrorResponse(HttpServletResponse resp, String message, int statusCode) 
             throws IOException {
         JsonObject response = JsonUtil.createErrorResponse(message);
         resp.setStatus(statusCode);

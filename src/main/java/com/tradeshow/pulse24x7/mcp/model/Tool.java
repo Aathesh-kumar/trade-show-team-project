@@ -1,18 +1,36 @@
 package com.tradeshow.pulse24x7.mcp.model;
 
+import java.sql.Timestamp;
+
 public class Tool {
+    private Integer toolId;
     private String toolName;
     private String toolDescription;
-    private boolean availability;
-    private String createdTime;
-    private String lastModifyTime;
+    private Boolean isAvailability;
+    private Timestamp createAt;
+    private Timestamp lastModify;
+    private Integer serverId;
 
-    public Tool(String toolName, String toolDescription, boolean availability, String createdTime, String lastModifyTime) {
+    public Tool() {
+    }
+
+    public Tool(Integer toolId, String toolName, String toolDescription, Boolean isAvailability,
+                Timestamp createAt, Timestamp lastModify, Integer serverId) {
+        this.toolId = toolId;
         this.toolName = toolName;
         this.toolDescription = toolDescription;
-        this.availability = availability;
-        this.createdTime = createdTime;
-        this.lastModifyTime = lastModifyTime;
+        this.isAvailability = isAvailability;
+        this.createAt = createAt;
+        this.lastModify = lastModify;
+        this.serverId = serverId;
+    }
+
+    public Integer getToolId() {
+        return toolId;
+    }
+
+    public void setToolId(Integer toolId) {
+        this.toolId = toolId;
     }
 
     public String getToolName() {
@@ -31,27 +49,48 @@ public class Tool {
         this.toolDescription = toolDescription;
     }
 
-    public boolean isAvailability() {
-        return availability;
+    public Boolean getIsAvailability() {
+        return isAvailability;
     }
 
-    public void setAvailability(boolean availability) {
-        this.availability = availability;
+    public void setIsAvailability(Boolean isAvailability) {
+        this.isAvailability = isAvailability;
     }
 
-    public String getCreatedTime() {
-        return createdTime;
+    public Timestamp getCreateAt() {
+        return createAt;
     }
 
-    public void setCreatedTime(String createdTime) {
-        this.createdTime = createdTime;
+    public void setCreateAt(Timestamp createAt) {
+        this.createAt = createAt;
     }
 
-    public String getLastModifyTime() {
-        return lastModifyTime;
+    public Timestamp getLastModify() {
+        return lastModify;
     }
 
-    public void setLastModifyTime(String lastModifyTime) {
-        this.lastModifyTime = lastModifyTime;
+    public void setLastModify(Timestamp lastModify) {
+        this.lastModify = lastModify;
+    }
+
+    public Integer getServerId() {
+        return serverId;
+    }
+
+    public void setServerId(Integer serverId) {
+        this.serverId = serverId;
+    }
+
+    @Override
+    public String toString() {
+        return "Tool{" +
+                "toolId=" + toolId +
+                ", toolName='" + toolName + '\'' +
+                ", toolDescription='" + toolDescription + '\'' +
+                ", isAvailability=" + isAvailability +
+                ", createAt=" + createAt +
+                ", lastModify=" + lastModify +
+                ", serverId=" + serverId +
+                '}';
     }
 }

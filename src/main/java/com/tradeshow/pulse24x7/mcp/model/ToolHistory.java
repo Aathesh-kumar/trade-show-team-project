@@ -1,37 +1,51 @@
 package com.tradeshow.pulse24x7.mcp.model;
 
+import java.sql.Timestamp;
+
 public class ToolHistory {
-    String toolName;
-    boolean availability;
-    String checkedTime;
+    private Integer toolId;
+    private Boolean isAvailable;
+    private Timestamp checkedAt;
 
-    public ToolHistory(String toolName, boolean availability, String checkedTime) {
-        this.toolName = toolName;
-        this.availability = availability;
-        this.checkedTime = checkedTime;
+    public ToolHistory() {
     }
 
-    public String getToolName() {
-        return toolName;
+    public ToolHistory(Integer toolId, Boolean isAvailable, Timestamp checkedAt) {
+        this.toolId = toolId;
+        this.isAvailable = isAvailable;
+        this.checkedAt = checkedAt;
     }
 
-    public void setToolName(String toolName) {
-        this.toolName = toolName;
+    public Integer getToolId() {
+        return toolId;
     }
 
-    public boolean isAvailability() {
-        return availability;
+    public void setToolId(Integer toolId) {
+        this.toolId = toolId;
     }
 
-    public void setAvailability(boolean availability) {
-        this.availability = availability;
+    public Boolean getIsAvailable() {
+        return isAvailable;
     }
 
-    public String getCheckedTime() {
-        return checkedTime;
+    public void setIsAvailable(Boolean isAvailable) {
+        this.isAvailable = isAvailable;
     }
 
-    public void setCheckedTime(String checkedTime) {
-        this.checkedTime = checkedTime;
+    public Timestamp getCheckedAt() {
+        return checkedAt;
+    }
+
+    public void setCheckedAt(Timestamp checkedAt) {
+        this.checkedAt = checkedAt;
+    }
+
+    @Override
+    public String toString() {
+        return "ToolHistory{" +
+                "toolId=" + toolId +
+                ", isAvailable=" + isAvailable +
+                ", checkedAt=" + checkedAt +
+                '}';
     }
 }

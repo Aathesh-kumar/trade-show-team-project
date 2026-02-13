@@ -1,75 +1,196 @@
 package com.tradeshow.pulse24x7.mcp.dao;
 
-import com.tradeshow.pulse24x7.mcp.Query;
-import com.tradeshow.pulse24x7.mcp.db.DBConnection;
 import com.tradeshow.pulse24x7.mcp.model.Tool;
+import com.tradeshow.pulse24x7.mcp.db.DBConnection;
+import com.tradeshow.pulse24x7.mcp.utils.DBQueries;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ToolDAO {
+    private static final Logger logger = LogManager.getLogger(ToolDAO.class);
 
-    public void insertTool(String toolName,String description,int serverId){
-        try(Connection con = DBConnection.getInstance().getConnection()){
-            PreparedStatement ps = con.prepareStatement(Query.INSERT_TOOL);
-            ps.setString(1,toolName);
-            ps.setString(2,description);
-            ps.setInt(3,serverId);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    public boolean insertTool(String toolName, String description, Integer serverId) {
+        logger.info("Inserting/Updating tool: {} for server ID: {}", toolName, serverId);
 
-    public void disableMissingTools(int server_id, List<Tool> activeTools){
-        if(activeTools.isEmpty()){
-            return;
-        }
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.INSERT_TOOL)) {
 
-        String placeholders = String.join(",", Collections.nCopies(activeTools.size(), "?"));
+            ps.setString(1, toolName);
+            ps.setString(2, description);
+            ps.setInt(3, serverId);
 
-        String disable_tools = "UPDATE tools SET is_availability = FALSE, last_modify = CURRENT_TIMESTAMP WHERE server_id = ? AND tool_name NOT IN (" + placeholders + ");";
+            int affectedRows = ps.executeUpdate();
 
-        try(Connection con = DBConnection.getInstance().getConnection()){
-            PreparedStatement ps = con.prepareStatement(disable_tools);
-            ps.setInt(1,server_id);
-            int index=2;
-            for (int i = 0; i < activeTools.size(); i++) {
-                ps.setString(index,activeTools.get(i).getToolName());
-                index++;
+            if (affectedRows > 0) {
+                logger.info("Tool inserted/updated successfully: {}", toolName);
+                return true;
             }
-            ps.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            logger.error("Failed to insert/update tool: {} for server: {}", toolName, serverId, e);
         }
+        return false;
     }
 
-    public List<Tool> getActiveTools(int serverId){
+    public Tool getToolById(Integer toolId) {
+        logger.debug("Fetching tool by ID: {}", toolId);
+
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.GET_TOOL_BY_ID)) {
+
+            ps.setInt(1, toolId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToTool(rs);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to fetch tool by ID: {}", toolId, e);
+        }
+        return null;
+    }
+
+    public List<Tool> getToolsByServer(Integer serverId) {
+        logger.debug("Fetching all tools for server ID: {}", serverId);
         List<Tool> tools = new ArrayList<>();
-        try(Connection con = DBConnection.getInstance().getConnection()){
-            PreparedStatement ps = con.prepareStatement(Query.AVAILABLE_TOOLS);
-            ps.setInt(1,serverId);
-            ResultSet rs = ps.executeQuery();
 
-            while(rs.next()){
-                String name = rs.getString("tool_name");
-                String description = rs.getString("tool_description");
-                boolean availability = rs.getBoolean("is_availability");
-                String createdTime = rs.getString("create_at");
-                String lastModify = rs.getString("last_modify");
-                boolean add = tools.add(new Tool(name,description,availability,createdTime,lastModify));
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.GET_TOOLS_BY_SERVER)) {
+
+            ps.setInt(1, serverId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    tools.add(mapResultSetToTool(rs));
+                }
             }
-            return tools;
+
+            logger.info("Fetched {} tools for server ID: {}", tools.size(), serverId);
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            logger.error("Failed to fetch tools for server ID: {}", serverId, e);
+        }
+        return tools;
+    }
+
+    public List<Tool> getAvailableTools(Integer serverId) {
+        logger.debug("Fetching available tools for server ID: {}", serverId);
+        List<Tool> tools = new ArrayList<>();
+
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.GET_AVAILABLE_TOOLS)) {
+
+            ps.setInt(1, serverId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    tools.add(mapResultSetToTool(rs));
+                }
+            }
+
+            logger.info("Fetched {} available tools for server ID: {}", tools.size(), serverId);
+        } catch (SQLException e) {
+            logger.error("Failed to fetch available tools for server ID: {}", serverId, e);
+        }
+        return tools;
+    }
+
+    public boolean updateToolAvailability(Integer toolId, Boolean isAvailable) {
+        logger.info("Updating tool availability: toolId={}, available={}", toolId, isAvailable);
+
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.UPDATE_TOOL_AVAILABILITY)) {
+
+            ps.setBoolean(1, isAvailable);
+            ps.setInt(2, toolId);
+
+            int affectedRows = ps.executeUpdate();
+
+            if (affectedRows > 0) {
+                logger.info("Tool availability updated successfully: {}", toolId);
+                return true;
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to update tool availability: {}", toolId, e);
+        }
+        return false;
+    }
+
+    public int disableMissingTools(Integer serverId, List<Tool> activeTools) {
+        if (activeTools == null || activeTools.isEmpty()) {
+            logger.warn("No active tools provided for server ID: {}", serverId);
+            return 0;
+        }
+
+        // Extract tool names
+        List<String> toolNames = activeTools.stream()
+                .map(Tool::getToolName)
+                .collect(Collectors.toList());
+
+        // Create placeholders for IN clause
+        String placeholders = String.join(",", Collections.nCopies(toolNames.size(), "?"));
+        String query = String.format(DBQueries.DISABLE_MISSING_TOOLS, placeholders);
+
+        logger.info("Disabling missing tools for server ID: {} (keeping {} tools active)",
+                serverId, toolNames.size());
+
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(query)) {
+
+            ps.setInt(1, serverId);
+
+            // Set tool names in the IN clause
+            for (int i = 0; i < toolNames.size(); i++) {
+                ps.setString(i + 2, toolNames.get(i));
+            }
+
+            int affectedRows = ps.executeUpdate();
+
+            if (affectedRows > 0) {
+                logger.info("{} tools disabled for server ID: {}", affectedRows, serverId);
+            }
+
+            return affectedRows;
+        } catch (SQLException e) {
+            logger.error("Failed to disable missing tools for server ID: {}", serverId, e);
+            return 0;
         }
     }
 
+    public Integer getToolIdByNameAndServer(String toolName, Integer serverId) {
+        logger.debug("Fetching tool ID for: {} on server: {}", toolName, serverId);
 
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.GET_TOOL_ID_BY_NAME_AND_SERVER)) {
 
+            ps.setString(1, toolName);
+            ps.setInt(2, serverId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("tool_id");
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to fetch tool ID for: {} on server: {}", toolName, serverId, e);
+        }
+        return null;
+    }
+
+    private Tool mapResultSetToTool(ResultSet rs) throws SQLException {
+        return new Tool(
+                rs.getInt("tool_id"),
+                rs.getString("tool_name"),
+                rs.getString("tool_description"),
+                rs.getBoolean("is_availability"),
+                rs.getTimestamp("create_at"),
+                rs.getTimestamp("last_modify"),
+                rs.getInt("server_id")
+        );
+    }
 }
