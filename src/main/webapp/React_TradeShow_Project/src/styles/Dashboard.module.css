@@ -1,0 +1,570 @@
+.dashboard {
+    flex: 1;
+    margin-left: 80px;
+    min-height: 100vh;
+    background-color: #0a0f1e;
+    padding: 2rem;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+
+        h1 {
+            font-size: 1.875rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .headerRight {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+
+            .systemStatus {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                font-size: 0.875rem;
+                color: rgba(255, 255, 255, 0.8);
+
+                .statusDot {
+                    width: 8px;
+                    height: 8px;
+                    background-color: #10B981;
+                    border-radius: 50%;
+                    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+                }
+            }
+
+            .notificationBtn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                background-color: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 8px;
+                color: white;
+                cursor: pointer;
+                transition: all 0.2s ease;
+
+                svg {
+                    width: 20px;
+                    height: 20px;
+                }
+
+                &:hover {
+                    background-color: rgba(255, 255, 255, 0.1);
+                }
+            }
+        }
+    }
+
+    .statsGrid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .statCard {
+        background-color: var(--primary-bg);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+
+        &:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .statIcon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            flex-shrink: 0;
+
+            svg {
+                width: 24px;
+                height: 24px;
+                color: white;
+            }
+        }
+
+        .statContent {
+            flex: 1;
+
+            .statLabel {
+                font-size: 0.875rem;
+                color: rgba(255, 255, 255, 0.6);
+                margin-bottom: 0.25rem;
+            }
+
+            .statValue {
+                font-size: 1.75rem;
+                font-weight: 700;
+                color: white;
+            }
+        }
+
+        .statTrend {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+
+            &.positive {
+                color: #10B981;
+                background-color: rgba(16, 185, 129, 0.1);
+            }
+
+            &.negative {
+                color: #EF4444;
+                background-color: rgba(239, 68, 68, 0.1);
+            }
+        }
+    }
+
+    .mainGrid {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .systemHealth {
+        gap: 1rem;
+        background-color: var(--primary-bg);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 1.5rem;
+
+        .sectionHeader {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+
+            h2 {
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: white;
+                margin-bottom: 0.25rem;
+            }
+
+            .sectionSubtitle {
+                font-size: 0.875rem;
+                color: rgba(255, 255, 255, 0.5);
+            }
+
+            .tabGroup {
+                display: flex;
+                gap: 0.5rem;
+                background-color: rgba(255, 255, 255, 0.05);
+                padding: 0.25rem;
+                border-radius: 8px;
+
+                .tab {
+                    padding: 0.5rem 1rem;
+                    background: transparent;
+                    border: none;
+                    color: rgba(255, 255, 255, 0.6);
+                    cursor: pointer;
+                    border-radius: 6px;
+                    font-size: 0.875rem;
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+
+                    &:hover {
+                        color: white;
+                        background-color: rgba(255, 255, 255, 0.05);
+                    }
+
+                    &.active {
+                        background-color: var(--primary-color);
+                        color: white;
+                    }
+                }
+            }
+        }
+
+        .chartContainer {
+            position: relative;
+            height: 90%;
+
+            .chart {
+                width: 100%;
+                height: 100%;
+            }
+
+            .chartLabels {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 1rem;
+                font-size: 0.75rem;
+                color: rgba(255, 255, 255, 0.5);
+            }
+        }
+    }
+
+    .sidePanel {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .quickActions {
+        background-color: var(--primary-bg);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 1.5rem;
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .actionsGrid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+
+            .actionBtn {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 1rem;
+                background-color: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                color: white;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                font-size: 0.875rem;
+
+                .actionIcon {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 10px;
+                    background-color: rgba(59, 130, 246, 0.1);
+
+                    svg {
+                        width: 20px;
+                        height: 20px;
+                    }
+                }
+
+                &:hover {
+                    background-color: rgba(255, 255, 255, 0.05);
+                    border-color: rgba(59, 130, 246, 0.5);
+                    transform: translateY(-2px);
+                }
+            }
+        }
+    }
+
+    .activeServers {
+        background-color: var(--primary-bg);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 1.5rem;
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .serversList {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+
+            .serverItem {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.875rem;
+                background-color: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+                transition: all 0.2s ease;
+
+                &:hover {
+                    background-color: rgba(255, 255, 255, 0.05);
+                }
+
+                .serverIcon {
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 36px;
+                    height: 36px;
+                    background-color: rgba(255, 255, 255, 0.05);
+                    border-radius: 8px;
+                    flex-shrink: 0;
+
+                    svg {
+                        width: 20px;
+                        height: 20px;
+                        color: rgba(255, 255, 255, 0.8);
+                    }
+
+                    .serverStatusDot {
+                        position: absolute;
+                        bottom: -2px;
+                        right: -2px;
+                        width: 10px;
+                        height: 10px;
+                        border-radius: 50%;
+                        border: 2px solid var(--primary-bg);
+
+                        &.online {
+                            background-color: #10B981;
+                        }
+
+                        &.offline {
+                            background-color: #6B7280;
+                        }
+                    }
+                }
+
+                .serverInfo {
+                    flex: 1;
+
+                    .serverName {
+                        font-size: 0.9rem;
+                        font-weight: 600;
+                        color: white;
+                        margin-bottom: 0.125rem;
+                    }
+
+                    .serverRegion {
+                        font-size: 0.75rem;
+                        color: rgba(255, 255, 255, 0.5);
+                    }
+                }
+
+                .serverLatency {
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    color: rgba(255, 255, 255, 0.7);
+                }
+            }
+        }
+
+        .addServerBtn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background-color: transparent;
+            border: 1px dashed rgba(59, 130, 246, 0.5);
+            border-radius: 10px;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+
+            svg {
+                width: 18px;
+                height: 18px;
+            }
+
+            &:hover {
+                background-color: rgba(59, 130, 246, 0.05);
+                border-color: var(--primary-color);
+            }
+        }
+    }
+
+    .topPerformingTools {
+        background-color: var(--primary-bg);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 1.5rem;
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .toolsList {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+
+            .toolItem {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                padding: 1rem;
+                background-color: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                transition: all 0.2s ease;
+
+                &:hover {
+                    background-color: rgba(255, 255, 255, 0.05);
+                    border-color: rgba(255, 255, 255, 0.2);
+                }
+
+                .toolIcon {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 48px;
+                    height: 48px;
+                    border-radius: 12px;
+                    flex-shrink: 0;
+
+                    svg {
+                        width: 24px;
+                        height: 24px;
+                        color: white;
+                    }
+                }
+
+                .toolInfo {
+                    flex: 1;
+
+                    .toolName {
+                        font-size: 0.95rem;
+                        font-weight: 600;
+                        color: white;
+                        margin-bottom: 0.25rem;
+                        font-family: 'Courier New', monospace;
+                    }
+
+                    .toolRequests {
+                        font-size: 0.8rem;
+                        color: rgba(255, 255, 255, 0.5);
+                    }
+                }
+
+                .toolStats {
+                    text-align: right;
+
+                    .toolAvgTime {
+                        font-size: 0.875rem;
+                        font-weight: 600;
+                        color: white;
+                        margin-bottom: 0.25rem;
+                    }
+
+                    .toolSuccess {
+                        font-size: 0.75rem;
+                        font-weight: 600;
+                        color: #10B981;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 1440px) {
+    .dashboard {
+        .mainGrid {
+            grid-template-columns: 1fr 350px;
+        }
+    }
+}
+
+@media (max-width: 1024px) {
+    .dashboard {
+        margin-left: 0;
+        padding: 1.5rem;
+
+        .mainGrid {
+            grid-template-columns: 1fr;
+
+            .sidePanel {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            }
+        }
+
+        .statsGrid {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+    }
+}
+
+@media (max-width: 640px) {
+    .dashboard {
+        padding: 1rem;
+
+        .header {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .headerRight {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        .statsGrid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .statCard {
+            padding: 1.25rem;
+
+            .statContent .statValue {
+                font-size: 1.5rem;
+            }
+        }
+
+        .mainGrid {
+            gap: 1rem;
+
+            .sidePanel {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .quickActions .actionsGrid {
+            grid-template-columns: 1fr;
+        }
+    }
+}
