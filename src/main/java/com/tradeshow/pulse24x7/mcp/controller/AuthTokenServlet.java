@@ -37,7 +37,7 @@ public class AuthTokenServlet extends HttpServlet {
             throws ServletException, IOException {
         logger.info("GET request to AuthTokenServlet");
         
-        resp.setContentType(Constants.CONTENT_TYPE_JSON);
+//        resp.setContentType(Constants.CONTENT_TYPE_JSON);
         resp.setCharacterEncoding("UTF-8");
         
         String serverIdStr = req.getParameter("serverId");
