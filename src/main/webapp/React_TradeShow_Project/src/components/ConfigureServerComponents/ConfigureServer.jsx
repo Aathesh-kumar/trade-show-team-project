@@ -5,40 +5,45 @@ import Breadcrumb from './Breadcrumb';
 import FormSection from './FormSection';
 import InputField from './InputField';
 import { SelectField, SliderField, ToggleField, Toast } from './FormFields';
+import DateTimeField from './DateTimeField';
 import LoadingDots from '../LoadingComponents/LoadingDots';
-import { MdBook, MdHelp, MdSensors } from 'react-icons/md';
+import { MdBook, MdMessage, MdSensors } from 'react-icons/md';
 
 export default function ConfigureServer({ onClose, onSuccess }) {
     const [formData, setFormData] = useState({
         serverName: '',
         serverUrl: '',
         headerType: 'Bearer Token',
-        apiKey: '',
+        accessToken: '',
+        refreshToken: '',
+        expiresAt: '',
         connectionTimeout: 5000,
         autoReconnect: true
     });
 
-    const [showApiKey, setShowApiKey] = useState(false);
+    const [showAccessToken, setShowAccessToken] = useState(false);
+    const [showRefreshToken, setShowRefreshToken] = useState(false);
     const [toast, setToast] = useState(null);
     const [testingConnection, setTestingConnection] = useState(false);
 
-    const { loading, error, execute } = usePost('http://localhost:8080/trade-show-team-project/server', {
+    const { loading, error, execute } = usePost("http://localhost:8080/trade-show-team-project", {
         validateData: (data) => {
-            if (!data.serverName || data.serverName.trim().length < 3) {
+            if (!data.get('serverName') || data.get('serverName').trim().length < 3) {
                 return 'Server name must be at least 3 characters';
             }
-            // if (!data.serverUrl || !data.serverUrl.match(/^wss?:\/\/.+/)) {
+            // if (!data.get('serverUrl') || !data.get('serverUrl').match(/^wss?:\/\/.+/)) {
             //     return 'Invalid server URL format (must start with ws:// or wss://)';
             // }
-            if (!data.apiKey || data.apiKey.trim().length < 10) {
-                return 'API key must be at least 10 characters';
+            if (data.get('accessToken') && data.get('accessToken').trim().length < 10) {
+                return 'Access token must be at least 10 characters';
             }
             return true;
         },
         onSuccess: (response) => {
+            const server = response?.data || response;
             setToast({ type: 'success', message: 'Server configured successfully!' });
             setTimeout(() => {
-                onSuccess && onSuccess(response);
+                onSuccess && onSuccess(server);
             }, 2000);
         },
         onError: (error) => {
@@ -61,8 +66,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
             // Simulate connection test
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // In real implementation, call actual API
-            const success = Math.random() > 0.3; // 70% success rate for demo
+            const success = Math.random() > 0.3;
 
             if (success) {
                 setToast({
@@ -88,8 +92,24 @@ export default function ConfigureServer({ onClose, onSuccess }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Create URL-encoded form data for backend
+        const formParams = new URLSearchParams();
+        formParams.append('serverName', formData.serverName);
+        formParams.append('serverUrl', formData.serverUrl);
+
+        // Add tokens only if provided
+        if (formData.accessToken) {
+            formParams.append('accessToken', formData.accessToken);
+        }
+        if (formData.refreshToken) {
+            formParams.append('refreshToken', formData.refreshToken);
+        }
+        if (formData.expiresAt) {
+            formParams.append('expiresAt', formData.expiresAt);
+        }
+
         try {
-            await execute(formData);
+            await execute(formParams);
         } catch (err) {
             // Error already handled by hook
         }
@@ -140,30 +160,46 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                         icon="lock"
                         title="AUTHENTICATION"
                     >
-                        <div className={ConfigureServerStyles.authFields}>
-                            <SelectField
-                                label="Header Type"
-                                value={formData.headerType}
-                                onChange={(value) => handleInputChange('headerType', value)}
-                                options={[
-                                    'Bearer Token',
-                                    'API Key',
-                                    'OAuth 2.0',
-                                    'Basic Auth'
-                                ]}
-                            />
+                        <SelectField
+                            label="Header Type"
+                            value={formData.headerType}
+                            onChange={(value) => handleInputChange('headerType', value)}
+                            options={[
+                                'Bearer Token',
+                                'API Key',
+                                'OAuth 2.0',
+                                'Basic Auth'
+                            ]}
+                        />
 
-                            <InputField
-                                label="API Key / Token"
-                                type={showApiKey ? 'text' : 'password'}
-                                placeholder="••••••••••••••••"
-                                value={formData.apiKey}
-                                onChange={(value) => handleInputChange('apiKey', value)}
-                                required
-                                showToggle
-                                onToggle={() => setShowApiKey(!showApiKey)}
-                            />
-                        </div>
+                        <InputField
+                            label="Access Token"
+                            type={showAccessToken ? 'text' : 'password'}
+                            placeholder="Enter your access token"
+                            value={formData.accessToken}
+                            onChange={(value) => handleInputChange('accessToken', value)}
+                            showToggle
+                            onToggle={() => setShowAccessToken(!showAccessToken)}
+                            tooltip="Primary authentication token for API access"
+                        />
+
+                        <InputField
+                            label="Refresh Token (Optional)"
+                            type={showRefreshToken ? 'text' : 'password'}
+                            placeholder="Enter refresh token if available"
+                            value={formData.refreshToken}
+                            onChange={(value) => handleInputChange('refreshToken', value)}
+                            showToggle
+                            onToggle={() => setShowRefreshToken(!showRefreshToken)}
+                            tooltip="Token used to refresh the access token when it expires"
+                        />
+
+                        <DateTimeField
+                            label="Token Expiry Time (Optional)"
+                            value={formData.expiresAt}
+                            onChange={(value) => handleInputChange('expiresAt', value)}
+                            tooltip="When the access token will expire"
+                        />
                     </FormSection>
 
                     <FormSection
@@ -189,12 +225,12 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                         />
                     </FormSection>
 
-                    {!formData.serverUrl || !formData.apiKey ? (
+                    {!formData.serverUrl || !formData.accessToken ? (
                         <div className={ConfigureServerStyles.testInfo}>
-                            <span className={ConfigureServerStyles.infoIcon}>{<MdSensors/>}</span>
+                            <span className={ConfigureServerStyles.infoIcon}>{<MdSensors />}</span>
                             <div>
                                 <strong>Test connection status</strong>
-                                <p>Enter a valid URL and API key above to verify the server status before saving.</p>
+                                <p>Enter a valid URL and access token above to verify the server status before saving.</p>
                             </div>
                         </div>
                     ) : null}
@@ -213,7 +249,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                             type="button"
                             className={ConfigureServerStyles.testBtn}
                             onClick={handleTestConnection}
-                            disabled={!formData.serverUrl || !formData.apiKey || testingConnection || loading}
+                            disabled={!formData.serverUrl || !formData.accessToken || testingConnection || loading}
                         >
                             {testingConnection ? (
                                 <>
@@ -222,7 +258,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                                 </>
                             ) : (
                                 <>
-                                    <MdSensors/> Test Connection
+                                    {<MdSensors />} Test Connection
                                 </>
                             )}
                         </button>
@@ -239,7 +275,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
 
                 <footer className={ConfigureServerStyles.helpSection}>
                     <div className={ConfigureServerStyles.helpCard}>
-                        <span className={ConfigureServerStyles.helpIcon}>{<MdBook/>}</span>
+                        <span className={ConfigureServerStyles.helpIcon}>{<MdBook />}</span>
                         <div>
                             <strong>Need help with MCP?</strong>
                             <p>Check our documentation for server setup guides.</p>
@@ -247,7 +283,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                     </div>
 
                     <div className={ConfigureServerStyles.helpCard}>
-                        <span className={ConfigureServerStyles.helpIcon}>{<MdHelp/>}</span>
+                        <span className={ConfigureServerStyles.helpIcon}>{<MdMessage />}</span>
                         <div>
                             <strong>Community Support</strong>
                             <p>Ask questions in our developer discord channel.</p>

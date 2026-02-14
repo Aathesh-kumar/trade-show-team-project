@@ -8,11 +8,6 @@ export const usePost = (url, options = {}) => {
         validateData
     } = options;
 
-    // console.log("Headers: "+headers);
-    // console.log("OnSuccess: " + onSuccess);
-    // console.log("OnError: " + onError);
-    // console.log("Validation: " + validateData);
-
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);

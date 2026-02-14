@@ -1,18 +1,68 @@
 import ConfigureServerStyles from '../../styles/ConfigureServer.module.css';
 import { MdExpandMore, MdInfoOutline, MdCheck, MdClose } from 'react-icons/md';
+import { useState } from 'react';
 
 export function SelectField({ label, value, onChange, options }) {
+    const [isCustom, setIsCustom] = useState(false);
+    const [customValue, setCustomValue] = useState('');
+
+    const handleSelectChange = (e) => {
+        const selectedValue = e.target.value;
+        
+        if (selectedValue === '__custom__') {
+            setIsCustom(true);
+            onChange(customValue || '');
+        } else {
+            setIsCustom(false);
+            onChange(selectedValue);
+        }
+    };
+
+    const handleCustomInputChange = (e) => {
+        const newValue = e.target.value;
+        setCustomValue(newValue);
+        onChange(newValue);
+    };
+
     return (
         <div className={ConfigureServerStyles.selectField}>
             <label>{label}</label>
-            <div className={ConfigureServerStyles.selectWrapper}>
-                <select value={value} onChange={(e) => onChange(e.target.value)}>
-                    {options.map(option => (
-                        <option key={option} value={option}>{option}</option>
-                    ))}
-                </select>
-                <MdExpandMore className={ConfigureServerStyles.selectIcon} />
-            </div>
+            
+            {!isCustom ? (
+                <div className={ConfigureServerStyles.selectWrapper}>
+                    <select 
+                        value={options.includes(value) ? value : '__custom__'} 
+                        onChange={handleSelectChange}
+                    >
+                        {options.map(option => (
+                            <option key={option} value={option}>{option}</option>
+                        ))}
+                        <option value="__custom__">Custom Header Type...</option>
+                    </select>
+                    <MdExpandMore className={ConfigureServerStyles.selectIcon} />
+                </div>
+            ) : (
+                <div className={ConfigureServerStyles.customHeaderWrapper}>
+                    <input
+                        type="text"
+                        placeholder="Enter custom header type (e.g., X-API-Key)"
+                        value={customValue}
+                        onChange={handleCustomInputChange}
+                        className={ConfigureServerStyles.customHeaderInput}
+                        autoFocus
+                    />
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsCustom(false);
+                            onChange(options[0]); // Reset to first option
+                        }}
+                        className={ConfigureServerStyles.cancelCustomBtn}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
@@ -29,7 +79,7 @@ export function SliderField({ label, value, onChange, min, max, step, unit, tool
                         </span>
                     )}
                 </label>
-                <span className={ConfigureServerStyles.sliderValue}>{value.toLocaleString()} {unit}</span>
+                <span className={ConfigureServerStyles.sliderValue}>{value}{unit}</span>
             </div>
             <input
                 type="range"
@@ -73,7 +123,7 @@ export function Toast({ type, message, onClose }) {
         <div className={`${ConfigureServerStyles.toast} ${ConfigureServerStyles[type]}`}>
             <div className={ConfigureServerStyles.toastContent}>
                 <span className={ConfigureServerStyles.toastIcon}>
-                    {type === 'success' ? <MdCheck/> : <MdClose/> }
+                    {type === 'success' ? '✓' : '✕'}
                 </span>
                 <span className={ConfigureServerStyles.toastMessage}>{message}</span>
             </div>
