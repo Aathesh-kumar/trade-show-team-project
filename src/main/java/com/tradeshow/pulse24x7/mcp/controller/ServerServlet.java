@@ -14,10 +14,12 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +39,8 @@ public class ServerServlet extends HttpServlet {
         authTokenService = new AuthTokenService();
         monitoringService = new MonitoringService();
         logger.info("ServerServlet initialized");
+        System.out.println(System.getProperty("user.dir"));
+
     }
 
     @Override
@@ -44,8 +48,8 @@ public class ServerServlet extends HttpServlet {
             throws ServletException, IOException {
         logger.info("GET request to ServerServlet: {}", req.getPathInfo());
 
-        resp.setContentType(Constants.CONTENT_TYPE_JSON);
-        resp.setCharacterEncoding("UTF-8");
+        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
+        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
 
         String pathInfo = req.getPathInfo();
 
@@ -73,8 +77,8 @@ public class ServerServlet extends HttpServlet {
             throws ServletException, IOException {
         logger.info("POST request to ServerServlet: {}", req.getPathInfo());
 
-        resp.setContentType(Constants.CONTENT_TYPE_JSON);
-        resp.setCharacterEncoding("UTF-8");
+        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
+        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
 
         String pathInfo = req.getPathInfo();
 
@@ -99,8 +103,8 @@ public class ServerServlet extends HttpServlet {
             throws ServletException, IOException {
         logger.info("PUT request to ServerServlet");
 
-        resp.setContentType(Constants.CONTENT_TYPE_JSON);
-        resp.setCharacterEncoding("UTF-8");
+        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
+        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
 
         try {
             handleUpdateServer(req, resp);
@@ -115,8 +119,8 @@ public class ServerServlet extends HttpServlet {
             throws ServletException, IOException {
         logger.info("DELETE request to ServerServlet");
 
-        resp.setContentType(Constants.CONTENT_TYPE_JSON);
-        resp.setCharacterEncoding("UTF-8");
+        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
+        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
 
         try {
             handleDeleteServer(req, resp);
@@ -137,7 +141,7 @@ public class ServerServlet extends HttpServlet {
 
         // Validate inputs
         if (serverName == null || serverName.trim().isEmpty()) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_NAME, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp, "Server name is required and cannot be empty", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 

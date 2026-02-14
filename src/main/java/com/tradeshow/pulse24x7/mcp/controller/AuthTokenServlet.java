@@ -3,7 +3,6 @@ package com.tradeshow.pulse24x7.mcp.controller;
 import com.google.gson.JsonObject;
 import com.tradeshow.pulse24x7.mcp.model.AuthToken;
 import com.tradeshow.pulse24x7.mcp.service.AuthTokenService;
-import com.tradeshow.pulse24x7.mcp.utils.Constants;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import com.tradeshow.pulse24x7.mcp.utils.TimeUtil;
 import jakarta.servlet.ServletException;
@@ -69,8 +68,8 @@ public class AuthTokenServlet extends HttpServlet {
             throws ServletException, IOException {
         logger.info("POST request to AuthTokenServlet");
         
-        resp.setContentType(Constants.CONTENT_TYPE_JSON);
-        resp.setCharacterEncoding("UTF-8");
+        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
+        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
         
         String serverIdStr = req.getParameter("serverId");
         String accessToken = req.getParameter("accessToken");
@@ -88,9 +87,10 @@ public class AuthTokenServlet extends HttpServlet {
             Integer serverId = Integer.parseInt(serverIdStr);
             Timestamp expiresAt = null;
             
-            if (expiresAtStr != null && !expiresAtStr.trim().isEmpty())
+            if (expiresAtStr != null && !expiresAtStr.trim().isEmpty()){
                 expiresAt = TimeUtil.parseTimestamp(expiresAtStr);
-            
+            }
+
             boolean saved = authTokenService.saveToken(serverId, accessToken, refreshToken, expiresAt);
             
             if (saved) {

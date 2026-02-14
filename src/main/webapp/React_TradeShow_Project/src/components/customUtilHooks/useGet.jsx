@@ -15,7 +15,6 @@ export const useGet = (url, options = {}) => {
     const [loading, setLoading] = useState(immediate);
     const [error, setError] = useState(null);
 
-    // Build URL with query parameters
     const buildUrl = () => {
         if (!url) {
             throw new Error('URL is required for GET request');
@@ -28,16 +27,12 @@ export const useGet = (url, options = {}) => {
     // Main fetch function
     const fetchData = async (signal) => {
         try {
-            // ========================================
-            // VALIDATION 1: Check if URL is provided
-            // ========================================
+            // url validation
             if (!url) {
                 throw new Error('URL cannot be empty');
             }
 
-            // ========================================
-            // VALIDATION 2: Check URL format
-            // ========================================
+            // url formating
             if (typeof url !== 'string') {
                 throw new Error('URL must be a string');
             }
@@ -47,9 +42,7 @@ export const useGet = (url, options = {}) => {
 
             const fullUrl = buildUrl();
 
-            // ========================================
-            // VALIDATION 3: Check params object
-            // ========================================
+            // url params validation
             if (params && typeof params !== 'object') {
                 throw new Error('Params must be an object');
             }
@@ -63,54 +56,47 @@ export const useGet = (url, options = {}) => {
                 signal // For cleanup/abort
             });
 
-            // ========================================
-            // VALIDATION 4: Check response status
-            // ========================================
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                
-                // Handle specific HTTP status codes
-                if (response.status === 400) {
-                    throw new Error(errorData.message || 'Bad Request: Invalid parameters');
-                } else if (response.status === 401) {
-                    throw new Error('Unauthorized: Please login to continue');
-                } else if (response.status === 403) {
-                    throw new Error('Forbidden: You do not have permission to access this resource');
-                } else if (response.status === 404) {
-                    throw new Error('Not Found: The requested resource does not exist');
-                } else if (response.status === 500) {
-                    throw new Error('Server Error: Please try again later');
-                } else if (response.status === 503) {
-                    throw new Error('Service Unavailable: Server is temporarily down');
-                } else {
-                    throw new Error(
-                        errorData.message || 
-                        `HTTP Error: ${response.status} ${response.statusText}`
-                    );
+
+                switch (response.status) {
+                    case 400:
+                        throw new Error(errorData.message || 'Bad Request: Invalid parameters')
+                    case 401:
+                        throw new Error('Unauthorized: Please login to continue');
+                    case 402:
+                        throw new Error('Forbidden: You do not have permission to access this resource');
+                    case 403:
+                        throw new Error('Not Found: The requested resource does not exist');
+                    case 404:
+                        throw new Error('Server Error: Please try again later');
+                    case 503:
+                        throw new Error('Service Unavailable: Server is temporarily down');
+                    default:
+                        throw new Error(
+                            errorData.message ||
+                            `HTTP Error: ${response.status} ${response.statusText}`
+                        );
                 }
             }
 
-            // ========================================
-            // VALIDATION 5: Parse response
-            // ========================================
+            // parsing the result
             let result;
             const contentType = response.headers.get('content-type');
-            
+
             if (contentType && contentType.includes('application/json')) {
                 result = await response.json();
             } else {
                 throw new Error('Response is not JSON format');
             }
 
-            // ========================================
-            // VALIDATION 6: Check if response has data
-            // ========================================
+            // Check if response has data
             if (result === null || result === undefined) {
                 throw new Error('No data received from server');
             }
 
             setData(result);
-            
+
             // Success callback
             if (onSuccess) {
                 onSuccess(result);
@@ -125,22 +111,18 @@ export const useGet = (url, options = {}) => {
                 return;
             }
 
-            // ========================================
-            // VALIDATION 7: Network errors
-            // ========================================
+            // Network errors
             if (err.message === 'Failed to fetch') {
                 err.message = 'Network error. Please check your internet connection.';
             }
 
-            // ========================================
-            // VALIDATION 8: Timeout errors
-            // ========================================
+            // Timeout errors
             if (err.name === 'TimeoutError') {
                 err.message = 'Request timeout. The server took too long to respond.';
             }
 
             setError(err.message);
-            
+
             // Error callback
             if (onError) {
                 onError(err);
