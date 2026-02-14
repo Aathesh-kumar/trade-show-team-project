@@ -39,6 +39,8 @@ public class ServerServlet extends HttpServlet {
         authTokenService = new AuthTokenService();
         monitoringService = new MonitoringService();
         logger.info("ServerServlet initialized");
+        System.out.println(System.getProperty("user.dir"));
+
     }
 
     @Override
@@ -46,8 +48,8 @@ public class ServerServlet extends HttpServlet {
             throws ServletException, IOException {
         logger.info("GET request to ServerServlet: {}", req.getPathInfo());
 
-        resp.setContentType(Constants.CONTENT_TYPE_JSON);
-        resp.setCharacterEncoding("UTF-8");
+        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
+        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
 
         String pathInfo = req.getPathInfo();
 
