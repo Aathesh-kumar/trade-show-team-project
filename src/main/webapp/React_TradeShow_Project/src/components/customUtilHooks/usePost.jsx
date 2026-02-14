@@ -8,6 +8,11 @@ export const usePost = (url, options = {}) => {
         validateData
     } = options;
 
+    // console.log("Headers: "+headers);
+    // console.log("OnSuccess: " + onSuccess);
+    // console.log("OnError: " + onError);
+    // console.log("Validation: " + validateData);
+
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -88,9 +93,11 @@ export const usePost = (url, options = {}) => {
             return result;
 
         } catch (err) {
+            console.log(requestData);
+            
             // Validation: Network errors
             if (err.message === 'Failed to fetch') {
-                err.message = 'Network error. Please check your internet connection.';
+                err.message = 'Network error. Please check your internet connection.' + err;
             }
 
             setError(err.message);

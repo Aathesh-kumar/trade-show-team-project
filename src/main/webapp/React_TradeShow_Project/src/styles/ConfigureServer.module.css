@@ -530,6 +530,7 @@
 .toastIcon {
     font-size: 1.25rem;
     font-weight: 700;
+    display: inline-flex;
 }
 
 .toastMessage {
@@ -543,7 +544,7 @@
     color: currentColor;
     cursor: pointer;
     padding: 0.25rem;
-    display: flex;
+    display: inline-flex;
     border-radius: 4px;
     transition: background-color 0.2s;
 }

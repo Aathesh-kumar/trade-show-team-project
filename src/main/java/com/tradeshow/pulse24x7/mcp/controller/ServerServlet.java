@@ -132,7 +132,10 @@ public class ServerServlet extends HttpServlet {
 
     private void handleRegisterServer(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
+        System.out.println(req.getRequestURL());
         String serverName = req.getParameter("serverName");
+        System.out.println(serverName);
+
         String serverUrl = req.getParameter("serverUrl");
         String accessToken = req.getParameter("accessToken");
         String refreshToken = req.getParameter("refreshToken");
@@ -198,9 +201,7 @@ public class ServerServlet extends HttpServlet {
         }
     }
 
-    /**
-     * Handle get all servers
-     */
+
     private void handleGetAllServers(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
         List<Server> servers = serverService.getAllServers();
