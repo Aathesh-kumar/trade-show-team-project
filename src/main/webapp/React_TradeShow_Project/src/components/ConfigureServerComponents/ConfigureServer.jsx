@@ -39,6 +39,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
             if (data.accessToken && data.accessToken.trim().length < 10) {
                 return 'Access token must be at least 10 characters';
             }
+            console.log(data.serverName);
             return true;
         },
         onSuccess: (response) => {
