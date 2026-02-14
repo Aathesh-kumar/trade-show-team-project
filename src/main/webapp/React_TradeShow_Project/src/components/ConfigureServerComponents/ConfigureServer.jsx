@@ -33,6 +33,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
             if (!data.apiKey || data.apiKey.trim().length < 10) {
                 return 'API key must be at least 10 characters';
             }
+            console.log(data.serverName);
             return true;
         },
         onSuccess: (response) => {

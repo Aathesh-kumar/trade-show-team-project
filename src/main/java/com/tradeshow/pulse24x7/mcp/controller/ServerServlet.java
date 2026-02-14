@@ -1,5 +1,7 @@
 package com.tradeshow.pulse24x7.mcp.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.tradeshow.pulse24x7.mcp.model.Server;
 import com.tradeshow.pulse24x7.mcp.model.ServerHistory;
@@ -17,6 +19,7 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -132,11 +135,24 @@ public class ServerServlet extends HttpServlet {
 
     private void handleRegisterServer(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        System.out.println(req.getRequestURL());
-        String serverName = req.getParameter("serverName");
-        System.out.println(serverName);
+        StringBuilder jsonBuffer = new StringBuilder();
+        String line;
+        try (BufferedReader reader = req.getReader()) {
+            while ((line = reader.readLine()) != null) {
+                jsonBuffer.append(line);
+            }
+        }
 
-        String serverUrl = req.getParameter("serverUrl");
+        String jsonString = jsonBuffer.toString();
+        System.out.println("Received JSON: " + jsonString);
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode node = mapper.readTree(jsonString);
+
+
+        System.out.println(req.getRequestURL());
+        String serverName = node.get("serverName").asText();
+        String serverUrl = node.get("serverUrl").asText();
         String accessToken = req.getParameter("accessToken");
         String refreshToken = req.getParameter("refreshToken");
         String expiresAtStr = req.getParameter("expiresAt");
