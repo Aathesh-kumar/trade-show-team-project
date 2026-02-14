@@ -10,6 +10,7 @@ import com.tradeshow.pulse24x7.mcp.model.ToolHistory;
 import com.tradeshow.pulse24x7.mcp.utils.Constants;
 import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -35,21 +36,17 @@ public class ToolService {
         logger.info("Fetching tools from server ID: {}", serverId);
         
         try {
-            // Create MCP tools/list request
             Map<String, Object> params = new HashMap<>();
-            JsonObject request = JsonUtil.createMCPRequest(Constants.METHOD_TOOLS_LIST, params);
-            
-            // Prepare headers
+            JsonObject request = JsonUtil.createMCPRequest("tools/list", params);
+
             Map<String, String> headers = new HashMap<>();
-            headers.put(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON);
+            headers.put("Content-Type", String.valueOf(ContentType.APPLICATION_JSON));
             if (accessToken != null && !accessToken.isEmpty()) {
-                headers.put(Constants.HEADER_AUTHORIZATION, "Zoho-oauthtoken " + accessToken);
+                headers.put("Authorization", "Zoho-oauthtoken " + accessToken);
             }
-            
-            // Make HTTP request
+
             JsonObject response = HttpClientUtil.doPost(serverUrl, headers, request.toString());
-            
-            // Parse tools from response
+
             List<Tool> tools = parseToolsFromResponse(response, serverId);
             
             // Update database
