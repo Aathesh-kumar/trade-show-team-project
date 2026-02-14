@@ -5,17 +5,18 @@ import com.tradeshow.pulse24x7.mcp.model.ServerHistory;
 import com.tradeshow.pulse24x7.mcp.model.ToolHistory;
 import com.tradeshow.pulse24x7.mcp.service.ServerService;
 import com.tradeshow.pulse24x7.mcp.service.ToolService;
-import com.tradeshow.pulse24x7.mcp.utils.Constants;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,8 +40,8 @@ public class HistoryServlet extends HttpServlet {
             throws ServletException, IOException {
         logger.info("GET request to HistoryServlet: {}", req.getPathInfo());
         
-        resp.setContentType(Constants.CONTENT_TYPE_JSON);
-        resp.setCharacterEncoding("UTF-8");
+        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
+        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
         
         String pathInfo = req.getPathInfo();
         
@@ -64,7 +65,7 @@ public class HistoryServlet extends HttpServlet {
         String hoursStr = req.getParameter("hours");
         
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp,"Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
         

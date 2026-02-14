@@ -34,14 +34,12 @@ public class MonitoringService {
         logger.info("Starting server monitoring for server ID: {}", serverId);
         
         try {
-            // Get server details
             Server server = serverService.getServerById(serverId);
             if (server == null) {
-                logger.error("Server not found: {}", serverId);
+                logger.error("Server not found: " + serverId);
                 return;
             }
-            
-            // Check if server is reachable
+
             boolean serverUp = HttpClientUtil.isServerReachable(server.getServerUrl());
             logger.info("Server {} is {}", serverId, serverUp ? "UP" : "DOWN");
             
@@ -69,15 +67,13 @@ public class MonitoringService {
                 
                 logger.info("Fetched {} tools from server {}", toolCount, serverId);
             }
-            
-            // Record server history
+
             serverHistoryDAO.insertHistory(serverId, serverUp, toolCount);
             
             logger.info("Server monitoring completed for server ID: {}", serverId);
             
         } catch (Exception e) {
             logger.error("Failed to monitor server ID: {}", serverId, e);
-            // Record server as down
             serverHistoryDAO.insertHistory(serverId, false, 0);
         }
     }

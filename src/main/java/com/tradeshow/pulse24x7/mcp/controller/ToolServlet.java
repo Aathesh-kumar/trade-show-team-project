@@ -4,17 +4,18 @@ import com.google.gson.JsonObject;
 import com.tradeshow.pulse24x7.mcp.model.Tool;
 import com.tradeshow.pulse24x7.mcp.model.ToolHistory;
 import com.tradeshow.pulse24x7.mcp.service.ToolService;
-import com.tradeshow.pulse24x7.mcp.utils.Constants;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +37,8 @@ public class ToolServlet extends HttpServlet {
             throws ServletException, IOException {
         logger.info("GET request to ToolServlet: {}", req.getPathInfo());
 
-        resp.setContentType(Constants.CONTENT_TYPE_JSON);
-        resp.setCharacterEncoding("UTF-8");
+        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
+        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
 
         String pathInfo = req.getPathInfo();
 
@@ -64,7 +65,7 @@ public class ToolServlet extends HttpServlet {
         String serverIdStr = req.getParameter("serverId");
 
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
@@ -78,7 +79,7 @@ public class ToolServlet extends HttpServlet {
 
             sendSuccessResponse(resp, tools);
         } catch (NumberFormatException e) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 
@@ -87,7 +88,7 @@ public class ToolServlet extends HttpServlet {
         String serverIdStr = req.getParameter("serverId");
 
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
@@ -101,7 +102,7 @@ public class ToolServlet extends HttpServlet {
 
             sendSuccessResponse(resp, tools);
         } catch (NumberFormatException e) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 

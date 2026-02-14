@@ -4,7 +4,6 @@ import com.tradeshow.pulse24x7.mcp.dao.ServerDAO;
 import com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO;
 import com.tradeshow.pulse24x7.mcp.model.Server;
 import com.tradeshow.pulse24x7.mcp.model.ServerHistory;
-import com.tradeshow.pulse24x7.mcp.utils.Constants;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -122,7 +121,7 @@ public class ServerService {
     private boolean validateServerName(String serverName) {
         return serverName != null 
                 && !serverName.trim().isEmpty() 
-                && serverName.length() <= Constants.MAX_SERVER_NAME_LENGTH;
+                && serverName.length() <= 100;
     }
 
     private boolean validateServerUrl(String serverUrl) {
@@ -130,11 +129,10 @@ public class ServerService {
             return false;
         }
         
-        if (serverUrl.length() > Constants.MAX_SERVER_URL_LENGTH) {
+        if (serverUrl.length() > 255) {
             return false;
         }
-        
-        // Basic URL validation
+
         return serverUrl.startsWith("http://") || serverUrl.startsWith("https://");
     }
 }
