@@ -1,0 +1,587 @@
+.configurePage {
+    min-height: 100vh;
+    background-color: #0a0f1e;
+    color: white;
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
+    margin: auto;
+    width: 100%;
+}
+
+.container {
+    max-width: 900px;
+    flex-grow: 1;
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.breadcrumbItem {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.breadcrumbItem a {
+    color: rgba(255, 255, 255, 0.6);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.breadcrumbItem a:hover {
+    color: white;
+}
+
+.breadcrumbItem .active {
+    color: white;
+}
+
+.separator {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* Header */
+.header {
+    margin-bottom: 2rem;
+}
+
+.header h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+}
+
+.header p {
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+}
+
+/* Form */
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.formSection {
+    background-color: #0F172A;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.sectionTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 1.5rem 0;
+}
+
+.sectionIcon {
+    font-size: 1rem;
+}
+
+.sectionContent {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* Input Field */
+.inputField {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.inputField label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.required {
+    color: #EF4444;
+}
+
+.tooltip {
+    color: rgba(255, 255, 255, 0.4);
+    cursor: help;
+    display: inline-flex;
+}
+
+.inputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.inputWrapper input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.inputWrapper input.withIcon {
+    padding-left: 2.75rem;
+}
+
+.inputWrapper input:focus {
+    outline: none;
+    border-color: #3B82F6;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.inputWrapper input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.inputIcon {
+    position: absolute;
+    left: 1rem;
+    color: rgba(255, 255, 255, 0.5);
+    display: flex;
+}
+
+.toggleBtn {
+    position: absolute;
+    right: 0.5rem;
+    padding: 0.5rem;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    display: flex;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.toggleBtn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/* Select Field */
+.selectField {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.selectField label {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.selectWrapper {
+    position: relative;
+}
+
+.selectWrapper select {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    padding-right: 2.5rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    font-size: 0.95rem;
+    cursor: pointer;
+    appearance: none;
+}
+
+.selectIcon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Auth Fields */
+.authFields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+/* Slider Field */
+.sliderField {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.sliderHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sliderHeader label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.sliderValue {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #3B82F6;
+}
+
+.slider {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    outline: none;
+    appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #3B82F6;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #3B82F6;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+/* Toggle Field */
+.toggleField {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: rgba(16, 185, 129, 0.05);
+    border: 1px dashed rgba(16, 185, 129, 0.3);
+    border-radius: 8px;
+}
+
+.toggleInfo {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.toggleCheck {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background-color: rgba(16, 185, 129, 0.2);
+    border-radius: 50%;
+    color: #10B981;
+    flex-shrink: 0;
+}
+
+.toggleInfo strong {
+    display: block;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+.toggleInfo p {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+}
+
+.toggleSwitch {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.toggleSwitch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggleSlider {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 26px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.toggleSlider:before {
+    content: "";
+    position: absolute;
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.toggleSwitch input:checked + .toggleSlider {
+    background-color: #10B981;
+}
+
+.toggleSwitch input:checked + .toggleSlider:before {
+    transform: translateX(22px);
+}
+
+/* Test Info */
+.testInfo {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background-color: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 8px;
+}
+
+.infoIcon {
+    font-size: 1.25rem;
+}
+
+.testInfo strong {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.testInfo p {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+}
+
+/* Actions */
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.actions button {
+    padding: 0.875rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cancelBtn {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.cancelBtn:hover:not(:disabled) {
+    color: white;
+}
+
+.testBtn {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.testBtn:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.saveBtn {
+    background-color: #3B82F6;
+    color: white;
+}
+
+.saveBtn:hover:not(:disabled) {
+    background-color: #2563EB;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Help Section */
+.helpSection {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.helpCard {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.helpIcon {
+    font-size: 1.5rem;
+}
+
+.helpCard strong {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.helpCard p {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 300px;
+    max-width: 500px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.toast.success {
+    background-color: rgba(16, 185, 129, 0.2);
+    border: 1px solid #10B981;
+    color: #10B981;
+}
+
+.toast.error {
+    background-color: rgba(239, 68, 68, 0.2);
+    border: 1px solid #EF4444;
+    color: #EF4444;
+}
+
+.toastContent {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.toastIcon {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.toastMessage {
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.toastClose {
+    background: transparent;
+    border: none;
+    color: currentColor;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.toastClose:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .configurePage {
+        padding: 1rem;
+    }
+
+    .header h1 {
+        font-size: 1.5rem;
+    }
+
+    .authFields {
+        grid-template-columns: 1fr;
+    }
+
+    .actions {
+        flex-direction: column-reverse;
+    }
+
+    .actions button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .toast {
+        right: 1rem;
+        left: 1rem;
+        min-width: auto;
+    }
+
+    .helpSection {
+        grid-template-columns: 1fr;
+    }
+}
