@@ -1,6 +1,5 @@
 package com.tradeshow.pulse24x7.mcp.scheduler;
 
-import com.tradeshow.pulse24x7.mcp.utils.Constants;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
@@ -24,15 +23,15 @@ public class MonitorScheduler implements ServletContextListener {
             
             // Create server monitoring job
             JobDetail serverMonitorJob = JobBuilder.newJob(ServerMonitorTask.class)
-                    .withIdentity(Constants.SERVER_MONITOR_JOB, Constants.SCHEDULER_GROUP)
+                    .withIdentity("ServerMonitorJob", "MCP_MONITOR_GROUP")
                     .build();
             
             // Create trigger for server monitoring (runs every hour)
             Trigger serverMonitorTrigger = TriggerBuilder.newTrigger()
-                    .withIdentity("ServerMonitorTrigger", Constants.SCHEDULER_GROUP)
+                    .withIdentity("ServerMonitorTrigger", "MCP_MONITOR_GROUP")
                     .startNow()
                     .withSchedule(SimpleScheduleBuilder.simpleSchedule()
-                            .withIntervalInMinutes(Constants.MONITOR_INTERVAL_MINUTES)
+                            .withIntervalInMinutes(10)
                             .repeatForever())
                     .build();
             
@@ -43,7 +42,7 @@ public class MonitorScheduler implements ServletContextListener {
             scheduler.start();
             
             logger.info("MCP Monitor Scheduler started successfully. " +
-                    "Monitoring interval: {} minutes", Constants.MONITOR_INTERVAL_MINUTES);
+                    "Monitoring interval: {} minutes", 60);
             
         } catch (SchedulerException e) {
             logger.error("Failed to start scheduler", e);

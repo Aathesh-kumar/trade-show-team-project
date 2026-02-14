@@ -6,7 +6,6 @@ import com.tradeshow.pulse24x7.mcp.model.ServerHistory;
 import com.tradeshow.pulse24x7.mcp.service.AuthTokenService;
 import com.tradeshow.pulse24x7.mcp.service.MonitoringService;
 import com.tradeshow.pulse24x7.mcp.service.ServerService;
-import com.tradeshow.pulse24x7.mcp.utils.Constants;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import com.tradeshow.pulse24x7.mcp.utils.TimeUtil;
 import jakarta.servlet.ServletException;
@@ -180,7 +179,7 @@ public class ServerServlet extends HttpServlet {
         String serverIdStr = req.getParameter("id");
 
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp,"Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
@@ -189,13 +188,13 @@ public class ServerServlet extends HttpServlet {
             Server server = serverService.getServerById(serverId);
 
             if (server == null) {
-                sendErrorResponse(resp, Constants.SERVER_NOT_FOUND, HttpServletResponse.SC_NOT_FOUND);
+                sendErrorResponse(resp,  "Server not found", HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
 
             sendSuccessResponse(resp, server);
         } catch (NumberFormatException e) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp,"Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 
@@ -214,7 +213,7 @@ public class ServerServlet extends HttpServlet {
         String hoursStr = req.getParameter("hours");
 
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp,"Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
@@ -283,7 +282,7 @@ public class ServerServlet extends HttpServlet {
                 sendErrorResponse(resp, "Failed to delete server", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
         } catch (NumberFormatException e) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp,"Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 
@@ -292,7 +291,7 @@ public class ServerServlet extends HttpServlet {
         String serverIdStr = req.getParameter("id");
 
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp,"Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
@@ -304,7 +303,7 @@ public class ServerServlet extends HttpServlet {
             responseData.put("message", "Monitoring completed successfully");
             sendSuccessResponse(resp, responseData);
         } catch (NumberFormatException e) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp,"Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 

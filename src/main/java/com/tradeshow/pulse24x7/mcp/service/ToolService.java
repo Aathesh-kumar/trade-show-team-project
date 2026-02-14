@@ -7,7 +7,6 @@ import com.tradeshow.pulse24x7.mcp.dao.ToolDAO;
 import com.tradeshow.pulse24x7.mcp.dao.ToolHistoryDAO;
 import com.tradeshow.pulse24x7.mcp.model.Tool;
 import com.tradeshow.pulse24x7.mcp.model.ToolHistory;
-import com.tradeshow.pulse24x7.mcp.utils.Constants;
 import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import org.apache.hc.core5.http.ContentType;

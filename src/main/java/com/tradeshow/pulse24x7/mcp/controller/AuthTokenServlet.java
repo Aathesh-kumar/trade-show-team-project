@@ -75,8 +75,7 @@ public class AuthTokenServlet extends HttpServlet {
         String accessToken = req.getParameter("accessToken");
         String refreshToken = req.getParameter("refreshToken");
         String expiresAtStr = req.getParameter("expiresAt");
-        
-        // Validate
+
         if (refreshToken == null || accessToken == null || accessToken.trim().isEmpty() || refreshToken.trim().isEmpty()) {
             sendErrorResponse(resp, "Access token and refreshToken are required",
                     HttpServletResponse.SC_BAD_REQUEST);

@@ -34,21 +34,21 @@ public class JsonUtil {
 
     public static JsonObject createSuccessResponse(Object data) {
         JsonObject response = new JsonObject();
-        response.addProperty("status", Constants.SUCCESS);
+        response.addProperty("status", "success");
         response.add("data", gson.toJsonTree(data));
         return response;
     }
 
     public static JsonObject createErrorResponse(String message) {
         JsonObject response = new JsonObject();
-        response.addProperty("status", Constants.ERROR);
+        response.addProperty("status", "error");
         response.addProperty("message", message);
         return response;
     }
 
     public static JsonObject createMCPRequest(String method, Object params) {
         JsonObject request = new JsonObject();
-        request.addProperty("jsonrpc", Constants.JSONRPC_VERSION);
+        request.addProperty("jsonrpc",2.0);
         request.addProperty("id", 1);
         request.addProperty("method", method);
         request.add("params", gson.toJsonTree(params));
