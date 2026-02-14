@@ -3,26 +3,26 @@ package com.tradeshow.pulse24x7.mcp.model;
 import java.sql.Timestamp;
 
 public class ServerHistory {
-    private Integer serverId;
+    private int serverId;
     private Boolean serverUp;
-    private Integer toolCount;
+    private int toolCount;
     private Timestamp checkedAt;
 
     public ServerHistory() {
     }
 
-    public ServerHistory(Integer serverId, Boolean serverUp, Integer toolCount, Timestamp checkedAt) {
+    public ServerHistory(int serverId, Boolean serverUp, int toolCount, Timestamp checkedAt) {
         this.serverId = serverId;
         this.serverUp = serverUp;
         this.toolCount = toolCount;
         this.checkedAt = checkedAt;
     }
 
-    public Integer getServerId() {
+    public int getServerId() {
         return serverId;
     }
 
-    public void setServerId(Integer serverId) {
+    public void setServerId(int serverId) {
         this.serverId = serverId;
     }
 
@@ -34,11 +34,11 @@ public class ServerHistory {
         this.serverUp = serverUp;
     }
 
-    public Integer getToolCount() {
+    public int getToolCount() {
         return toolCount;
     }
 
-    public void setToolCount(Integer toolCount) {
+    public void setToolCount(int toolCount) {
         this.toolCount = toolCount;
     }
 

@@ -13,7 +13,7 @@ import java.util.List;
 public class AuthTokenDAO {
     private static final Logger logger = LogManager.getLogger(AuthTokenDAO.class);
 
-    public boolean insertOrUpdateToken(Integer serverId, String accessToken,
+    public boolean insertOrUpdateToken(int serverId, String accessToken,
                                        String refreshToken, Timestamp expiresAt) {
         logger.info("Inserting/updating auth token for server ID: {}", serverId);
 
@@ -37,7 +37,7 @@ public class AuthTokenDAO {
         return false;
     }
 
-    public AuthToken getAuthToken(Integer serverId) {
+    public AuthToken getAuthToken(int serverId) {
         logger.debug("Fetching auth token for server ID: {}", serverId);
 
         try (Connection con = DBConnection.getInstance().getConnection();
@@ -56,7 +56,7 @@ public class AuthTokenDAO {
         return null;
     }
 
-    public boolean updateAccessToken(Integer serverId, String accessToken, Timestamp expiresAt) {
+    public boolean updateAccessToken(int serverId, String accessToken, Timestamp expiresAt) {
         logger.info("Updating access token for server ID: {}", serverId);
 
         try (Connection con = DBConnection.getInstance().getConnection();
@@ -78,7 +78,7 @@ public class AuthTokenDAO {
         return false;
     }
 
-    public boolean deleteAuthToken(Integer serverId) {
+    public boolean deleteAuthToken(int serverId) {
         logger.info("Deleting auth token for server ID: {}", serverId);
 
         try (Connection con = DBConnection.getInstance().getConnection();
@@ -117,7 +117,7 @@ public class AuthTokenDAO {
         return tokens;
     }
 
-    public boolean isTokenExpired(Integer serverId, int bufferMinutes) {
+    public boolean isTokenExpired(int serverId, int bufferMinutes) {
         AuthToken token = getAuthToken(serverId);
         if (token == null || token.getExpiresAt() == null) {
             return true;

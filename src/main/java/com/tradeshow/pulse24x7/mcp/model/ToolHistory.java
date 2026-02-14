@@ -3,24 +3,24 @@ package com.tradeshow.pulse24x7.mcp.model;
 import java.sql.Timestamp;
 
 public class ToolHistory {
-    private Integer toolId;
+    private int toolId;
     private Boolean isAvailable;
     private Timestamp checkedAt;
 
     public ToolHistory() {
     }
 
-    public ToolHistory(Integer toolId, Boolean isAvailable, Timestamp checkedAt) {
+    public ToolHistory(int toolId, Boolean isAvailable, Timestamp checkedAt) {
         this.toolId = toolId;
         this.isAvailable = isAvailable;
         this.checkedAt = checkedAt;
     }
 
-    public Integer getToolId() {
+    public int getToolId() {
         return toolId;
     }
 
-    public void setToolId(Integer toolId) {
+    public void setToolId(int toolId) {
         this.toolId = toolId;
     }
 
