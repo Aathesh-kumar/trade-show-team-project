@@ -3,7 +3,7 @@ package com.tradeshow.pulse24x7.mcp.model;
 import java.sql.Timestamp;
 
 public class AuthToken {
-    private Integer serverId;
+    private int serverId;
     private String accessToken;
     private String refreshToken;
     private Timestamp expiresAt;
@@ -12,7 +12,7 @@ public class AuthToken {
     public AuthToken() {
     }
 
-    public AuthToken(Integer serverId, String accessToken, String refreshToken,
+    public AuthToken(int serverId, String accessToken, String refreshToken,
                      Timestamp expiresAt, Timestamp updatedAt) {
         this.serverId = serverId;
         this.accessToken = accessToken;
@@ -21,11 +21,11 @@ public class AuthToken {
         this.updatedAt = updatedAt;
     }
 
-    public Integer getServerId() {
+    public int getServerId() {
         return serverId;
     }
 
-    public void setServerId(Integer serverId) {
+    public void setServerId(int serverId) {
         this.serverId = serverId;
     }
 

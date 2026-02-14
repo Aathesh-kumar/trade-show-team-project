@@ -3,7 +3,7 @@ package com.tradeshow.pulse24x7.mcp.model;
 import java.sql.Timestamp;
 
 public class Server {
-    private Integer serverId;
+    private int serverId;
     private String serverName;
     private String serverUrl;
     private Timestamp createdAt;
@@ -11,18 +11,18 @@ public class Server {
     public Server() {
     }
 
-    public Server(Integer serverId, String serverName, String serverUrl, Timestamp createdAt) {
+    public Server(int serverId, String serverName, String serverUrl, Timestamp createdAt) {
         this.serverId = serverId;
         this.serverName = serverName;
         this.serverUrl = serverUrl;
         this.createdAt = createdAt;
     }
 
-    public Integer getServerId() {
+    public int getServerId() {
         return serverId;
     }
 
-    public void setServerId(Integer serverId) {
+    public void setServerId(int serverId) {
         this.serverId = serverId;
     }
 

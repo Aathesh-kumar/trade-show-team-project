@@ -11,10 +11,12 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,14 +38,14 @@ public class AuthTokenServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
             throws ServletException, IOException {
         logger.info("GET request to AuthTokenServlet");
-        
-//        resp.setContentType(Constants.CONTENT_TYPE_JSON);
-        resp.setCharacterEncoding("UTF-8");
+
+        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
+        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
         
         String serverIdStr = req.getParameter("serverId");
         
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
         
@@ -58,7 +60,7 @@ public class AuthTokenServlet extends HttpServlet {
             
             sendSuccessResponse(resp, token);
         } catch (NumberFormatException e) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 
@@ -76,8 +78,8 @@ public class AuthTokenServlet extends HttpServlet {
         String expiresAtStr = req.getParameter("expiresAt");
         
         // Validate
-        if (serverIdStr == null || accessToken == null || accessToken.trim().isEmpty()) {
-            sendErrorResponse(resp, "Server ID and access token are required", 
+        if (refreshToken == null || accessToken == null || accessToken.trim().isEmpty() || refreshToken.trim().isEmpty()) {
+            sendErrorResponse(resp, "Access token and refreshToken are required",
                     HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
@@ -86,9 +88,8 @@ public class AuthTokenServlet extends HttpServlet {
             Integer serverId = Integer.parseInt(serverIdStr);
             Timestamp expiresAt = null;
             
-            if (expiresAtStr != null && !expiresAtStr.trim().isEmpty()) {
+            if (expiresAtStr != null && !expiresAtStr.trim().isEmpty())
                 expiresAt = TimeUtil.parseTimestamp(expiresAtStr);
-            }
             
             boolean saved = authTokenService.saveToken(serverId, accessToken, refreshToken, expiresAt);
             
@@ -101,7 +102,7 @@ public class AuthTokenServlet extends HttpServlet {
                         HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
         } catch (NumberFormatException e) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 
@@ -110,13 +111,13 @@ public class AuthTokenServlet extends HttpServlet {
             throws ServletException, IOException {
         logger.info("DELETE request to AuthTokenServlet");
         
-        resp.setContentType(Constants.CONTENT_TYPE_JSON);
-        resp.setCharacterEncoding("UTF-8");
+        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
+        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
         
         String serverIdStr = req.getParameter("serverId");
         
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
         
@@ -133,7 +134,7 @@ public class AuthTokenServlet extends HttpServlet {
                         HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
         } catch (NumberFormatException e) {
-            sendErrorResponse(resp, Constants.INVALID_SERVER_ID, HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 
