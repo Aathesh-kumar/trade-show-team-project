@@ -22,14 +22,14 @@ export default function ConfigureServer({ onClose, onSuccess }) {
     const [toast, setToast] = useState(null);
     const [testingConnection, setTestingConnection] = useState(false);
 
-    const { loading, error, execute } = usePost('http://localhost:8080/server', {
+    const { loading, error, execute } = usePost('http://localhost:8080/trade-show-team-project/server', {
         validateData: (data) => {
             if (!data.serverName || data.serverName.trim().length < 3) {
                 return 'Server name must be at least 3 characters';
             }
-            if (!data.serverUrl || !data.serverUrl.match(/^wss?:\/\/.+/)) {
-                return 'Invalid server URL format (must start with ws:// or wss://)';
-            }
+            // if (!data.serverUrl || !data.serverUrl.match(/^wss?:\/\/.+/)) {
+            //     return 'Invalid server URL format (must start with ws:// or wss://)';
+            // }
             if (!data.apiKey || data.apiKey.trim().length < 10) {
                 return 'API key must be at least 10 characters';
             }
