@@ -2,12 +2,13 @@ import { useState } from 'react';
 import AppStyles from './styles/App.module.css';
 import AsideBar from './components/AsideBar';
 import Dashboard from './components/DashboardComponents/Dashboard';
-import ToolsInventory from './components/ToolsComponents/ToolsInventory';
-import RequestLogs from './components/RequestLogsComponents/RequestLogs';
+import ToolsInventory from './components/ToolsComponents/ToolsInventory'
+import RequestLogs from './components/RequestLogsComponents/RequestLogs'
+import ConfigureServer from './components/ConfigureServerComponents/ConfigureServer';
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState('configure-server');
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -21,8 +22,18 @@ function App() {
         return <RequestLogs />;
       case 'tools':
         return <ToolsInventory />;
+      case 'configure-server':
+        return (
+          <ConfigureServer 
+            onClose={() => setCurrentPage('dashboard')}
+            onSuccess={() => setCurrentPage('dashboard')}
+          />
+        );
       default:
-        return <Dashboard />;
+        return (<ConfigureServer 
+          onClose={() => setCurrentPage('dashboard')}
+          onSuccess={() => setCurrentPage('dashboard')}
+        />);
     }
   };
 

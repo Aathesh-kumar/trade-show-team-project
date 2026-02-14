@@ -1,4 +1,4 @@
-import LoadingStyles from '../styles/Loading.module.css';
+import LoadingStyles from '../../styles/Loading.module.css';
 
 export const LoadingDots = ({ color, text = 'Loading' }) => {
     return (
