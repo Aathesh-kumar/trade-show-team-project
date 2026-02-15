@@ -2,6 +2,7 @@ package com.tradeshow.pulse24x7.mcp.utils;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.tradeshow.pulse24x7.mcp.model.HttpResult;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -60,7 +61,23 @@ public class HttpClientUtil {
                     return JsonParser.parseString(responseBody).getAsJsonObject();
                 } else {
                     logger.error("POST failed | Status: {} | Body: {}", statusCode, responseBody);
-                    throw new RuntimeException("POST failed with status: " + statusCode);
+
+                    String errorMessage = "Unknown error";
+
+                    try {
+                        JsonObject json = JsonParser.parseString(responseBody).getAsJsonObject();
+
+                        if (json.has("data")) {
+                            JsonObject data = json.getAsJsonObject("data");
+                            if (data.has("message")) {
+                                errorMessage = data.get("message").getAsString();
+                            }
+                        }
+                    } catch (Exception parseEx) {
+                        logger.warn("Failed to extract error message from response body");
+                    }
+
+                    throw new RuntimeException(errorMessage);
                 }
             }
 
@@ -131,6 +148,15 @@ public class HttpClientUtil {
         } catch (Exception e) {
             logger.warn("Server not reachable: {}", url);
             return false;
+        }
+    }
+
+    public static HttpResult canPingServer(String url, Map<String, String> headers, String jsonBody) {
+        try {
+            JsonObject response = doPost(url, headers, jsonBody);
+            return new HttpResult(true, 200, response.toString(), null);
+        } catch (RuntimeException e) {
+            return new HttpResult(false, 400, null, e.getMessage());
         }
     }
 }

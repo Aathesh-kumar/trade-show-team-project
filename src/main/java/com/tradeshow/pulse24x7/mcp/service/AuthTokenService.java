@@ -15,7 +15,7 @@ public class AuthTokenService {
         this.authTokenDAO = new AuthTokenDAO();
     }
 
-    public boolean saveToken(Integer serverId, String accessToken, String refreshToken, 
+    public boolean saveToken(Integer serverId, String headerType, String accessToken, String refreshToken,
                             Timestamp expiresAt) {
         if (serverId == null || serverId <= 0) {
             logger.error("Invalid server ID: {}", serverId);
@@ -27,7 +27,7 @@ public class AuthTokenService {
             return false;
         }
         
-        return authTokenDAO.insertOrUpdateToken(serverId, accessToken, refreshToken, expiresAt);
+        return authTokenDAO.insertOrUpdateToken(serverId, headerType, accessToken, refreshToken, expiresAt);
     }
 
     public AuthToken getToken(Integer serverId) {

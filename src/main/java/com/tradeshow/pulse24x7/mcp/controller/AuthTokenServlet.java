@@ -72,6 +72,7 @@ public class AuthTokenServlet extends HttpServlet {
         resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
         
         String serverIdStr = req.getParameter("serverId");
+        String headerType = req.getParameter("headerType");
         String accessToken = req.getParameter("accessToken");
         String refreshToken = req.getParameter("refreshToken");
         String expiresAtStr = req.getParameter("expiresAt");
@@ -90,7 +91,7 @@ public class AuthTokenServlet extends HttpServlet {
                 expiresAt = TimeUtil.parseTimestamp(expiresAtStr);
             }
 
-            boolean saved = authTokenService.saveToken(serverId, accessToken, refreshToken, expiresAt);
+            boolean saved = authTokenService.saveToken(serverId, headerType, accessToken, refreshToken, expiresAt);
             
             if (saved) {
                 Map<String, Object> responseData = new HashMap<>();

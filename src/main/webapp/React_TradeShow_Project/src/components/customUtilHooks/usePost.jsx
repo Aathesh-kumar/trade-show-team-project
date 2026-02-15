@@ -14,7 +14,7 @@ export const usePost = (url, options = {}) => {
 
     const validate = (requestData) => {
         // Validation: Check if data is provided
-        if (!requestData) {
+        if (!requestData) {            
             throw new Error('Request data is required');
         }
 
@@ -25,6 +25,7 @@ export const usePost = (url, options = {}) => {
 
         // Validation: Check for empty object
         if (Object.keys(requestData).length === 0) {
+            console.log(requestData);
             throw new Error('Request data cannot be empty');
         }
 
@@ -87,9 +88,7 @@ export const usePost = (url, options = {}) => {
 
             return result;
 
-        } catch (err) {
-            console.log(requestData);
-            
+        } catch (err) {            
             // Validation: Network errors
             if (err.message === 'Failed to fetch') {
                 err.message = 'Network error. Please check your internet connection.' + err;

@@ -13,7 +13,7 @@ import java.util.List;
 public class AuthTokenDAO {
     private static final Logger logger = LogManager.getLogger(AuthTokenDAO.class);
 
-    public boolean insertOrUpdateToken(int serverId, String accessToken,
+    public boolean insertOrUpdateToken(int serverId, String headerType, String accessToken,
                                        String refreshToken, Timestamp expiresAt) {
         logger.info("Inserting/updating auth token for server ID: {}", serverId);
 
@@ -21,9 +21,10 @@ public class AuthTokenDAO {
              PreparedStatement ps = con.prepareStatement(DBQueries.INSERT_AUTH_TOKEN)) {
 
             ps.setInt(1, serverId);
-            ps.setString(2, accessToken);
-            ps.setString(3, refreshToken);
-            ps.setTimestamp(4, expiresAt);
+            ps.setString(2, headerType);
+            ps.setString(3, accessToken);
+            ps.setString(4, refreshToken);
+            ps.setTimestamp(5, expiresAt);
 
             int affectedRows = ps.executeUpdate();
 
@@ -132,6 +133,7 @@ public class AuthTokenDAO {
     private AuthToken mapResultSetToAuthToken(ResultSet rs) throws SQLException {
         return new AuthToken(
                 rs.getInt("server_id"),
+                rs.getString("header_type"),
                 rs.getString("access_token"),
                 rs.getString("refresh_token"),
                 rs.getTimestamp("expires_at"),

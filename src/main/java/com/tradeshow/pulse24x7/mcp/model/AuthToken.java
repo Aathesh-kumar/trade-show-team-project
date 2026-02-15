@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 
 public class AuthToken {
     private int serverId;
+    private String headerType;
     private String accessToken;
     private String refreshToken;
     private Timestamp expiresAt;
@@ -12,9 +13,9 @@ public class AuthToken {
     public AuthToken() {
     }
 
-    public AuthToken(int serverId, String accessToken, String refreshToken,
-                     Timestamp expiresAt, Timestamp updatedAt) {
+    public AuthToken(int serverId, String headerType, String accessToken, String refreshToken, Timestamp expiresAt, Timestamp updatedAt) {
         this.serverId = serverId;
+        this.headerType = headerType;
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.expiresAt = expiresAt;
@@ -27,6 +28,14 @@ public class AuthToken {
 
     public void setServerId(int serverId) {
         this.serverId = serverId;
+    }
+
+    public String getHeaderType() {
+        return headerType;
+    }
+
+    public void setHeaderType(String headerType) {
+        this.headerType = headerType;
     }
 
     public String getAccessToken() {
@@ -65,6 +74,7 @@ public class AuthToken {
     public String toString() {
         return "AuthToken{" +
                 "serverId=" + serverId +
+                ", headerType='" + (headerType != null ? "***" : null) + '\'' +
                 ", accessToken='" + (accessToken != null ? "***" : null) + '\'' +
                 ", refreshToken='" + (refreshToken != null ? "***" : null) + '\'' +
                 ", expiresAt=" + expiresAt +

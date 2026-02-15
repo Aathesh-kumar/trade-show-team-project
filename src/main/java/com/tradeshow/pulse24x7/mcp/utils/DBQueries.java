@@ -123,9 +123,10 @@ public class DBQueries {
 
         // Auth Token Queries
         public static final String INSERT_AUTH_TOKEN =
-                "INSERT INTO auth_token (server_id, access_token, refresh_token, expires_at) " +
-                        "VALUES (?, ?, ?, ?) " +
+                "INSERT INTO auth_token (server_id, header_type, access_token, refresh_token, expires_at) " +
+                        "VALUES (?, ?, ?, ?, ?) " +
                         "ON DUPLICATE KEY UPDATE " +
+                        "    header_type= VALUES(header_type)," +
                         "    access_token = VALUES(access_token), " +
                         "    refresh_token = VALUES(refresh_token), " +
                         "    expires_at = VALUES(expires_at), " +
