@@ -28,13 +28,14 @@ export default function ConfigureServer({ onClose, onSuccess }) {
 
     const { loading, error, execute } = usePost("http://localhost:8080/trade-show-team-project", {
         validateData: (data) => {
-            if (!data.get('serverName') || data.get('serverName').trim().length < 3) {
+            console.log(data.serverName);
+            if (!data.serverName || data.serverName.trim().length < 3) {
                 return 'Server name must be at least 3 characters';
             }
             // if (!data.get('serverUrl') || !data.get('serverUrl').match(/^wss?:\/\/.+/)) {
             //     return 'Invalid server URL format (must start with ws:// or wss://)';
             // }
-            if (data.get('accessToken') && data.get('accessToken').trim().length < 10) {
+            if (data.accessToken && data.accessToken.trim().length < 10) {
                 return 'Access token must be at least 10 characters';
             }
             console.log(data.serverName);
@@ -92,25 +93,8 @@ export default function ConfigureServer({ onClose, onSuccess }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        // Create URL-encoded form data for backend
-        const formParams = new URLSearchParams();
-        formParams.append('serverName', formData.serverName);
-        formParams.append('serverUrl', formData.serverUrl);
-
-        // Add tokens only if provided
-        if (formData.accessToken) {
-            formParams.append('accessToken', formData.accessToken);
-        }
-        if (formData.refreshToken) {
-            formParams.append('refreshToken', formData.refreshToken);
-        }
-        if (formData.expiresAt) {
-            formParams.append('expiresAt', formData.expiresAt);
-        }
-
         try {
-            await execute(formParams);
+            await execute(formData);
         } catch (err) {
             // Error already handled by hook
         }
