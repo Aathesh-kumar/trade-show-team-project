@@ -21,7 +21,6 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -136,24 +135,10 @@ public class ServerServlet extends HttpServlet {
     private void handleRegisterServer(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
 
-        StringBuilder sb = new StringBuilder();
-        String line;
-
-        try (BufferedReader br = req.getReader()) {
-            while ((line = br.readLine()) != null) {
-                sb.append(line);
-            }
-        }
-
-        JsonObject payload = JsonParser.parseString(sb.toString()).getAsJsonObject();
-        System.out.println(payload);
+        JsonObject payload = HttpClientUtil.jsonParser(req);
 
         String serverName = payload.get("serverName").getAsString();
         String serverUrl = payload.get("serverUrl").getAsString();
-
-//        String accessToken = req.getParameter("accessToken");
-//        String refreshToken = req.getParameter("refreshToken");
-//        String expiresAtStr = req.getParameter("expiresAt");
         String headerType = payload.get("headerType").getAsString();
         String accessToken = payload.get("accessToken").getAsString();
         String refreshToken = payload.get("refreshToken").getAsString();
@@ -223,7 +208,7 @@ public class ServerServlet extends HttpServlet {
 
     private void handleGetServerById(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        String serverIdStr = req.getParameter("id");
+        String serverIdStr = HttpClientUtil.jsonParser(req).get("id").getAsString();
 
            if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
                 sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
@@ -254,8 +239,9 @@ public class ServerServlet extends HttpServlet {
 
     private void handleGetServerHistory(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        String serverIdStr = req.getParameter("id");
-        String hoursStr = req.getParameter("hours");
+        JsonObject payload = HttpClientUtil.jsonParser(req);
+        String serverIdStr = payload.get("id").getAsString();
+        String hoursStr = payload.get("hours").getAsString();
 
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
@@ -282,9 +268,11 @@ public class ServerServlet extends HttpServlet {
 
     private void handleUpdateServer(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        String serverIdStr = req.getParameter("id");
-        String serverName = req.getParameter("serverName");
-        String serverUrl = req.getParameter("serverUrl");
+
+        JsonObject payload = HttpClientUtil.jsonParser(req);
+        String serverIdStr = payload.get("id").getAsString();
+        String serverName = payload.get("serverName").getAsString();
+        String serverUrl = payload.get("serverUrl").getAsString();
 
         if (serverIdStr == null || serverName == null || serverUrl == null) {
             sendErrorResponse(resp, "Missing required parameters", HttpServletResponse.SC_BAD_REQUEST);
@@ -308,7 +296,7 @@ public class ServerServlet extends HttpServlet {
 
     private void handleDeleteServer(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        String serverIdStr = req.getParameter("id");
+        String serverIdStr = HttpClientUtil.jsonParser(req).get("id").getAsString();
 
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
@@ -333,7 +321,7 @@ public class ServerServlet extends HttpServlet {
 
     private void handleMonitorServer(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        String serverIdStr = req.getParameter("id");
+        String serverIdStr = HttpClientUtil.jsonParser(req).get("id").getAsString();
 
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);

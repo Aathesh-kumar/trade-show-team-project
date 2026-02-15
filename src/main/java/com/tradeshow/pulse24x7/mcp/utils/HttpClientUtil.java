@@ -3,6 +3,7 @@ package com.tradeshow.pulse24x7.mcp.utils;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.tradeshow.pulse24x7.mcp.model.HttpResult;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -14,6 +15,7 @@ import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -158,5 +160,18 @@ public class HttpClientUtil {
         } catch (RuntimeException e) {
             return new HttpResult(false, 400, null, e.getMessage());
         }
+    }
+
+    public static JsonObject jsonParser(HttpServletRequest req) throws IOException  {
+        StringBuilder sb = new StringBuilder();
+        String line;
+
+        try (BufferedReader br = req.getReader()) {
+            while ((line = br.readLine()) != null) {
+                sb.append(line);
+            }
+        }
+
+       return JsonParser.parseString(sb.toString()).getAsJsonObject();
     }
 }

@@ -1,8 +1,10 @@
 package com.tradeshow.pulse24x7.mcp.controller;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.tradeshow.pulse24x7.mcp.model.AuthToken;
 import com.tradeshow.pulse24x7.mcp.service.AuthTokenService;
+import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import com.tradeshow.pulse24x7.mcp.utils.TimeUtil;
 import jakarta.servlet.ServletException;
@@ -14,6 +16,7 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -40,8 +43,8 @@ public class AuthTokenServlet extends HttpServlet {
 
         resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
         resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
-        
-        String serverIdStr = req.getParameter("serverId");
+
+        String serverIdStr = HttpClientUtil.jsonParser(req).get("serverId").getAsString();
         
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
@@ -70,12 +73,14 @@ public class AuthTokenServlet extends HttpServlet {
         
         resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
         resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
-        
-        String serverIdStr = req.getParameter("serverId");
-        String headerType = req.getParameter("headerType");
-        String accessToken = req.getParameter("accessToken");
-        String refreshToken = req.getParameter("refreshToken");
-        String expiresAtStr = req.getParameter("expiresAt");
+
+        JsonObject payload = HttpClientUtil.jsonParser(req);
+
+        String serverIdStr = payload.get("serverId").getAsString();
+        String headerType = payload.get("headerType").getAsString();
+        String accessToken = payload.get("accessToken").getAsString();
+        String refreshToken = payload.get("refreshToken").getAsString();
+        String expiresAtStr = payload.get("expiresAt").getAsString();
 
         if (refreshToken == null || accessToken == null || accessToken.trim().isEmpty() || refreshToken.trim().isEmpty()) {
             sendErrorResponse(resp, "Access token and refreshToken are required",
@@ -114,7 +119,7 @@ public class AuthTokenServlet extends HttpServlet {
         resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
         resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
         
-        String serverIdStr = req.getParameter("serverId");
+        String serverIdStr = HttpClientUtil.jsonParser(req).get("serverId").getAsString();
         
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);

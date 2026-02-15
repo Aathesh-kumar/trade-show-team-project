@@ -1,125 +1,141 @@
 import RequestLogsStyles from '../../styles/RequestLogs.module.css';
-import { MdSearch, MdFileDownload, MdHistory } from 'react-icons/md';
-import { useState } from 'react';
 
-export default function RequestLogsHeader({ filters, onFilterChange, stats }) {
-    const [viewMode, setViewMode] = useState('real-time');
-
-    const handleSearchChange = (e) => {
-        onFilterChange({
-            ...filters,
-            search: e.target.value
-        });
-    };
-
-    const handleStatusChange = (status) => {
-        onFilterChange({
-            ...filters,
-            status: status
-        });
-    };
-
-    const handleToolChange = (tool) => {
-        onFilterChange({
-            ...filters,
-            tool: tool
-        });
-    };
-
-    const handleTimeRangeChange = (timeRange) => {
-        onFilterChange({
-            ...filters,
-            timeRange: timeRange
-        });
-    };
-
+export default function RequestLogsHeader({
+    servers,
+    selectedServerId,
+    onServerChange,
+    toolNames,
+    selectedToolId,
+    onToolChange,
+    selectedStatusCode,
+    onStatusChange,
+    timeRange,
+    onTimeRangeChange,
+    searchQuery,
+    onSearchChange,
+    successCount,
+    errorCount,
+    totalCount,
+    onExport
+}) {
     return (
-        <header className={RequestLogsStyles.logsHeader}>
+        <div className={RequestLogsStyles.header}>
             <div className={RequestLogsStyles.headerTop}>
-                <div className={RequestLogsStyles.headerTitle}>
+                <div>
                     <h1>Request Logs</h1>
-                    <div className={RequestLogsStyles.statsGroup}>
-                        <div className={RequestLogsStyles.statBadge}>
-                            <span className={RequestLogsStyles.successDot}></span>
-                            {stats.totalSuccess.toLocaleString()} Success
-                        </div>
-                        <div className={RequestLogsStyles.statBadge}>
-                            <span className={RequestLogsStyles.errorDot}></span>
-                            {stats.totalErrors} Errors
-                        </div>
-                    </div>
+                    <p className={RequestLogsStyles.subtitle}>
+                        Monitor and analyze API requests across your MCP tools
+                    </p>
                 </div>
 
-                <div className={RequestLogsStyles.headerActions}>
-                    <div className={RequestLogsStyles.viewToggle}>
-                        <button 
-                            className={`${RequestLogsStyles.toggleBtn} ${viewMode === 'real-time' ? RequestLogsStyles.active : ''}`}
-                            onClick={() => setViewMode('real-time')}
-                        >
-                            Real-time
-                        </button>
-                        <button 
-                            className={`${RequestLogsStyles.toggleBtn} ${viewMode === 'history' ? RequestLogsStyles.active : ''}`}
-                            onClick={() => setViewMode('history')}
-                        >
-                            <MdHistory /> History
-                        </button>
-                    </div>
-
-                    <button className={RequestLogsStyles.exportBtn}>
-                        <MdFileDownload />
-                        Export
-                    </button>
-                </div>
+                <button 
+                    className={RequestLogsStyles.exportBtn}
+                    onClick={onExport}
+                    disabled={totalCount === 0}
+                >
+                    📥 Export
+                </button>
             </div>
 
-            <div className={RequestLogsStyles.headerControls}>
-                <div className={RequestLogsStyles.searchBox}>
-                    <MdSearch className={RequestLogsStyles.searchIcon} />
-                    <input
-                        type="text"
-                        placeholder="Search by tool name, request ID, or status..."
-                        value={filters.search}
-                        onChange={handleSearchChange}
-                        className={RequestLogsStyles.searchInput}
-                    />
-                </div>
+            {/* Search Bar */}
+            <div className={RequestLogsStyles.searchBar}>
+                <input
+                    type="text"
+                    placeholder="Search by endpoint, tool, method, or status..."
+                    value={searchQuery}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                    className={RequestLogsStyles.searchInput}
+                />
+            </div>
 
+            {/* Filters */}
+            <div className={RequestLogsStyles.filters}>
+                {/* Server Filter */}
                 <div className={RequestLogsStyles.filterGroup}>
-                    <select 
-                        value={filters.status}
-                        onChange={(e) => handleStatusChange(e.target.value)}
+                    <label>Server:</label>
+                    <select
+                        value={selectedServerId || ''}
+                        onChange={(e) => onServerChange(e.target.value ? parseInt(e.target.value) : null)}
                         className={RequestLogsStyles.filterSelect}
                     >
-                        <option value="all">All Status</option>
-                        <option value="success">Success</option>
-                        <option value="error">Error</option>
-                        <option value="warning">Warning</option>
+                        {servers.map(server => (
+                            <option key={server.serverId} value={server.serverId}>
+                                {server.serverName}
+                            </option>
+                        ))}
                     </select>
+                </div>
 
-                    <select 
-                        value={filters.tool}
-                        onChange={(e) => handleToolChange(e.target.value)}
+                {/* Tool Filter - Dynamic from backend */}
+                <div className={RequestLogsStyles.filterGroup}>
+                    <label>Tool:</label>
+                    <select
+                        value={selectedToolId || ''}
+                        onChange={(e) => onToolChange(e.target.value ? parseInt(e.target.value) : null)}
                         className={RequestLogsStyles.filterSelect}
                     >
-                        <option value="all">All Tools</option>
-                        <option value="get_weather">get_weather</option>
-                        <option value="search_docs">search_docs</option>
-                        <option value="send_email">send_email</option>
+                        <option value="">All Tools</option>
+                        {toolNames.map((toolName, index) => (
+                            <option key={index} value={index}>
+                                {toolName}
+                            </option>
+                        ))}
                     </select>
+                </div>
 
-                    <select 
-                        value={filters.timeRange}
-                        onChange={(e) => handleTimeRangeChange(e.target.value)}
+                {/* Status Code Filter */}
+                <div className={RequestLogsStyles.filterGroup}>
+                    <label>Status:</label>
+                    <select
+                        value={selectedStatusCode || ''}
+                        onChange={(e) => onStatusChange(e.target.value ? parseInt(e.target.value) : null)}
                         className={RequestLogsStyles.filterSelect}
                     >
-                        <option value="last-15-minutes">Last 15 minutes</option>
-                        <option value="last-hour">Last hour</option>
-                        <option value="last-24-hours">Last 24 hours</option>
-                        <option value="last-7-days">Last 7 days</option>
+                        <option value="">All Status</option>
+                        <option value="200">200 - OK</option>
+                        <option value="201">201 - Created</option>
+                        <option value="400">400 - Bad Request</option>
+                        <option value="404">404 - Not Found</option>
+                        <option value="500">500 - Server Error</option>
+                    </select>
+                </div>
+
+                {/* Time Range Filter */}
+                <div className={RequestLogsStyles.filterGroup}>
+                    <label>Time Range:</label>
+                    <select
+                        value={timeRange}
+                        onChange={(e) => onTimeRangeChange(parseInt(e.target.value))}
+                        className={RequestLogsStyles.filterSelect}
+                    >
+                        <option value="1">Last Hour</option>
+                        <option value="6">Last 6 Hours</option>
+                        <option value="24">Last 24 Hours</option>
+                        <option value="168">Last 7 Days</option>
+                        <option value="720">Last 30 Days</option>
                     </select>
                 </div>
             </div>
-        </header>
+
+            {/* Statistics */}
+            <div className={RequestLogsStyles.stats}>
+                <div className={RequestLogsStyles.statItem}>
+                    <span className={RequestLogsStyles.statLabel}>Total:</span>
+                    <span className={RequestLogsStyles.statValue}>{totalCount}</span>
+                </div>
+                <div className={RequestLogsStyles.statItem}>
+                    <span className={RequestLogsStyles.statLabel}>Success:</span>
+                    <span className={`${RequestLogsStyles.statValue} ${RequestLogsStyles.statSuccess}`}>
+                        {successCount}
+                    </span>
+                </div>
+                <div className={RequestLogsStyles.statItem}>
+                    <span className={RequestLogsStyles.statLabel}>Errors:</span>
+                    <span className={`${RequestLogsStyles.statValue} ${RequestLogsStyles.statError}`}>
+                        {errorCount}
+                    </span>
+                </div>
+            </div>
+        </div>
     );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useGet } from '../customUtilHooks/useGet';
+import { ENDPOINTS } from '../config/api';
 import RequestLogsStyles from '../../styles/RequestLogs.module.css';
 import RequestLogsHeader from './RequestLogsHeader';
 import RequestLogsTable from './RequestLogsTable';
@@ -8,201 +9,155 @@ import RequestLogsFooter from './RequestLogsFooter';
 import LoadingSkeleton from '../LoadingComponents/LoadingSkeleton';
 
 export default function RequestLogs() {
-    const [selectedRequest, setSelectedRequest] = useState(null);
-    const [filters, setFilters] = useState({
-        search: '',
-        status: 'all',
-        tool: 'all',
-        timeRange: 'last-15-minutes'
+    const [selectedServerId, setSelectedServerId] = useState(null);
+    const [selectedToolId, setSelectedToolId] = useState(null);
+    const [selectedStatusCode, setSelectedStatusCode] = useState(null);
+    const [selectedLog, setSelectedLog] = useState(null);
+    const [timeRange, setTimeRange] = useState(24);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [autoRefresh, setAutoRefresh] = useState(true);
+
+    // Fetch all servers for filter dropdown
+    const { data: serversData } = useGet(ENDPOINTS.SERVERS_ALL);
+    const servers = serversData?.data || [];
+
+    // Select first server by default
+    useEffect(() => {
+        if (!selectedServerId && servers.length > 0) {
+            setSelectedServerId(servers[0].serverId);
+        }
+    }, [servers, selectedServerId]);
+
+    // Fetch request logs with filters
+    const { data: logsData, loading, error, refetch } = useGet(
+        selectedServerId ? ENDPOINTS.LOGS_ALL(
+            selectedServerId,
+            selectedToolId,
+            selectedStatusCode,
+            timeRange,
+            100
+        ) : null,
+        {
+            refetchInterval: autoRefresh ? 5000 : null // Auto-refresh every 5 seconds
+        }
+    );
+
+    // Fetch log statistics
+    const { data: statsData } = useGet(
+        selectedServerId ? ENDPOINTS.LOGS_STATS(selectedServerId, timeRange) : null
+    );
+
+    // Fetch unique tools for filter dropdown
+    const { data: toolsData } = useGet(
+        selectedServerId ? ENDPOINTS.LOGS_TOOLS(selectedServerId) : null
+    );
+
+    const logs = logsData?.data?.logs || [];
+    const stats = statsData?.data || {};
+    const toolNames = toolsData?.data?.tools || [];
+
+    // Filter logs by search query (client-side)
+    const filteredLogs = logs.filter(log => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        return (
+            log.endpoint?.toLowerCase().includes(query) ||
+            log.toolName?.toLowerCase().includes(query) ||
+            log.method?.toLowerCase().includes(query) ||
+            log.statusCode?.toString().includes(query)
+        );
     });
 
-    // const { data: logs, loading, error, refetch } = useGet('/api/request-logs', {
-    //     params: {
-    //         search: filters.search,
-    //         status: filters.status !== 'all' ? filters.status : undefined,
-    //         tool: filters.tool !== 'all' ? filters.tool : undefined,
-    //         timeRange: filters.timeRange,
-    //         limit: 50
-    //     },
-    //     dependencies: [filters.status, filters.tool, filters.timeRange],
-    //     onError: (err) => {
-    //         console.error('Failed to fetch logs:', err);
-    //     }
-    // });
-
-    // useEffect(() => {
-    //     const interval = setInterval(() => {
-    //         refetch();
-    //     }, 5000);
-
-    //     return () => clearInterval(interval);
-    // }, [refetch]);
-
-    const sampleLogs ={
-        totalSuccess: 1240,
-        totalErrors: 12,
-        logs: [
-            {
-                id: 'req_88291abc',
-                timestamp: '2023-10-27 14:23:45.102',
-                tool: 'get_weather',
-                endpoint: 'get_weather',
-                method: 'POST',
-                status: 200,
-                statusText: 'OK',
-                latency: '142ms',
-                size: '1.2kb',
-                requestPayload: {
-                    tool: 'get_weather',
-                    arguments: {
-                        location: 'San Francisco, CA',
-                        unit: 'celsius'
-                    },
-                    caller_id: 'user_550e8400'
-                },
-                responseBody: {
-                    status: 'success',
-                    data: {
-                        temperature: 18,
-                        condition: 'Partly Cloudy',
-                        humidity: 65,
-                        forecast: ['Clear', 'Sunny']
-                    },
-                    latency: '142ms'
-                },
-                mcpVersion: '1.2.4-stable',
-                userAgent: 'MCP-Client/3.0.1 (node18)'
-            },
-            {
-                id: 'req_88291abd',
-                timestamp: '2023-10-27 14:23:42.891',
-                tool: 'search_docs',
-                endpoint: 'search_docs',
-                method: 'POST',
-                status: 200,
-                statusText: 'OK',
-                latency: '89ms',
-                size: '4.5kb',
-                requestPayload: {
-                    tool: 'search_docs',
-                    arguments: {
-                        query: 'authentication',
-                        limit: 10
-                    }
-                },
-                responseBody: {
-                    status: 'success',
-                    results: [],
-                    latency: '89ms'
-                }
-            },
-            {
-                id: 'req_88291abe',
-                timestamp: '2023-10-27 14:23:41.005',
-                tool: 'send_email',
-                endpoint: 'send_email',
-                method: 'POST',
-                status: 500,
-                statusText: 'ERR',
-                latency: '2,140ms',
-                size: '0.4kb',
-                requestPayload: {
-                    tool: 'send_email',
-                    arguments: {
-                        to: 'user@example.com',
-                        subject: 'Test'
-                    }
-                },
-                responseBody: {
-                    status: 'error',
-                    message: 'SMTP connection failed'
-                }
-            },
-            {
-                id: 'req_88291abf',
-                timestamp: '2023-10-27 14:23:38.221',
-                tool: 'get_weather',
-                endpoint: 'get_weather',
-                method: 'POST',
-                status: 200,
-                statusText: 'OK',
-                latency: '115ms',
-                size: '1.1kb',
-                requestPayload: {},
-                responseBody: {}
-            },
-            {
-                id: 'req_88291abg',
-                timestamp: '2023-10-27 14:23:35.099',
-                tool: 'search_docs',
-                endpoint: 'search_docs',
-                method: 'POST',
-                status: 429,
-                statusText: 'LMT',
-                latency: '12ms',
-                size: '0.2kb',
-                requestPayload: {},
-                responseBody: {
-                    status: 'error',
-                    message: 'Rate limit exceeded'
-                }
-            }
-        ]
+    const handleLogClick = (log) => {
+        setSelectedLog(log);
     };
 
-    // if (loading && !logs) {
-    //     return (
-    //         <div className={RequestLogsStyles.requestLogs}>
-    //             <RequestLogsHeader 
-    //                 filters={filters}
-    //                 onFilterChange={setFilters}
-    //                 stats={{ totalSuccess: 0, totalErrors: 0 }}
-    //             />
-    //             <LoadingSkeleton type="table" lines={10} />
-    //         </div>
-    //     );
-    // }
+    const handleCloseDetails = () => {
+        setSelectedLog(null);
+    };
 
-    // if (error) {
-    //     return (
-    //         <div className={RequestLogsStyles.requestLogs}>
-    //             <div className={RequestLogsStyles.errorContainer}>
-    //                 <h2>Error Loading Logs</h2>
-    //                 <p>{error}</p>
-    //                 <button onClick={refetch}>Retry</button>
-    //             </div>
-    //         </div>
-    //     );
-    // }
+    const handleExport = () => {
+        // Export logs as JSON
+        const dataStr = JSON.stringify(filteredLogs, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `request-logs-${new Date().toISOString()}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
+    if (!selectedServerId && servers.length === 0) {
+        return (
+            <div className={RequestLogsStyles.container}>
+                <div className={RequestLogsStyles.emptyState}>
+                    <p>📊 No servers configured yet</p>
+                    <p>Add a server to start viewing request logs</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className={RequestLogsStyles.requestLogs}>
-            <RequestLogsHeader 
-                filters={filters}
-                onFilterChange={setFilters}
-                stats={{
-                    totalSuccess: sampleLogs.totalSuccess,
-                    totalErrors: sampleLogs.totalErrors
-                }}
+        <div className={RequestLogsStyles.container}>
+            <RequestLogsHeader
+                servers={servers}
+                selectedServerId={selectedServerId}
+                onServerChange={setSelectedServerId}
+                toolNames={toolNames}
+                selectedToolId={selectedToolId}
+                onToolChange={setSelectedToolId}
+                selectedStatusCode={selectedStatusCode}
+                onStatusChange={setSelectedStatusCode}
+                timeRange={timeRange}
+                onTimeRangeChange={setTimeRange}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                successCount={stats.successCount || 0}
+                errorCount={stats.errorCount || 0}
+                totalCount={stats.totalRequests || 0}
+                onExport={handleExport}
             />
 
-            <div className={RequestLogsStyles.logsContent}>
-                <RequestLogsTable 
-                    logs={sampleLogs.logs}
-                    selectedLog={selectedRequest}
-                    onSelectLog={setSelectedRequest}
-                    // loading={loading}
-                />
+            <div className={RequestLogsStyles.content}>
+                <div className={RequestLogsStyles.tableWrapper}>
+                    {loading ? (
+                        <LoadingSkeleton type="table" lines={10} />
+                    ) : error ? (
+                        <div className={RequestLogsStyles.error}>
+                            <p>⚠️ Error loading logs: {error}</p>
+                            <button onClick={refetch}>Retry</button>
+                        </div>
+                    ) : filteredLogs.length === 0 ? (
+                        <div className={RequestLogsStyles.empty}>
+                            <p>📋 No request logs found</p>
+                            <small>Logs will appear here as requests are made to your MCP tools</small>
+                        </div>
+                    ) : (
+                        <RequestLogsTable
+                            logs={filteredLogs}
+                            onLogClick={handleLogClick}
+                            selectedLog={selectedLog}
+                        />
+                    )}
+                </div>
 
-                {selectedRequest && (
-                    <RequestDetailsPanel 
-                        request={selectedRequest}
-                        onClose={() => setSelectedRequest(null)}
+                {selectedLog && (
+                    <RequestDetailsPanel
+                        log={selectedLog}
+                        onClose={handleCloseDetails}
                     />
                 )}
             </div>
 
-            <RequestLogsFooter />
+            <RequestLogsFooter
+                logCount={filteredLogs.length}
+                totalCount={logs.length}
+                autoRefresh={autoRefresh}
+                onToggleAutoRefresh={() => setAutoRefresh(!autoRefresh)}
+                avgLatency={stats.avgLatency ? Math.round(stats.avgLatency) : 0}
+            />
         </div>
     );
 }

@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.tradeshow.pulse24x7.mcp.model.Tool;
 import com.tradeshow.pulse24x7.mcp.model.ToolHistory;
 import com.tradeshow.pulse24x7.mcp.service.ToolService;
+import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -62,7 +63,7 @@ public class ToolServlet extends HttpServlet {
 
     private void handleGetToolsByServer(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        String serverIdStr = req.getParameter("serverId");
+        String serverIdStr = HttpClientUtil.jsonParser(req).get("serverId").getAsString();
 
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
@@ -85,7 +86,7 @@ public class ToolServlet extends HttpServlet {
 
     private void handleGetActiveTools(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        String serverIdStr = req.getParameter("serverId");
+        String serverIdStr = HttpClientUtil.jsonParser(req).get("serverId").getAsString();
 
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
@@ -127,8 +128,9 @@ public class ToolServlet extends HttpServlet {
 
     private void handleGetToolHistory(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        String toolIdStr = req.getParameter("toolId");
-        String hoursStr = req.getParameter("hours");
+        JsonObject payload = HttpClientUtil.jsonParser(req);
+        String toolIdStr = payload.get("toolId").getAsString();
+        String hoursStr = payload.get("hours").getAsString();
 
         if (toolIdStr == null || toolIdStr.trim().isEmpty()) {
             sendErrorResponse(resp, "Tool ID is required", HttpServletResponse.SC_BAD_REQUEST);

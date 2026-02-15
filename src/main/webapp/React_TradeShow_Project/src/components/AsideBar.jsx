@@ -17,28 +17,31 @@ export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate }) 
                 </div>
 
                 <div className={AsideStyles.asideFeature}>
-                    <AsideItem 
-                        icon={<MdDashboard />} 
+                    <AsideItem
+                        icon={<MdDashboard />}
                         active={currentPage === 'dashboard'}
                         onClick={() => onNavigate('dashboard')}
                     >
                         Dashboard
                     </AsideItem>
-                    <AsideItem 
+                    <AsideItem
                         icon={<MdListAlt />}
                         active={currentPage === 'logs'}
                         onClick={() => onNavigate('logs')}
                     >
                         Request Logs
                     </AsideItem>
-                    <AsideItem 
+                    <AsideItem
                         icon={<MdBuild />}
                         active={currentPage === 'tools'}
                         onClick={() => onNavigate('tools')}
                     >
                         Tools
                     </AsideItem>
-                    <AsideItem icon={<MdSettings />}>Settings</AsideItem>
+                    <AsideItem icon={<MdSettings />}
+                        active={currentPage === 'settings'}
+                        onClick={() => onNavigate('settings')}
+                    >Settings</AsideItem>
                 </div>
 
                 <div className={AsideStyles.serverStatus}>
