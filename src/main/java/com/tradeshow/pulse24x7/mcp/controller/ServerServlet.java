@@ -1,7 +1,8 @@
 package com.tradeshow.pulse24x7.mcp.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.tradeshow.pulse24x7.mcp.model.Server;
 import com.tradeshow.pulse24x7.mcp.model.ServerHistory;
 import com.tradeshow.pulse24x7.mcp.service.AuthTokenService;
@@ -40,6 +41,8 @@ public class ServerServlet extends HttpServlet {
         authTokenService = new AuthTokenService();
         monitoringService = new MonitoringService();
         logger.info("ServerServlet initialized");
+        System.out.println(System.getProperty("user.dir"));
+
     }
 
     @Override
@@ -132,28 +135,27 @@ public class ServerServlet extends HttpServlet {
 
     private void handleRegisterServer(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-
-        StringBuilder sb = new StringBuilder();
+        StringBuilder jsonBuffer = new StringBuilder();
         String line;
-
-        try (BufferedReader br = req.getReader()) {
-            while ((line = br.readLine()) != null) {
-                sb.append(line);
+        try (BufferedReader reader = req.getReader()) {
+            while ((line = reader.readLine()) != null) {
+                jsonBuffer.append(line);
             }
         }
 
-        JsonObject payload = JsonParser.parseString(sb.toString()).getAsJsonObject();
-        System.out.println(payload);
+        String jsonString = jsonBuffer.toString();
+        System.out.println("Received JSON: " + jsonString);
 
-        String serverName = payload.get("serverName").getAsString();
-        String serverUrl = payload.get("serverUrl").getAsString();
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode node = mapper.readTree(jsonString);
 
-//        String accessToken = req.getParameter("accessToken");
-//        String refreshToken = req.getParameter("refreshToken");
-//        String expiresAtStr = req.getParameter("expiresAt");
-        String accessToken = payload.get("accessToken").getAsString();
-        String refreshToken = payload.get("refreshToken").getAsString();
-        String expiresAtStr = payload.get("expiresAt").getAsString();
+
+        System.out.println(req.getRequestURL());
+        String serverName = node.get("serverName").asText();
+        String serverUrl = node.get("serverUrl").asText();
+        String accessToken = req.getParameter("accessToken");
+        String refreshToken = req.getParameter("refreshToken");
+        String expiresAtStr = req.getParameter("expiresAt");
 
         if (serverName == null || serverName.trim().isEmpty()) {
             sendErrorResponse(resp, "Server name is required and cannot be empty", HttpServletResponse.SC_BAD_REQUEST);
