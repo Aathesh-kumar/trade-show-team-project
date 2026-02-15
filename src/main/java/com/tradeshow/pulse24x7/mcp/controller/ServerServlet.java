@@ -135,6 +135,7 @@ public class ServerServlet extends HttpServlet {
 
     private void handleRegisterServer(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
+        System.out.println(req);
         StringBuilder jsonBuffer = new StringBuilder();
         String line;
         try (BufferedReader reader = req.getReader()) {
