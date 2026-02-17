@@ -31,15 +31,11 @@ import com.tradeshow.pulse24x7.mcp.db.DBConnection;
 @WebServlet("/dashboard/*")
 public class DashboardServlet extends HttpServlet {
     private static final Logger logger = LogManager.getLogger(DashboardServlet.class);
-    private ServerDAO serverDAO;
-    private ToolDAO toolDAO;
     private RequestLogDAO requestLogDAO;
 
     @Override
     public void init() throws ServletException {
         super.init();
-        serverDAO = new ServerDAO();
-        toolDAO = new ToolDAO();
         requestLogDAO = new RequestLogDAO();
         logger.info("DashboardServlet initialized");
     }
@@ -70,9 +66,6 @@ public class DashboardServlet extends HttpServlet {
         }
     }
 
-    /**
-     * Get overall dashboard statistics
-     */
     private void handleGetDashboardStats(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
         String serverIdStr = req.getParameter("serverId");
@@ -101,9 +94,6 @@ public class DashboardServlet extends HttpServlet {
         sendSuccessResponse(resp, stats);
     }
 
-    /**
-     * Get top performing tools
-     */
     private void handleGetTopPerformingTools(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
         String serverIdStr = req.getParameter("serverId");
@@ -123,9 +113,6 @@ public class DashboardServlet extends HttpServlet {
         sendSuccessResponse(resp, response);
     }
 
-    /**
-     * Get system health data for charts
-     */
     private void handleGetSystemHealth(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
         String serverIdStr = req.getParameter("serverId");
