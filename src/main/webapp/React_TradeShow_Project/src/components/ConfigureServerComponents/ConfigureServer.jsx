@@ -11,11 +11,11 @@ import { MdBook, MdMessage, MdSensors } from 'react-icons/md';
 
 export default function ConfigureServer({ onClose, onSuccess }) {
     const [formData, setFormData] = useState({
-        serverName: 'Zoho MCP',
-        serverUrl: 'https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf',
-        headerType: 'Bearer',
-        accessToken: '1000.b08aef790df7056cd3f811d27cb987da.7fe9f2cc4ee538381d6743116c12d052',
-        refreshToken: '1000.9d48899f11c7bfbb988856cda9c3035e.9fe58f2c9ecd940d0c7aaf487e0c5aa5',
+        serverName: '',
+        serverUrl: '',
+        headerType: 'Zoho-oauthtoken',
+        accessToken: '',
+        refreshToken: '',
         expiresAt: '',
         connectionTimeout: 5000,
         autoReconnect: true
@@ -28,14 +28,10 @@ export default function ConfigureServer({ onClose, onSuccess }) {
 
     const { loading, error, execute } = usePost("http://localhost:8080/trade-show-team-project/server", {
         validateData: (data) => {
-            console.log(data);
-            
+            console.log(data.serverName);
             if (!data.serverName || data.serverName.trim().length < 3) {
                 return 'Server name must be at least 3 characters';
             }
-            // if (!data.get('serverUrl') || !data.get('serverUrl').match(/^wss?:\/\/.+/)) {
-            //     return 'Invalid server URL format (must start with ws:// or wss://)';
-            // }
             if (data.accessToken && data.accessToken.trim().length < 10) {
                 return 'Access token must be at least 10 characters';
             }
@@ -93,26 +89,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
     };
 
     const handleSubmit = async (e) => {
-        console.log(formData);
-        
         e.preventDefault();
-
-        // Create URL-encoded form data for backend
-        // const formParams = new URLSearchParams();
-        // formParams.append('serverName', formData.serverName);
-        // formParams.append('serverUrl', formData.serverUrl);
-
-        // // Add tokens only if provided
-        // if (formData.accessToken) {
-        //     formParams.append('accessToken', formData.accessToken);
-        // }
-        // if (formData.refreshToken) {
-        //     formParams.append('refreshToken', formData.refreshToken);
-        // }
-        // if (formData.expiresAt) {
-        //     formParams.append('expiresAt', formData.expiresAt);
-        // };
-    
         try {
             await execute(formData);
         } catch (err) {
@@ -171,7 +148,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                             onChange={(value) => handleInputChange('headerType', value)}
                             options={[
                                 'Zoho-oauthtoken',
-                                'Bearer',
+                                'Bearer Token',
                                 'API Key',
                                 'OAuth 2.0',
                                 'Basic Auth'
@@ -185,19 +162,17 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                             value={formData.accessToken}
                             onChange={(value) => handleInputChange('accessToken', value)}
                             showToggle
-                            required
                             onToggle={() => setShowAccessToken(!showAccessToken)}
                             tooltip="Primary authentication token for API access"
                         />
 
                         <InputField
-                            label="Refresh Token"
+                            label="Refresh Token (Optional)"
                             type={showRefreshToken ? 'text' : 'password'}
                             placeholder="Enter refresh token if available"
                             value={formData.refreshToken}
                             onChange={(value) => handleInputChange('refreshToken', value)}
                             showToggle
-                            required
                             onToggle={() => setShowRefreshToken(!showRefreshToken)}
                             tooltip="Token used to refresh the access token when it expires"
                         />
