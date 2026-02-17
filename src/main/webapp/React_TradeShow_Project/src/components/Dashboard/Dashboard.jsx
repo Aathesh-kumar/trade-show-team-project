@@ -9,16 +9,23 @@ import { MdInfo, MdSync, MdError, MdSpeed } from 'react-icons/md';
 import { IoNotifications } from 'react-icons/io5';
 import { useGet } from '../Hooks/useGet';
 import NotificationPanel from './NotificationPanel';
-import { buildUrl } from '../../services/api';
+import { buildUrl, getAuthHeaders } from '../../services/api';
 
-export default function Dashboard({ selectedServer, onNavigate }) {
+export default function Dashboard({ selectedServer, onNavigate, onSelectServer }) {
     const [showNotifications, setShowNotifications] = useState(false);
+    const [timeMode, setTimeMode] = useState('current');
     const serverId = selectedServer?.serverId;
     const { data: serversData } = useGet('/server/all', { immediate: true, dependencies: [serverId] });
+    const { data: serverStatusesData } = useGet('/server/statuses', { immediate: true, dependencies: [serverId] });
+    const timeParams = getTimeParams(timeMode);
     const { data: metrics } = useGet('/metrics/overview', {
         immediate: !!serverId,
-        params: { serverId },
-        dependencies: [serverId]
+        params: {
+            serverId,
+            hours: timeParams.hours,
+            bucketMinutes: timeParams.bucketMinutes
+        },
+        dependencies: [serverId, timeMode]
     });
     const { data: unread } = useGet('/notification/unread-count', {
         immediate: true,
@@ -32,7 +39,10 @@ export default function Dashboard({ selectedServer, onNavigate }) {
         const runMonitor = () => {
             fetch(buildUrl('/server/monitor'), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders()
+                },
                 body: JSON.stringify({ serverId })
             }).catch(() => null);
         };
@@ -40,7 +50,9 @@ export default function Dashboard({ selectedServer, onNavigate }) {
         const id = setInterval(runMonitor, 60_000);
         return () => clearInterval(id);
     }, [serverId]);
-    const servers = Array.isArray(serversData) ? serversData : [];
+    const servers = Array.isArray(serverStatusesData) && serverStatusesData.length > 0
+        ? serverStatusesData
+        : (Array.isArray(serversData) ? serversData : []);
 
     const requestStats = metrics?.requestStats || {};
     const totalRequests = requestStats.totalRequests || 0;
@@ -114,10 +126,19 @@ export default function Dashboard({ selectedServer, onNavigate }) {
             </div>
 
             <div className={DashboardStyles.mainGrid}>
-                <SystemHealth data={metrics?.throughput24h || []} />
+                <SystemHealth
+                    data={metrics?.throughput24h || []}
+                    timeMode={timeMode}
+                    onChangeTimeMode={setTimeMode}
+                />
                 <div className={DashboardStyles.sidePanel}>
                     <QuickActions onNavigate={onNavigate} />
-                    <ActiveServers servers={servers} />
+                    <ActiveServers
+                        servers={servers}
+                        selectedServerId={selectedServer?.serverId}
+                        onSelectServer={onSelectServer}
+                        onNavigate={onNavigate}
+                    />
                 </div>
             </div>
 
@@ -125,6 +146,23 @@ export default function Dashboard({ selectedServer, onNavigate }) {
             <NotificationPanel isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
         </div>
     );
+}
+
+function getTimeParams(mode) {
+    switch (mode) {
+        case 'current':
+            return { hours: 1, bucketMinutes: 1 };
+        case '12h':
+            return { hours: 12, bucketMinutes: 5 };
+        case '1d':
+            return { hours: 24, bucketMinutes: 15 };
+        case '15d':
+            return { hours: 24 * 15, bucketMinutes: 180 };
+        case '30d':
+            return { hours: 24 * 30, bucketMinutes: 360 };
+        default:
+            return { hours: 1, bucketMinutes: 1 };
+    }
 }
 
 function averageLatency(tools) {

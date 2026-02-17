@@ -40,8 +40,7 @@ public class ToolService {
             Map<String, Object> params = new HashMap<>();
             JsonObject request = JsonUtil.createMCPRequest("tools/list", params);
 
-            Map<String, String> headers = buildHeaders(accessToken, headerType);
-            JsonObject response = HttpClientUtil.doPost(serverUrl, headers, request.toString());
+            JsonObject response = doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request);
 
             List<Tool> tools = parseToolsFromResponse(response, serverId);
             updateToolsInDatabase(serverId, tools);
@@ -54,14 +53,37 @@ public class ToolService {
 
     public JsonObject executeTool(Integer serverId, String serverUrl, String headerType, String accessToken,
                                   String toolName, JsonObject inputParams) {
-        Map<String, String> headers = buildHeaders(accessToken, headerType);
-
         Map<String, Object> params = new HashMap<>();
         params.put("name", toolName);
         params.put("arguments", inputParams == null ? new JsonObject() : inputParams);
 
         JsonObject request = JsonUtil.createMCPRequest("tools/call", params);
-        return HttpClientUtil.doPost(serverUrl, headers, request.toString());
+        return doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request);
+    }
+
+    private JsonObject doPostWithRefresh(Integer serverId, String serverUrl, String headerType,
+                                         String accessToken, JsonObject request) {
+        try {
+            return HttpClientUtil.doPost(serverUrl, buildHeaders(accessToken, headerType), request.toString());
+        } catch (RuntimeException ex) {
+            if (!shouldRefreshToken(ex)) {
+                throw ex;
+            }
+            String refreshed = authTokenService.refreshAccessToken(serverId);
+            return HttpClientUtil.doPost(serverUrl, buildHeaders(refreshed, headerType), request.toString());
+        }
+    }
+
+    private boolean shouldRefreshToken(RuntimeException ex) {
+        String message = ex.getMessage();
+        if (message == null) {
+            return false;
+        }
+        String lower = message.toLowerCase();
+        return lower.contains("401")
+                || lower.contains("invalid_oauthtoken")
+                || lower.contains("invalid oauth token")
+                || lower.contains("unauthorized");
     }
 
     private Map<String, String> buildHeaders(String accessToken, String headerType) {

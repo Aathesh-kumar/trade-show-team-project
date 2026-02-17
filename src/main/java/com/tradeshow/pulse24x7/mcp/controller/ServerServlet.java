@@ -52,6 +52,8 @@ public class ServerServlet extends HttpServlet {
         try {
             if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("/all")) {
                 handleGetAllServers(resp);
+            } else if (pathInfo.equals("/statuses")) {
+                handleGetServerStatuses(resp);
             } else if (pathInfo.equals("/history")) {
                 handleGetServerHistory(req, resp);
             } else if (pathInfo.matches("/\\d+")) {
@@ -186,6 +188,24 @@ public class ServerServlet extends HttpServlet {
     private void handleGetAllServers(HttpServletResponse resp) throws IOException {
         List<Server> servers = serverService.getAllServers();
         sendSuccessResponse(resp, servers);
+    }
+
+    private void handleGetServerStatuses(HttpServletResponse resp) throws IOException {
+        List<Server> servers = serverService.getAllServers();
+        List<Map<String, Object>> statuses = new java.util.ArrayList<>();
+        for (Server server : servers) {
+            List<ServerHistory> history = serverService.getServerHistory(server.getServerId(), 1);
+            ServerHistory latest = history.isEmpty() ? null : history.get(0);
+            Map<String, Object> row = new HashMap<>();
+            row.put("serverId", server.getServerId());
+            row.put("serverName", server.getServerName());
+            row.put("serverUrl", server.getServerUrl());
+            row.put("serverUp", latest != null && Boolean.TRUE.equals(latest.getServerUp()));
+            row.put("toolCount", latest != null ? latest.getToolCount() : 0);
+            row.put("checkedAt", latest != null ? latest.getCheckedAt() : null);
+            statuses.add(row);
+        }
+        sendSuccessResponse(resp, statuses);
     }
 
     private void handleGetServerByPath(HttpServletResponse resp, String pathInfo) throws IOException {

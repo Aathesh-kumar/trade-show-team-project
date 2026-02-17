@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { buildUrl, parseApiResponse, unwrapData } from '../../services/api';
+import { buildUrl, getAuthHeaders, parseApiResponse, unwrapData } from '../../services/api';
 
 export const useGet = (path, options = {}) => {
     const {
@@ -29,6 +29,7 @@ export const useGet = (path, options = {}) => {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...getAuthHeaders(),
                     ...headers
                 },
                 signal

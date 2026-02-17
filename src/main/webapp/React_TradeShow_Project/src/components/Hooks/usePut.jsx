@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { parseApiResponse, unwrapData } from '../../services/api';
+import { getAuthHeaders, parseApiResponse, unwrapData } from '../../services/api';
 
 export const usePut = (url, options = {}) => {
   const { method = 'PUT', headers = {}, onSuccess, onError, validateData } = options;
@@ -26,6 +26,7 @@ export const usePut = (url, options = {}) => {
         method,
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(),
           ...headers,
           ...customOptions.headers
         },

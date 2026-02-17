@@ -1,5 +1,5 @@
 import ConfigureServerStyles from '../../styles/ConfigureServer.module.css';
-import { MdExpandMore, MdInfoOutline, MdCheck, MdClose } from 'react-icons/md';
+import { MdExpandMore, MdInfoOutline, MdCheck, MdClose, MdCheckCircle, MdErrorOutline } from 'react-icons/md';
 import { useState } from 'react';
 
 export function SelectField({ label, value, onChange, options }) {
@@ -123,7 +123,7 @@ export function Toast({ type, message, onClose }) {
         <div className={`${ConfigureServerStyles.toast} ${ConfigureServerStyles[type]}`}>
             <div className={ConfigureServerStyles.toastContent}>
                 <span className={ConfigureServerStyles.toastIcon}>
-                    {type === 'success' ? '✓' : '✕'}
+                    {type === 'success' ? <MdCheckCircle /> : <MdErrorOutline />}
                 </span>
                 <span className={ConfigureServerStyles.toastMessage}>{message}</span>
             </div>

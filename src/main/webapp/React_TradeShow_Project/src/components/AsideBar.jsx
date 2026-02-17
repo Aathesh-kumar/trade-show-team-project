@@ -1,18 +1,18 @@
 import AsideItem from "./AsideItem";
 import AsideStyles from '../styles/Aside.module.css';
 import { MdDashboard, MdListAlt, MdBuild, MdSettings } from "react-icons/md";
-import { RiTerminalBoxFill } from "react-icons/ri";
+import pulseLogo from '../assets/pulse24x7-logo.png';
 
-export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate, activeServer }) {
+export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate, activeServer, onLogout }) {
     return (
         <>
             <aside className={`${AsideStyles.asideBar} ${isOpen ? AsideStyles.open : ''}`}>
                 <div className={AsideStyles.asideHeader}>
                     <div className={AsideStyles.logo}>
                         <div className={AsideStyles.logoIcon}>
-                            <RiTerminalBoxFill />
+                            <img src={pulseLogo} alt="Pulse24x7 logo" />
                         </div>
-                        <h2 className={AsideStyles.logoText}>MCP Console</h2>
+                        <h2 className={AsideStyles.logoText}>Pulse24x7</h2>
                     </div>
                 </div>
 
@@ -57,6 +57,10 @@ export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate, ac
                         </div>
                     </div>
                 </div>
+
+                <button className={AsideStyles.logoutBtn} onClick={onLogout}>
+                    Logout
+                </button>
 
                 <button className={AsideStyles.mobileToggle} onClick={onToggle}>
                     <MdDashboard />

@@ -9,10 +9,8 @@ export default function ToolsHeader({
     setFilterType,
     timeRange,
     setTimeRange,
-    customStart,
-    customEnd,
-    setCustomStart,
-    setCustomEnd,
+    customMinutes,
+    setCustomMinutes,
     onRefresh,
     refreshing
 }) {
@@ -74,26 +72,25 @@ export default function ToolsHeader({
                         onChange={(e) => setTimeRange(e.target.value)}
                         className={ToolsStyles.filterSelect}
                     >
-                        <option value="1h">Past 1h</option>
-                        <option value="2h">Past 2h</option>
-                        <option value="4h">Past 4h</option>
-                        <option value="8h">Past 8h</option>
-                        <option value="24h">Past 1d</option>
-                        <option value="custom">Custom</option>
+                        <option value="current">Current tools</option>
+                        <option value="1m">Past 1min</option>
+                        <option value="10m">Past 10mins</option>
+                        <option value="1h">Past 1hr</option>
+                        <option value="2h">Past 2hrs</option>
+                        <option value="24h">Past 24hrs</option>
+                        <option value="custom">Custom interval</option>
                     </select>
                 </div>
                 {timeRange === 'custom' && (
                     <div className={ToolsStyles.filterGroup}>
+                        <label className={ToolsStyles.filterLabel} htmlFor="customMinutes">Past minutes</label>
                         <input
-                            type="datetime-local"
-                            value={customStart}
-                            onChange={(e) => setCustomStart(e.target.value)}
-                            className={ToolsStyles.filterSelect}
-                        />
-                        <input
-                            type="datetime-local"
-                            value={customEnd}
-                            onChange={(e) => setCustomEnd(e.target.value)}
+                            id="customMinutes"
+                            type="number"
+                            min="1"
+                            max="1440"
+                            value={customMinutes}
+                            onChange={(e) => setCustomMinutes(e.target.value)}
                             className={ToolsStyles.filterSelect}
                         />
                     </div>

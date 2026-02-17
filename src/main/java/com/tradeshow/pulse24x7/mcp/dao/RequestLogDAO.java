@@ -168,14 +168,18 @@ public class RequestLogDAO {
         return stats;
     }
 
-    public List<Map<String, Object>> getThroughputLast24Hours(Integer serverId) {
-        Timestamp since = TimeUtil.getTimestampHoursAgo(24);
+    public List<Map<String, Object>> getThroughput(Integer serverId, int hours, int bucketMinutes) {
+        int safeHours = Math.max(1, hours);
+        int safeBucket = Math.max(1, bucketMinutes);
+        Timestamp since = TimeUtil.getTimestampHoursAgo(safeHours);
         List<Map<String, Object>> points = new ArrayList<>();
 
         try (Connection con = DBConnection.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(DBQueries.SELECT_THROUGHPUT_BY_HOUR)) {
-            ps.setInt(1, serverId);
-            ps.setTimestamp(2, since);
+            ps.setInt(1, safeBucket);
+            ps.setInt(2, serverId);
+            ps.setTimestamp(3, since);
+            ps.setInt(4, safeBucket);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Map<String, Object> row = new LinkedHashMap<>();

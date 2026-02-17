@@ -3,8 +3,8 @@
     left: 0;
     top: 0;
     height: 100vh;
-    background-color: var(--primary-bg);
-    color: white;
+    background-color: var(--bg-elev-1);
+    color: var(--text-primary);
     display: flex;
     flex-direction: column;
     padding: 1.5rem 0;
@@ -43,14 +43,17 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                background-color: var(--primary-color);
-                padding: 0.5rem;
-                border-radius: 8px;
+                background: transparent;
+                padding: 0.15rem;
+                border-radius: 10px;
                 flex-shrink: 0;
+                border: 1px solid var(--panel-border);
 
-                svg {
+                img {
                     width: 28px;
                     height: 28px;
+                    border-radius: 6px;
+                    display: block;
                 }
             }
 
@@ -179,6 +182,21 @@
     .mobileToggle {
         display: none;
     }
+
+    .logoutBtn {
+        margin: 0 0.8rem;
+        min-height: 34px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(239, 68, 68, 0.15);
+        color: #fff;
+        cursor: pointer;
+        display: none;
+    }
+
+    &:hover .logoutBtn {
+        display: block;
+    }
 }
 
 @keyframes pulse {
@@ -236,6 +254,11 @@
                 width: 24px;
                 height: 24px;
             }
+        }
+
+        .logoutBtn {
+            display: block;
+            margin-top: 0.75rem;
         }
     }
 

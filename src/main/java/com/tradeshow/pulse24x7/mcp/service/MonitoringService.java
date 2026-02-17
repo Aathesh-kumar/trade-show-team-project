@@ -63,6 +63,18 @@ public class MonitoringService {
                     AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, accessToken),
                     JsonUtil.createMCPRequest("ping", Map.of()).toString()
             );
+            if (!pingResult.isSuccess() && accessToken != null && !accessToken.isBlank()) {
+                try {
+                    String refreshedToken = authTokenService.refreshAccessToken(serverId);
+                    pingResult = HttpClientUtil.canPingServer(
+                            server.getServerUrl(),
+                            AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, refreshedToken),
+                            JsonUtil.createMCPRequest("ping", Map.of()).toString()
+                    );
+                } catch (Exception ignored) {
+                    // keep original ping failure
+                }
+            }
             boolean serverUp = pingResult.isSuccess();
             logger.info("Server {} is {}", serverId, serverUp ? "UP" : "DOWN");
             

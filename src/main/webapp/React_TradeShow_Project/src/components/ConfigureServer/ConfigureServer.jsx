@@ -110,7 +110,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                 />
 
                 <header className={ConfigureServerStyles.header}>
-                    <h1>Configure MCP Server</h1>
+                    <h1>Configure Pulse24x7 Server</h1>
                     <p>Connect a new Model Context Protocol endpoint to your monitoring network.</p>
                 </header>
 
@@ -125,7 +125,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                             value={formData.serverName}
                             onChange={(value) => handleInputChange('serverName', value)}
                             required
-                            tooltip="A descriptive name for your MCP server"
+                            tooltip="A descriptive name for your Pulse24x7 server"
                         />
 
                         <InputField
@@ -135,7 +135,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                             onChange={(value) => handleInputChange('serverUrl', value)}
                             required
                             icon="link"
-                            tooltip="WebSocket URL for the MCP endpoint"
+                            tooltip="WebSocket URL for the Pulse24x7 endpoint"
                         />
                     </FormSection>
 
@@ -290,7 +290,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                     <div className={ConfigureServerStyles.helpCard}>
                         <span className={ConfigureServerStyles.helpIcon}>{<MdBook />}</span>
                         <div>
-                            <strong>Need help with MCP?</strong>
+                            <strong>Need help with Pulse24x7?</strong>
                             <p>Check our documentation for server setup guides.</p>
                         </div>
                     </div>

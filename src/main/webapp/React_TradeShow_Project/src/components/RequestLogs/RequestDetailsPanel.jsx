@@ -2,14 +2,48 @@ import { useState } from 'react';
 import RequestLogsStyles from '../../styles/RequestLogs.module.css';
 import { MdClose, MdContentCopy, MdPlayArrow, MdFlag } from 'react-icons/md';
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { usePost } from '../Hooks/usePost';
+import { buildUrl } from '../../services/api';
 
-export default function RequestDetailsPanel({ request, onClose }) {
+export default function RequestDetailsPanel({ request, selectedServer, onClose, onReplaySuccess }) {
     const [copiedSection, setCopiedSection] = useState(null);
+    const [replayMessage, setReplayMessage] = useState(null);
+    const { execute: replayRequest, loading: replaying } = usePost(buildUrl('/tool/test'));
 
     const handleCopy = (section, content) => {
         navigator.clipboard.writeText(JSON.stringify(content, null, 2));
         setCopiedSection(section);
         setTimeout(() => setCopiedSection(null), 2000);
+    };
+
+    const handleReplay = async () => {
+        setReplayMessage(null);
+        try {
+            const payload = request?.requestPayload || {};
+            const serverId = payload.serverId || request.serverId || selectedServer?.serverId;
+            const toolName = payload.toolName || request.tool;
+            const toolId = payload.toolId || request.toolId || null;
+            let inputParams = payload.inputParams;
+
+            if (typeof inputParams !== 'string') {
+                inputParams = JSON.stringify(inputParams || {});
+            }
+
+            if (!serverId || !toolName) {
+                throw new Error('Cannot replay this request. Missing server or tool information.');
+            }
+
+            await replayRequest({
+                serverId,
+                toolId,
+                toolName,
+                inputParams: inputParams || '{}'
+            });
+            setReplayMessage({ type: 'success', text: 'Re-request sent successfully.' });
+            onReplaySuccess?.();
+        } catch (error) {
+            setReplayMessage({ type: 'error', text: error.message || 'Failed to replay request.' });
+        }
     };
 
     return (
@@ -33,7 +67,7 @@ export default function RequestDetailsPanel({ request, onClose }) {
                             <span className={RequestLogsStyles.infoValue}>{request.id}</span>
                         </div>
                         <div className={RequestLogsStyles.infoItem}>
-                            <label>MCP VERSION</label>
+                            <label>PULSE24x7 VERSION</label>
                             <span className={RequestLogsStyles.infoValue}>{request.mcpVersion || '1.2.4-stable'}</span>
                         </div>
                     </div>
@@ -51,9 +85,6 @@ export default function RequestDetailsPanel({ request, onClose }) {
                             {copiedSection === 'request' ? 'Copied!' : 'Copy'}
                         </button>
                     </div>
-                    <pre className={RequestLogsStyles.jsonViewer}>
-                        <code>{JSON.stringify(request.requestPayload, null, 2)}</code>
-                    </pre>
                     <SyntaxHighlighter className={RequestLogsStyles.jsonViewer} language="json">
                         {JSON.stringify(request.requestPayload, null, 2)}
                     </SyntaxHighlighter>
@@ -71,9 +102,9 @@ export default function RequestDetailsPanel({ request, onClose }) {
                             {copiedSection === 'response' ? 'Copied!' : 'Copy'}
                         </button>
                     </div>
-                    <pre className={RequestLogsStyles.jsonViewer}>
-                        <code>{JSON.stringify(request.responseBody, null, 2)}</code>
-                    </pre>
+                    <SyntaxHighlighter className={RequestLogsStyles.jsonViewer} language="json">
+                        {JSON.stringify(request.responseBody, null, 2)}
+                    </SyntaxHighlighter>
                 </section>
 
                 {/* Contextual Metadata */}
@@ -82,7 +113,7 @@ export default function RequestDetailsPanel({ request, onClose }) {
                     <div className={RequestLogsStyles.metadataGrid}>
                         <div className={RequestLogsStyles.metadataItem}>
                             <label>User Agent</label>
-                            <span>{request.userAgent || 'MCP-Client/3.0.1 (node18)'}</span>
+                            <span>{request.userAgent || 'Pulse24x7-Client/3.0.1 (node18)'}</span>
                         </div>
                         <div className={RequestLogsStyles.metadataItem}>
                             <label>Timestamp</label>
@@ -101,10 +132,15 @@ export default function RequestDetailsPanel({ request, onClose }) {
 
                 {/* Action Button */}
                 <section className={RequestLogsStyles.panelSection}>
-                    <button className={RequestLogsStyles.replayBtn}>
+                    <button className={RequestLogsStyles.replayBtn} onClick={handleReplay} disabled={replaying}>
                         <MdPlayArrow />
-                        Replay Request
+                        {replaying ? 'Re-requesting...' : 'Re-request'}
                     </button>
+                    {replayMessage ? (
+                        <div className={replayMessage.type === 'success' ? RequestLogsStyles.replaySuccess : RequestLogsStyles.replayError}>
+                            {replayMessage.text}
+                        </div>
+                    ) : null}
                 </section>
             </div>
         </aside>
