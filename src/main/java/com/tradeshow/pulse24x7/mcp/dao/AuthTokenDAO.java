@@ -14,7 +14,8 @@ public class AuthTokenDAO {
     private static final Logger logger = LogManager.getLogger(AuthTokenDAO.class);
 
     public boolean insertOrUpdateToken(int serverId, String headerType, String accessToken,
-                                       String refreshToken, Timestamp expiresAt) {
+                                       String refreshToken, Timestamp expiresAt,
+                                       String clientId, String clientSecret, String tokenEndpoint) {
         logger.info("Inserting/updating auth token for server ID: {}", serverId);
 
         try (Connection con = DBConnection.getInstance().getConnection();
@@ -25,6 +26,9 @@ public class AuthTokenDAO {
             ps.setString(3, accessToken);
             ps.setString(4, refreshToken);
             ps.setTimestamp(5, expiresAt);
+            ps.setString(6, clientId);
+            ps.setString(7, clientSecret);
+            ps.setString(8, tokenEndpoint);
 
             int affectedRows = ps.executeUpdate();
 
@@ -137,6 +141,9 @@ public class AuthTokenDAO {
                 rs.getString("access_token"),
                 rs.getString("refresh_token"),
                 rs.getTimestamp("expires_at"),
+                rs.getString("client_id"),
+                rs.getString("client_secret"),
+                rs.getString("token_endpoint"),
                 rs.getTimestamp("updated_at")
         );
     }

@@ -1,6 +1,6 @@
 import ToolsStyles from '../../styles/Tools.module.css';
 
-export default function ToolsFooter() {
+export default function ToolsFooter({ activeServer, updatedAt }) {
     return (
         <footer className={ToolsStyles.toolsFooter}>
             <div className={ToolsStyles.footerLeft}>
@@ -9,12 +9,12 @@ export default function ToolsFooter() {
                     Inventory Synchronized
                 </div>
                 <span className={ToolsStyles.footerDivider}>|</span>
-                <span className={ToolsStyles.footerTime}>Last Updated: 14:45:22</span>
+                <span className={ToolsStyles.footerTime}>Last Updated: {updatedAt?.toLocaleTimeString() || '-'}</span>
             </div>
             <div className={ToolsStyles.footerRight}>
                 <span className={ToolsStyles.footerLabel}>Active Server:</span>
-                <span className={ToolsStyles.footerServer}>mcp-server-v2</span>
-                <span className={ToolsStyles.footerVersion}>V1.2.4-stable</span>
+                <span className={ToolsStyles.footerServer}>{activeServer?.serverName || 'None'}</span>
+                <span className={ToolsStyles.footerVersion}>{activeServer?.serverId ? `#${activeServer.serverId}` : '-'}</span>
             </div>
         </footer>
     );

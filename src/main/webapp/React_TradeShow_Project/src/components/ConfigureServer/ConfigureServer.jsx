@@ -1,48 +1,51 @@
 import { useState } from 'react';
-import { usePost } from '../customUtilHooks/usePost';
+import { usePost } from '../Hooks/usePost';
 import ConfigureServerStyles from '../../styles/ConfigureServer.module.css';
 import Breadcrumb from './Breadcrumb';
 import FormSection from './FormSection';
 import InputField from './InputField';
 import { SelectField, SliderField, ToggleField, Toast } from './FormFields';
 import DateTimeField from './DateTimeField';
-import LoadingDots from '../LoadingComponents/LoadingDots';
+import LoadingDots from '../Loading/LoadingDots';
 import { MdBook, MdMessage, MdSensors } from 'react-icons/md';
+import { buildUrl } from '../../services/api';
 
 export default function ConfigureServer({ onClose, onSuccess }) {
     const [formData, setFormData] = useState({
-        serverName: 'Zoho MCP',
-        serverUrl: 'https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf',
+        serverName: '',
+        serverUrl: '',
         headerType: 'Bearer',
-        accessToken: '1000.b08aef790df7056cd3f811d27cb987da.7fe9f2cc4ee538381d6743116c12d052',
-        refreshToken: '1000.9d48899f11c7bfbb988856cda9c3035e.9fe58f2c9ecd940d0c7aaf487e0c5aa5',
+        accessToken: '',
+        refreshToken: '',
         expiresAt: '',
+        clientId: '',
+        clientSecret: '',
+        tokenEndpoint: 'https://accounts.zoho.in/oauth/v2/token',
         connectionTimeout: 5000,
         autoReconnect: true
     });
 
     const [showAccessToken, setShowAccessToken] = useState(false);
     const [showRefreshToken, setShowRefreshToken] = useState(false);
+    const [showClientSecret, setShowClientSecret] = useState(false);
     const [toast, setToast] = useState(null);
     const [testingConnection, setTestingConnection] = useState(false);
 
-    const { loading, error, execute } = usePost("http://localhost:8080/trade-show-team-project/server", {
+    const { loading, error, execute } = usePost(buildUrl('/server'), {
         validateData: (data) => {
-            console.log(data);
-            
             if (!data.serverName || data.serverName.trim().length < 3) {
                 return 'Server name must be at least 3 characters';
             }
-            // if (!data.get('serverUrl') || !data.get('serverUrl').match(/^wss?:\/\/.+/)) {
-            //     return 'Invalid server URL format (must start with ws:// or wss://)';
-            // }
+            if (!data.serverUrl || !/^https?:\/\/.+/.test(data.serverUrl)) {
+                return 'Invalid server URL format (must start with http:// or https://)';
+            }
             if (data.accessToken && data.accessToken.trim().length < 10) {
                 return 'Access token must be at least 10 characters';
             }
             return true;
         },
         onSuccess: (response) => {
-            const server = response?.data || response;
+            const server = response?.server || response;
             setToast({ type: 'success', message: 'Server configured successfully!' });
             setTimeout(() => {
                 onSuccess && onSuccess(server);
@@ -52,6 +55,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
             setToast({ type: 'error', message: error.message });
         }
     });
+    const { execute: testServer } = usePost(buildUrl('/server/test'));
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({
@@ -65,26 +69,19 @@ export default function ConfigureServer({ onClose, onSuccess }) {
         setToast(null);
 
         try {
-            // Simulate connection test
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            const success = Math.random() > 0.3;
-
-            if (success) {
-                setToast({
-                    type: 'success',
-                    message: 'Handshake verified with production-server.com'
-                });
-            } else {
-                setToast({
-                    type: 'error',
-                    message: 'Connection failed. Please check your credentials.'
-                });
-            }
+            const response = await testServer({
+                serverUrl: formData.serverUrl,
+                headerType: formData.headerType,
+                accessToken: formData.accessToken
+            });
+            setToast({
+                type: 'success',
+                message: `Connection successful (${response?.latencyMs ?? 0} ms)`
+            });
         } catch (err) {
             setToast({
                 type: 'error',
-                message: 'Connection test failed'
+                message: err.message || 'Connection test failed'
             });
         } finally {
             setTestingConnection(false);
@@ -92,30 +89,12 @@ export default function ConfigureServer({ onClose, onSuccess }) {
     };
 
     const handleSubmit = async (e) => {
-        console.log(formData);
-        
         e.preventDefault();
-
-        // Create URL-encoded form data for backend
-        // const formParams = new URLSearchParams();
-        // formParams.append('serverName', formData.serverName);
-        // formParams.append('serverUrl', formData.serverUrl);
-
-        // // Add tokens only if provided
-        // if (formData.accessToken) {
-        //     formParams.append('accessToken', formData.accessToken);
-        // }
-        // if (formData.refreshToken) {
-        //     formParams.append('refreshToken', formData.refreshToken);
-        // }
-        // if (formData.expiresAt) {
-        //     formParams.append('expiresAt', formData.expiresAt);
-        // };
     
         try {
             await execute(formData);
         } catch (err) {
-            // Error already handled by hook
+            // handled in hook
         }
     };
 
@@ -199,6 +178,33 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                             required
                             onToggle={() => setShowRefreshToken(!showRefreshToken)}
                             tooltip="Token used to refresh the access token when it expires"
+                        />
+
+                        <InputField
+                            label="Client ID (for auto refresh)"
+                            placeholder="Zoho OAuth client id"
+                            value={formData.clientId}
+                            onChange={(value) => handleInputChange('clientId', value)}
+                            tooltip="Required to regenerate access token from refresh token"
+                        />
+
+                        <InputField
+                            label="Client Secret (for auto refresh)"
+                            type={showClientSecret ? 'text' : 'password'}
+                            placeholder="Zoho OAuth client secret"
+                            value={formData.clientSecret}
+                            onChange={(value) => handleInputChange('clientSecret', value)}
+                            showToggle
+                            onToggle={() => setShowClientSecret(!showClientSecret)}
+                            tooltip="Stored for backend token refresh flow"
+                        />
+
+                        <InputField
+                            label="Token Endpoint"
+                            placeholder="https://accounts.zoho.in/oauth/v2/token"
+                            value={formData.tokenEndpoint}
+                            onChange={(value) => handleInputChange('tokenEndpoint', value)}
+                            tooltip="OAuth refresh endpoint"
                         />
 
                         <DateTimeField

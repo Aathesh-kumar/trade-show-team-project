@@ -42,7 +42,7 @@ public class MonitorScheduler implements ServletContextListener {
             scheduler.start();
             
             logger.info("MCP Monitor Scheduler started successfully. " +
-                    "Monitoring interval: {} minutes", 60);
+                    "Monitoring interval: {} minutes", 10);
             
         } catch (SchedulerException e) {
             logger.error("Failed to start scheduler", e);

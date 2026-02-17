@@ -1,6 +1,6 @@
 import RequestLogsStyles from '../../styles/RequestLogs.module.css';
 import RequestLogRow from './RequestLogRow';
-import LoadingSpinner from '../LoadingComponents/LoadingSpinner';
+import LoadingSpinner from '../Loading/LoadingSpinner';
 
 export default function RequestLogsTable({ logs, selectedLog, onSelectLog, loading }) {
     return (

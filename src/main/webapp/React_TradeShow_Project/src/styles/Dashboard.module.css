@@ -45,6 +45,7 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                position: relative;
                 width: 40px;
                 height: 40px;
                 background-color: rgba(255, 255, 255, 0.05);
@@ -62,6 +63,22 @@
                 &:hover {
                     background-color: rgba(255, 255, 255, 0.1);
                 }
+            }
+
+            .notificationCount {
+                position: absolute;
+                top: -6px;
+                right: -6px;
+                min-width: 18px;
+                height: 18px;
+                border-radius: 999px;
+                background: #ef4444;
+                color: #fff;
+                font-size: 0.7rem;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0 4px;
             }
         }
     }
@@ -496,6 +513,50 @@
             }
         }
     }
+}
+
+.notificationOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(1, 5, 15, 0.55);
+    z-index: 80;
+}
+
+.notificationPanel {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    width: min(420px, 90vw);
+    max-height: 70vh;
+    overflow: hidden;
+    background: #101935;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.notificationHeader {
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.notificationList {
+    overflow: auto;
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+}
+
+.notificationItem {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 10px;
+    color: #e7ebff;
 }
 
 /* Responsive Adjustments */

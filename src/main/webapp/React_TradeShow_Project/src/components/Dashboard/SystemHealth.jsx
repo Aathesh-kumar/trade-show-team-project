@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import DashboardStyles from '../../styles/Dashboard.module.css';
 
 
@@ -12,16 +12,6 @@ import {
     Area,
     Tooltip
 } from "recharts";
-
-const data = [
-    { time: "00:00", value: 20 },
-    { time: "04:00", value: 15 },
-    { time: "08:00", value: 42 },
-    { time: "12:00", value: 28 },
-    { time: "16:00", value: 14 },
-    { time: "20:00", value: 55 },
-    { time: "23:59", value: 35 },
-];
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -50,8 +40,22 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 
-export default function SystemHealth() {
+export default function SystemHealth({ data = [] }) {
     const [activeTab, setActiveTab] = useState("24h");
+    const chartData = useMemo(() => {
+        if (!data || data.length === 0) {
+            return [
+                { time: "00:00", value: 0 },
+                { time: "06:00", value: 0 },
+                { time: "12:00", value: 0 },
+                { time: "18:00", value: 0 }
+            ];
+        }
+        return data.map((point) => ({
+            ...point,
+            time: String(point.time || '').slice(11, 16)
+        }));
+    }, [data]);
 
     return (
         <div className={DashboardStyles.systemHealth}>
@@ -84,7 +88,7 @@ export default function SystemHealth() {
 
             <div className={DashboardStyles.chartContainer}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data}>
+                    <LineChart data={chartData}>
                         <defs>
                             <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.6} />

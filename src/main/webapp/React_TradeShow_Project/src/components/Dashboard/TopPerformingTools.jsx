@@ -1,39 +1,21 @@
 import DashboardStyles from '../../styles/Dashboard.module.css';
 import { MdCloud, MdSearch, MdEmail } from 'react-icons/md';
 
-export default function TopPerformingTools() {
-    const tools = [
-        { 
-            icon: <MdCloud />, 
-            name: 'get_weather', 
-            requests: '42,102 requests today',
-            avgTime: '89ms avg',
-            success: '99.9% SUCCESS',
-            iconBg: '#10B981'
-        },
-        { 
-            icon: <MdSearch />, 
-            name: 'search_docs', 
-            requests: '28,450 requests today',
-            avgTime: '210ms avg',
-            success: '99.2% SUCCESS',
-            iconBg: '#3B82F6'
-        },
-        { 
-            icon: <MdEmail />, 
-            name: 'send_email', 
-            requests: '12,110 requests today',
-            avgTime: '1.2s avg',
-            success: '94.1% SUCCESS',
-            iconBg: '#8B5CF6'
-        }
-    ];
+export default function TopPerformingTools({ tools = [] }) {
+    const normalizedTools = tools.map((tool, index) => ({
+        icon: index % 3 === 0 ? <MdCloud /> : index % 3 === 1 ? <MdSearch /> : <MdEmail />,
+        name: tool.toolName,
+        requests: `${Number(tool.totalCalls || 0).toLocaleString()} requests`,
+        avgTime: `${Math.round(tool.avgLatency || 0)}ms avg`,
+        success: `${Number(tool.successPercent || 0).toFixed(1)}% SUCCESS`,
+        iconBg: index % 2 === 0 ? '#10B981' : '#3B82F6'
+    }));
 
     return (
         <div className={DashboardStyles.topPerformingTools}>
             <h2>Top Performing Tools</h2>
             <div className={DashboardStyles.toolsList}>
-                {tools.map((tool, index) => (
+                {normalizedTools.map((tool, index) => (
                     <div key={index} className={DashboardStyles.toolItem}>
                         <div className={DashboardStyles.toolIcon} style={{ backgroundColor: tool.iconBg }}>
                             {tool.icon}

@@ -3,7 +3,7 @@ import AsideStyles from '../styles/Aside.module.css';
 import { MdDashboard, MdListAlt, MdBuild, MdSettings } from "react-icons/md";
 import { RiTerminalBoxFill } from "react-icons/ri";
 
-export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate }) {
+export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate, activeServer }) {
     return (
         <>
             <aside className={`${AsideStyles.asideBar} ${isOpen ? AsideStyles.open : ''}`}>
@@ -38,7 +38,13 @@ export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate }) 
                     >
                         Tools
                     </AsideItem>
-                    <AsideItem icon={<MdSettings />}>Settings</AsideItem>
+                    <AsideItem
+                        icon={<MdSettings />}
+                        active={currentPage === 'settings'}
+                        onClick={() => onNavigate('settings')}
+                    >
+                        Settings
+                    </AsideItem>
                 </div>
 
                 <div className={AsideStyles.serverStatus}>
@@ -46,8 +52,8 @@ export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate }) 
                         <span className={AsideStyles.statusDot}></span>
                         <div className={AsideStyles.statusInfo}>
                             <p className={AsideStyles.statusLabel}>SERVER STATUS</p>
-                            <p className={AsideStyles.statusServer}>mcp-server-v2</p>
-                            <p className={AsideStyles.statusUptime}>Uptime: 14d 2h 12m</p>
+                            <p className={AsideStyles.statusServer}>{activeServer?.serverName || 'No server selected'}</p>
+                            <p className={AsideStyles.statusUptime}>{activeServer?.serverUrl || 'Configure a server to start monitoring'}</p>
                         </div>
                     </div>
                 </div>

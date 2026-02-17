@@ -1,18 +1,20 @@
 import DashboardStyles from '../../styles/Dashboard.module.css';
 import { MdStorage, MdAdd } from 'react-icons/md';
 
-export default function ActiveServers() {
-    const servers = [
-        { name: 'Primary-01', region: 'US-EAST-1', latency: '12ms', status: 'online' },
-        { name: 'Replica-A', region: 'EU-WEST-2', latency: '84ms', status: 'online' },
-        { name: 'Standby-03', region: '', latency: '—', status: 'offline' }
-    ];
+export default function ActiveServers({ servers = [] }) {
+    const safeServers = Array.isArray(servers) ? servers : [];
+    const normalizedServers = safeServers.map((server) => ({
+        name: server.serverName,
+        region: safeHost(server.serverUrl),
+        latency: 'N/A',
+        status: 'online'
+    }));
 
     return (
         <div className={DashboardStyles.activeServers}>
             <h2>Active Servers</h2>
             <div className={DashboardStyles.serversList}>
-                {servers.map((server, index) => (
+                {normalizedServers.map((server, index) => (
                     <div key={index} className={DashboardStyles.serverItem}>
                         <div className={DashboardStyles.serverIcon}>
                             <MdStorage />
@@ -26,9 +28,17 @@ export default function ActiveServers() {
                     </div>
                 ))}
             </div>
-            <button className={DashboardStyles.addServerBtn}>
+            <button className={DashboardStyles.addServerBtn} disabled>
                 <MdAdd /> ADD NEW NODE
             </button>
         </div>
     );
+}
+
+function safeHost(url) {
+    try {
+        return new URL(url).hostname;
+    } catch (e) {
+        return url || '-';
+    }
 }

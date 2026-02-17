@@ -1,7 +1,8 @@
 import ToolsStyles from '../../styles/Tools.module.css';
 import ToolRow from './ToolRow';
+import LoadingSpinner from '../Loading/LoadingSpinner';
 
-export default function ToolsTable({ tools, selectedTool, onSelectTool }) {
+export default function ToolsTable({ tools, selectedTool, onSelectTool, loading }) {
     return (
         <div className={ToolsStyles.tableContainer}>
             <table className={ToolsStyles.toolsTable}>
@@ -13,6 +14,13 @@ export default function ToolsTable({ tools, selectedTool, onSelectTool }) {
                     </tr>
                 </thead>
                 <tbody>
+                    {loading && (
+                        <tr>
+                            <td colSpan="3">
+                                <LoadingSpinner size="small" text="Loading tools..." />
+                            </td>
+                        </tr>
+                    )}
                     {tools.map(tool => (
                         <ToolRow
                             key={tool.id}

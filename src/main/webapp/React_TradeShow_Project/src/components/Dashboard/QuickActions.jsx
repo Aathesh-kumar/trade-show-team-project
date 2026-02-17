@@ -1,12 +1,12 @@
 import DashboardStyles from '../../styles/Dashboard.module.css';
 import { MdRefresh, MdAdd, MdDownload, MdTerminal } from 'react-icons/md';
 
-export default function QuickActions() {
+export default function QuickActions({ onNavigate }) {
     const actions = [
-        { icon: <MdRefresh />, label: 'Restart Server', color: '#3B82F6' },
-        { icon: <MdAdd />, label: 'New Tool', color: '#3B82F6' },
-        { icon: <MdDownload />, label: 'Backup Config', color: '#3B82F6' },
-        { icon: <MdTerminal />, label: 'Open CLI', color: '#3B82F6' }
+        { icon: <MdRefresh />, label: 'Request Logs', color: '#3B82F6', action: () => onNavigate?.('logs') },
+        { icon: <MdAdd />, label: 'Configure Server', color: '#3B82F6', action: () => onNavigate?.('configure-server') },
+        { icon: <MdDownload />, label: 'Tools Inventory', color: '#3B82F6', action: () => onNavigate?.('tools') },
+        { icon: <MdTerminal />, label: 'Dashboard', color: '#3B82F6', action: () => onNavigate?.('dashboard') }
     ];
 
     return (
@@ -14,7 +14,7 @@ export default function QuickActions() {
             <h2>Quick Actions</h2>
             <div className={DashboardStyles.actionsGrid}>
                 {actions.map((action, index) => (
-                    <button key={index} className={DashboardStyles.actionBtn}>
+                    <button key={index} className={DashboardStyles.actionBtn} onClick={action.action}>
                         <div className={DashboardStyles.actionIcon} style={{ color: action.color }}>
                             {action.icon}
                         </div>

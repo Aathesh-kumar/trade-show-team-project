@@ -2,7 +2,7 @@ import RequestLogsStyles from '../../styles/RequestLogs.module.css';
 import { MdSearch, MdFileDownload, MdHistory } from 'react-icons/md';
 import { useState } from 'react';
 
-export default function RequestLogsHeader({ filters, onFilterChange, stats }) {
+export default function RequestLogsHeader({ filters, onFilterChange, stats, toolOptions = [] }) {
     const [viewMode, setViewMode] = useState('real-time');
 
     const handleSearchChange = (e) => {
@@ -103,9 +103,9 @@ export default function RequestLogsHeader({ filters, onFilterChange, stats }) {
                         className={RequestLogsStyles.filterSelect}
                     >
                         <option value="all">All Tools</option>
-                        <option value="get_weather">get_weather</option>
-                        <option value="search_docs">search_docs</option>
-                        <option value="send_email">send_email</option>
+                        {toolOptions.map((toolName) => (
+                            <option key={toolName} value={toolName}>{toolName}</option>
+                        ))}
                     </select>
 
                     <select 

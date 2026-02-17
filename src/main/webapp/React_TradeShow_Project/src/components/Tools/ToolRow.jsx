@@ -1,19 +1,9 @@
 import ToolsStyles from '../../styles/Tools.module.css';
-import { MdCloud, MdDescription, MdEmail, MdStorage, } from 'react-icons/md';
+import { MdBuild } from 'react-icons/md';
 
 export default function ToolRow({ tool, isSelected, onSelect }) {
     const getTypeColor = (type) => {
         return type === 'ACTION' ? '#3B82F6' : '#10B981';
-    };
-
-    const getTypeIcon = (name) => {
-        const icons = {
-            'get_weather': <MdCloud/>,
-            'search_docs': <MdDescription/>,
-            'send_email': <MdEmail/>,
-            'db_connector': <MdStorage/>
-        };
-        return icons[name] || '🔧';
     };
 
     return (
@@ -23,7 +13,7 @@ export default function ToolRow({ tool, isSelected, onSelect }) {
         >
             <td>
                 <div className={ToolsStyles.toolName}>
-                    <span className={ToolsStyles.toolIcon}>{getTypeIcon(tool.name)}</span>
+                    <span className={ToolsStyles.toolIcon}><MdBuild /></span>
                     <span className={ToolsStyles.toolNameText}>{tool.name}</span>
                 </div>
             </td>

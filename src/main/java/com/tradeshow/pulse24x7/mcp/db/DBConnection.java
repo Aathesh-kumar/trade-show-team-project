@@ -10,20 +10,15 @@ import java.sql.SQLException;
 public class DBConnection {
     private static final Logger logger = LogManager.getLogger(DBConnection.class);
     private static DBConnection instance;
-    private Connection connection;
 
-    private static final String URL = "jdbc:mysql://localhost:3306/Pulse24x7";
-    private static final String USER = "root";
-    private static final String PASSWORD = "Kasiragul97";
+    private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/Pulse24x7?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+    private static final String DEFAULT_USER = "root";
+    private static final String DEFAULT_PASSWORD = "";
 
     private DBConnection() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
-            connection = DriverManager.getConnection(URL, USER, PASSWORD);
-            logger.info("Database connection established successfully!");
-        } catch (SQLException e) {
-            logger.error("Failed to establish database connection", e);
-            throw new RuntimeException(e);
+            logger.info("MySQL JDBC driver loaded");
         } catch (ClassNotFoundException e) {
             logger.error("MySQL Driver not found", e);
             throw new RuntimeException(e);
@@ -31,41 +26,34 @@ public class DBConnection {
     }
 
     public static synchronized DBConnection getInstance() {
-        if (instance == null || isConnectionValid()) {
+        if (instance == null) {
             instance = new DBConnection();
         }
         return instance;
     }
 
     public Connection getConnection() {
+        String url = getEnv("MCP_DB_URL", DEFAULT_URL);
+        String user = getEnv("MCP_DB_USER", DEFAULT_USER);
+        String password = getEnv("MCP_DB_PASSWORD", DEFAULT_PASSWORD);
+
         try {
-            if (connection == null || connection.isClosed()) {
-                connection = DriverManager.getConnection(URL, USER, PASSWORD);
-                logger.info("Database connection re-established");
-            }
+            return DriverManager.getConnection(url, user, password);
         } catch (SQLException e) {
-            logger.error("Failed to get valid connection", e);
+            logger.error("Failed to get database connection", e);
+            throw new RuntimeException("Failed to connect to database", e);
         }
-        return connection;
     }
 
-    private static boolean isConnectionValid() {
-        try {
-            return instance != null && instance.connection != null && !instance.connection.isClosed() && instance.connection.isValid(2);
-        } catch (SQLException e) {
-            logger.error("Connection validation failed", e);
-            return false;
+    private String getEnv(String key, String fallback) {
+        String value = System.getenv(key);
+        if (value == null || value.isBlank()) {
+            return fallback;
         }
+        return value;
     }
 
     public void closeConnection() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
-                logger.info("Database connection closed");
-            }
-        } catch (SQLException e) {
-            logger.error("Error on closing database connection", e);
-        }
+        // no-op: connections are created per call and closed by try-with-resources in DAOs
     }
 }

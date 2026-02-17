@@ -23,10 +23,13 @@ public class DBQueries {
 
         // Tool Queries
         public static final String INSERT_TOOL =
-                "INSERT INTO tools (tool_name, tool_description, server_id) " +
-                        "VALUES (?, ?, ?) " +
+                "INSERT INTO tools (tool_name, tool_description, tool_type, input_schema, output_schema, server_id) " +
+                        "VALUES (?, ?, ?, ?, ?, ?) " +
                         "ON DUPLICATE KEY UPDATE " +
                         "    tool_description = VALUES(tool_description), " +
+                        "    tool_type = VALUES(tool_type), " +
+                        "    input_schema = VALUES(input_schema), " +
+                        "    output_schema = VALUES(output_schema), " +
                         "    is_availability = TRUE, " +
                         "    last_modify = CURRENT_TIMESTAMP";
 
@@ -45,9 +48,20 @@ public class DBQueries {
                 "UPDATE tools SET is_availability = ?, last_modify = CURRENT_TIMESTAMP " +
                         "WHERE tool_id = ?";
 
+        public static final String UPDATE_TOOL_REQUEST_METRICS =
+                "UPDATE tools SET " +
+                        "total_requests = total_requests + 1, " +
+                        "success_requests = success_requests + CASE WHEN ? THEN 1 ELSE 0 END, " +
+                        "last_status_code = ?, " +
+                        "last_latency_ms = ?, " +
+                        "last_modify = CURRENT_TIMESTAMP " +
+                        "WHERE tool_id = ?";
+
         public static final String DISABLE_MISSING_TOOLS =
                 "UPDATE tools SET is_availability = FALSE, last_modify = CURRENT_TIMESTAMP " +
                         "WHERE server_id = ? AND tool_name NOT IN (%s)";
+        public static final String DISABLE_ALL_TOOLS_BY_SERVER =
+                "UPDATE tools SET is_availability = FALSE, last_modify = CURRENT_TIMESTAMP WHERE server_id = ?";
 
         public static final String GET_TOOL_ID_BY_NAME_AND_SERVER =
                 "SELECT tool_id FROM tools WHERE tool_name = ? AND server_id = ?";
@@ -123,13 +137,16 @@ public class DBQueries {
 
         // Auth Token Queries
         public static final String INSERT_AUTH_TOKEN =
-                "INSERT INTO auth_token (server_id, header_type, access_token, refresh_token, expires_at) " +
-                        "VALUES (?, ?, ?, ?, ?) " +
+                "INSERT INTO auth_token (server_id, header_type, access_token, refresh_token, expires_at, client_id, client_secret, token_endpoint) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
                         "ON DUPLICATE KEY UPDATE " +
                         "    header_type= VALUES(header_type)," +
                         "    access_token = VALUES(access_token), " +
                         "    refresh_token = VALUES(refresh_token), " +
                         "    expires_at = VALUES(expires_at), " +
+                        "    client_id = VALUES(client_id), " +
+                        "    client_secret = VALUES(client_secret), " +
+                        "    token_endpoint = VALUES(token_endpoint), " +
                         "    updated_at = CURRENT_TIMESTAMP";
 
         public static final String GET_AUTH_TOKEN =
@@ -144,6 +161,55 @@ public class DBQueries {
 
         public static final String GET_EXPIRED_TOKENS =
                 "SELECT * FROM auth_token WHERE expires_at IS NOT NULL AND expires_at < NOW()";
+
+        // Request Logs Queries
+        public static final String INSERT_REQUEST_LOG =
+                "INSERT INTO request_logs (server_id, tool_id, tool_name, method, status_code, status_text, latency_ms, " +
+                        "request_payload, response_body, error_message, response_size_bytes, user_agent) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        public static final String SELECT_REQUEST_LOGS_BASE =
+                "SELECT id, server_id, tool_id, tool_name, method, status_code, status_text, latency_ms, " +
+                        "request_payload, response_body, error_message, response_size_bytes, user_agent, created_at " +
+                        "FROM request_logs";
+
+        public static final String SELECT_REQUEST_STATS =
+                "SELECT COUNT(*) total_requests, " +
+                        "SUM(CASE WHEN status_code >= 200 AND status_code < 300 THEN 1 ELSE 0 END) total_success, " +
+                        "SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) total_errors " +
+                        "FROM request_logs WHERE server_id = ?";
+
+        public static final String SELECT_THROUGHPUT_BY_HOUR =
+                "SELECT DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') hour_bucket, COUNT(*) request_count " +
+                        "FROM request_logs WHERE server_id = ? AND created_at >= ? " +
+                        "GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') ORDER BY hour_bucket ASC";
+
+        public static final String SELECT_TOP_TOOLS =
+                "SELECT tool_name, COUNT(*) total_calls, " +
+                        "AVG(latency_ms) avg_latency, " +
+                        "(SUM(CASE WHEN status_code >= 200 AND status_code < 300 THEN 1 ELSE 0 END) / COUNT(*)) * 100 success_percent " +
+                        "FROM request_logs " +
+                        "WHERE server_id = ? " +
+                        "GROUP BY tool_name " +
+                        "ORDER BY total_calls DESC " +
+                        "LIMIT ?";
+
+        // Notification Queries
+        public static final String INSERT_NOTIFICATION =
+                "INSERT INTO notifications (server_id, category, severity, title, message) VALUES (?, ?, ?, ?, ?)";
+
+        public static final String SELECT_NOTIFICATIONS =
+                "SELECT id, server_id, category, severity, title, message, is_read, created_at " +
+                        "FROM notifications ORDER BY created_at DESC LIMIT ?";
+
+        public static final String MARK_NOTIFICATION_READ =
+                "UPDATE notifications SET is_read = TRUE WHERE id = ?";
+
+        public static final String MARK_ALL_NOTIFICATIONS_READ =
+                "UPDATE notifications SET is_read = TRUE WHERE is_read = FALSE";
+
+        public static final String COUNT_UNREAD_NOTIFICATIONS =
+                "SELECT COUNT(*) unread_count FROM notifications WHERE is_read = FALSE";
 
         private DBQueries() {
         }

@@ -1,16 +1,16 @@
 package com.tradeshow.pulse24x7.mcp.controller;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.tradeshow.pulse24x7.mcp.model.HttpResult;
 import com.tradeshow.pulse24x7.mcp.model.Server;
 import com.tradeshow.pulse24x7.mcp.model.ServerHistory;
+import com.tradeshow.pulse24x7.mcp.utils.AuthHeaderUtil;
 import com.tradeshow.pulse24x7.mcp.service.AuthTokenService;
 import com.tradeshow.pulse24x7.mcp.service.MonitoringService;
 import com.tradeshow.pulse24x7.mcp.service.ServerService;
 import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
+import com.tradeshow.pulse24x7.mcp.utils.ServletUtil;
 import com.tradeshow.pulse24x7.mcp.utils.TimeUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -21,7 +21,6 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
@@ -46,27 +45,19 @@ public class ServerServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        logger.info("GET request to ServerServlet: {}", req.getPathInfo());
-
-        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
-        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
-
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        initResponse(resp);
         String pathInfo = req.getPathInfo();
 
         try {
-            if (pathInfo == null || pathInfo.equals("/")) {
-                // Get server by ID
-                handleGetServerById(req, resp);
-            } else if (pathInfo.equals("/all")) {
-                // Get all servers
-                handleGetAllServers(req, resp);
+            if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("/all")) {
+                handleGetAllServers(resp);
             } else if (pathInfo.equals("/history")) {
-                // Get server history
                 handleGetServerHistory(req, resp);
+            } else if (pathInfo.matches("/\\d+")) {
+                handleGetServerByPath(resp, pathInfo);
             } else {
-                sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
+                handleGetServerById(req, resp);
             }
         } catch (Exception e) {
             logger.error("Error processing GET request", e);
@@ -75,21 +66,16 @@ public class ServerServlet extends HttpServlet {
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        logger.info("POST request to ServerServlet: {}", req.getPathInfo());
-
-        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
-        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
-
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        initResponse(resp);
         String pathInfo = req.getPathInfo();
 
         try {
             if (pathInfo == null || pathInfo.equals("/")) {
-                // Register new server
                 handleRegisterServer(req, resp);
+            } else if (pathInfo.equals("/test")) {
+                handleTestServer(req, resp);
             } else if (pathInfo.equals("/monitor")) {
-                // Trigger manual monitoring
                 handleMonitorServer(req, resp);
             } else {
                 sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
@@ -101,13 +87,8 @@ public class ServerServlet extends HttpServlet {
     }
 
     @Override
-    protected void doPut(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        logger.info("PUT request to ServerServlet");
-
-        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
-        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
-
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        initResponse(resp);
         try {
             handleUpdateServer(req, resp);
         } catch (Exception e) {
@@ -117,13 +98,8 @@ public class ServerServlet extends HttpServlet {
     }
 
     @Override
-    protected void doDelete(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        logger.info("DELETE request to ServerServlet");
-
-        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
-        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
-
+    protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        initResponse(resp);
         try {
             handleDeleteServer(req, resp);
         } catch (Exception e) {
@@ -132,224 +108,213 @@ public class ServerServlet extends HttpServlet {
         }
     }
 
+    private void initResponse(HttpServletResponse resp) {
+        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
+        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
+    }
 
-    private void handleRegisterServer(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
+    private void handleRegisterServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        String serverName = ServletUtil.getString(payload, "serverName", null);
+        String serverUrl = ServletUtil.getString(payload, "serverUrl", null);
+        String headerType = ServletUtil.getString(payload, "headerType", "Bearer");
+        String accessToken = ServletUtil.getString(payload, "accessToken", null);
+        String refreshToken = ServletUtil.getString(payload, "refreshToken", null);
+        String expiresAtStr = ServletUtil.getString(payload, "expiresAt", null);
+        String clientId = ServletUtil.getString(payload, "clientId", null);
+        String clientSecret = ServletUtil.getString(payload, "clientSecret", null);
+        String tokenEndpoint = ServletUtil.getString(payload, "tokenEndpoint", "https://accounts.zoho.in/oauth/v2/token");
 
-        StringBuilder sb = new StringBuilder();
-        String line;
-
-        try (BufferedReader br = req.getReader()) {
-            while ((line = br.readLine()) != null) {
-                sb.append(line);
-            }
+        if (serverName == null || serverName.isBlank()) {
+            sendErrorResponse(resp, "Server name is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
         }
-
-        JsonObject payload = JsonParser.parseString(sb.toString()).getAsJsonObject();
-        System.out.println(payload);
-
-        String serverName = payload.get("serverName").getAsString();
-        String serverUrl = payload.get("serverUrl").getAsString();
-
-//        String accessToken = req.getParameter("accessToken");
-//        String refreshToken = req.getParameter("refreshToken");
-//        String expiresAtStr = req.getParameter("expiresAt");
-        String headerType = payload.get("headerType").getAsString();
-        String accessToken = payload.get("accessToken").getAsString();
-        String refreshToken = payload.get("refreshToken").getAsString();
-        String expiresAtStr = payload.get("expiresAt").getAsString();
-
-        if (serverName == null || serverName.trim().isEmpty()) {
-            sendErrorResponse(resp, "Server name is required and cannot be empty", HttpServletResponse.SC_BAD_REQUEST);
+        if (serverUrl == null || serverUrl.isBlank()) {
+            sendErrorResponse(resp, "Server URL is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
-        if (serverUrl == null || serverUrl.trim().isEmpty()) {
-            sendErrorResponse(resp, "Server URL is required and must be valid", HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        // Save auth token if provided
-        Map<String, Object> responseData = new HashMap<>();
-
-        if (accessToken != null && !accessToken.trim().isEmpty()
-                && refreshToken != null && !refreshToken.trim().isEmpty()
-                && headerType != null && !headerType.trim().isEmpty()) {
-
-            Timestamp expiresAt = null;
-
-            if (expiresAtStr != null && !expiresAtStr.trim().isEmpty()) {
-                expiresAt = TimeUtil.parseTimestamp(expiresAtStr);
-            }
-            Gson gson = new Gson();
-            JsonObject pingPayload = gson.toJsonTree(Map.of(
-                            "jsonrpc", "2.0",
-                            "id", 1,
-                            "method", "ping",
-                            "params", "{}"
-                    )
-            ).getAsJsonObject();
-
+        if (accessToken != null && !accessToken.isBlank()) {
             HttpResult result = HttpClientUtil.canPingServer(
                     serverUrl,
-                    Map.of(
-                            "Content-Type", "application/json",
-                            "Authorization", String.format("%s %s", headerType, accessToken)
-                    ),
-                    pingPayload.toString()
+                    AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, accessToken),
+                    JsonUtil.createMCPRequest("ping", Map.of()).toString()
             );
-
-            if (result.isSuccess()) {
-
-                Integer serverId = serverService.registerServer(serverName, serverUrl);
-
-                if (serverId == null) {
-                    sendErrorResponse(resp, "Server with this URL already exists", HttpServletResponse.SC_CONFLICT);
-                    return;
-                }
-
-                authTokenService.saveToken(serverId, headerType, accessToken, refreshToken, expiresAt);
-                Server server = serverService.getServerById(serverId);
-
-                responseData.put("server", server);
-                responseData.put("message", "Server registered successfully");
-                sendSuccessResponse(resp, responseData);
-            } else {
-                responseData.put("error", result.getErrorMessage());
-                sendErrorResponse(resp, result.getErrorMessage(), HttpServletResponse.SC_UNAUTHORIZED);
-            }
-        }
-    }
-
-    private void handleGetServerById(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String serverIdStr = req.getParameter("id");
-
-           if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
-                sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        try {
-            Integer serverId = Integer.parseInt(serverIdStr);
-            Server server = serverService.getServerById(serverId);
-
-            if (server == null) {
-                sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            if (!result.isSuccess()) {
+                sendErrorResponse(resp, "MCP ping failed: " + result.getErrorMessage(), HttpServletResponse.SC_UNAUTHORIZED);
                 return;
             }
-
-            sendSuccessResponse(resp, server);
-        } catch (NumberFormatException e) {
-            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
         }
+
+        Integer serverId = serverService.registerServer(serverName, serverUrl);
+        if (serverId == null) {
+            Server existing = serverService.getServerByUrl(serverUrl);
+            if (existing == null) {
+                sendErrorResponse(resp, "Server already exists or invalid data", HttpServletResponse.SC_CONFLICT);
+                return;
+            }
+            serverId = existing.getServerId();
+        }
+
+        if (accessToken != null && !accessToken.isBlank()) {
+            Timestamp expiresAt = TimeUtil.parseTimestamp(expiresAtStr);
+            authTokenService.saveToken(serverId, headerType, accessToken, refreshToken, expiresAt, clientId, clientSecret, tokenEndpoint);
+        }
+
+        monitoringService.monitorServer(serverId);
+        Server server = serverService.getServerById(serverId);
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("server", server);
+        responseData.put("message", "Server registered successfully");
+        sendSuccessResponse(resp, responseData);
     }
 
+    private void handleGetServerById(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Integer serverId = parseInt(req.getParameter("id"));
+        if (serverId == null) {
+            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        Server server = serverService.getServerById(serverId);
+        if (server == null) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        sendSuccessResponse(resp, server);
+    }
 
-    private void handleGetAllServers(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
+    private void handleGetAllServers(HttpServletResponse resp) throws IOException {
         List<Server> servers = serverService.getAllServers();
         sendSuccessResponse(resp, servers);
     }
 
-    private void handleGetServerHistory(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String serverIdStr = req.getParameter("id");
-        String hoursStr = req.getParameter("hours");
-
-        if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
+    private void handleGetServerByPath(HttpServletResponse resp, String pathInfo) throws IOException {
+        Integer serverId = parseInt(pathInfo.substring(1));
+        if (serverId == null) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-
-        try {
-            Integer serverId = Integer.parseInt(serverIdStr);
-            int hours = hoursStr != null ? Integer.parseInt(hoursStr) : 24; // Default 24 hours
-
-            List<ServerHistory> history = serverService.getServerHistoryLastHours(serverId, hours);
-            Double uptimePercent = serverService.getUptimePercent(serverId);
-
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("history", history);
-            responseData.put("uptimePercent", uptimePercent);
-
-            sendSuccessResponse(resp, responseData);
-        } catch (NumberFormatException e) {
-            sendErrorResponse(resp, "Invalid parameters", HttpServletResponse.SC_BAD_REQUEST);
+        Server server = serverService.getServerById(serverId);
+        if (server == null) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
         }
+        sendSuccessResponse(resp, server);
     }
 
+    private void handleGetServerHistory(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Integer serverId = parseInt(req.getParameter("id"));
+        if (serverId == null) {
+            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        int hours = parseInt(req.getParameter("hours"), 24);
+        List<ServerHistory> history = serverService.getServerHistoryLastHours(serverId, hours);
+        Double uptimePercent = serverService.getUptimePercent(serverId);
 
-    private void handleUpdateServer(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String serverIdStr = req.getParameter("id");
-        String serverName = req.getParameter("serverName");
-        String serverUrl = req.getParameter("serverUrl");
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("history", history);
+        responseData.put("uptimePercent", uptimePercent);
+        sendSuccessResponse(resp, responseData);
+    }
 
-        if (serverIdStr == null || serverName == null || serverUrl == null) {
+    private void handleUpdateServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        Integer serverId = parseInt(req.getParameter("id"));
+        if (serverId == null) {
+            serverId = ServletUtil.getInteger(payload, "serverId", null);
+        }
+        String serverName = ServletUtil.getString(payload, "serverName", null);
+        String serverUrl = ServletUtil.getString(payload, "serverUrl", null);
+
+        if (serverId == null || serverName == null || serverUrl == null) {
             sendErrorResponse(resp, "Missing required parameters", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
-        try {
-            Integer serverId = Integer.parseInt(serverIdStr);
-            boolean updated = serverService.updateServer(serverId, serverName, serverUrl);
-
-            if (updated) {
-                Server server = serverService.getServerById(serverId);
-                sendSuccessResponse(resp, server);
-            } else {
-                sendErrorResponse(resp, "Failed to update server", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            }
-        } catch (NumberFormatException e) {
-            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
+        boolean updated = serverService.updateServer(serverId, serverName, serverUrl);
+        if (!updated) {
+            sendErrorResponse(resp, "Failed to update server", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            return;
         }
+        sendSuccessResponse(resp, serverService.getServerById(serverId));
     }
 
-    private void handleDeleteServer(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String serverIdStr = req.getParameter("id");
-
-        if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
+    private void handleDeleteServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Integer serverId = parseInt(req.getParameter("id"));
+        if (serverId == null) {
+            JsonObject payload = ServletUtil.readJsonBody(req);
+            serverId = ServletUtil.getInteger(payload, "serverId", null);
+        }
+        if (serverId == null) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
-        try {
-            Integer serverId = Integer.parseInt(serverIdStr);
-            boolean deleted = serverService.deleteServer(serverId);
-
-            if (deleted) {
-                Map<String, Object> responseData = new HashMap<>();
-                responseData.put("message", "Server deleted successfully");
-                sendSuccessResponse(resp, responseData);
-            } else {
-                sendErrorResponse(resp, "Failed to delete server", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            }
-        } catch (NumberFormatException e) {
-            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
+        boolean deleted = serverService.deleteServer(serverId);
+        if (!deleted) {
+            sendErrorResponse(resp, "Failed to delete server", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            return;
         }
+        sendSuccessResponse(resp, Map.of("message", "Server deleted successfully"));
     }
 
-    private void handleMonitorServer(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String serverIdStr = req.getParameter("id");
-
-        if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
+    private void handleMonitorServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Integer serverId = parseInt(req.getParameter("id"));
+        if (serverId == null) {
+            JsonObject payload = ServletUtil.readJsonBody(req);
+            serverId = ServletUtil.getInteger(payload, "serverId", null);
+        }
+        if (serverId == null) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
-        try {
-            Integer serverId = Integer.parseInt(serverIdStr);
-            monitoringService.monitorServer(serverId);
+        monitoringService.monitorServer(serverId);
+        sendSuccessResponse(resp, Map.of("message", "Monitoring completed successfully"));
+    }
 
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("message", "Monitoring completed successfully");
-            sendSuccessResponse(resp, responseData);
-        } catch (NumberFormatException e) {
-            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
+    private void handleTestServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        String serverUrl = ServletUtil.getString(payload, "serverUrl", null);
+        String headerType = ServletUtil.getString(payload, "headerType", "Bearer");
+        String accessToken = ServletUtil.getString(payload, "accessToken", null);
+
+        if (serverUrl == null || serverUrl.isBlank()) {
+            sendErrorResponse(resp, "serverUrl is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
         }
+
+        long start = System.currentTimeMillis();
+        HttpResult result = HttpClientUtil.canPingServer(
+                serverUrl,
+                AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, accessToken),
+                JsonUtil.createMCPRequest("ping", Map.of()).toString()
+        );
+        long latency = System.currentTimeMillis() - start;
+
+        if (!result.isSuccess()) {
+            sendErrorResponse(resp, "Server test failed: " + result.getErrorMessage(), HttpServletResponse.SC_BAD_GATEWAY);
+            return;
+        }
+
+        sendSuccessResponse(resp, Map.of(
+                "message", "Server is reachable",
+                "latencyMs", latency
+        ));
+    }
+
+    private Integer parseInt(String value) {
+        try {
+            return value == null ? null : Integer.parseInt(value);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private int parseInt(String value, int fallback) {
+        Integer parsed = parseInt(value);
+        return parsed == null ? fallback : parsed;
     }
 
     private void sendSuccessResponse(HttpServletResponse resp, Object data) throws IOException {
@@ -358,8 +323,7 @@ public class ServerServlet extends HttpServlet {
         resp.getWriter().write(response.toString());
     }
 
-    private void sendErrorResponse(HttpServletResponse resp, String message, int statusCode)
-            throws IOException {
+    private void sendErrorResponse(HttpServletResponse resp, String message, int statusCode) throws IOException {
         JsonObject response = JsonUtil.createErrorResponse(message);
         resp.setStatus(statusCode);
         resp.getWriter().write(response.toString());
