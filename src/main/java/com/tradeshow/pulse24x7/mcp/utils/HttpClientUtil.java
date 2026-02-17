@@ -96,6 +96,7 @@ public class HttpClientUtil {
 
             try (ClassicHttpResponse response = client.executeOpen(target, httpGet, context)) {
                 int statusCode = response.getCode();
+                System.out.println(statusCode);
                 HttpEntity responseEntity = response.getEntity();
                 String responseBody = (responseEntity != null)
                         ? EntityUtils.toString(responseEntity, StandardCharsets.UTF_8)

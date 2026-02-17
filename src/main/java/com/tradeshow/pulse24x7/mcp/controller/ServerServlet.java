@@ -41,8 +41,6 @@ public class ServerServlet extends HttpServlet {
         authTokenService = new AuthTokenService();
         monitoringService = new MonitoringService();
         logger.info("ServerServlet initialized");
-        System.out.println(System.getProperty("user.dir"));
-
     }
 
     @Override
@@ -135,7 +133,6 @@ public class ServerServlet extends HttpServlet {
 
     private void handleRegisterServer(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        System.out.println(req);
         StringBuilder jsonBuffer = new StringBuilder();
         String line;
         try (BufferedReader reader = req.getReader()) {
@@ -150,13 +147,12 @@ public class ServerServlet extends HttpServlet {
         ObjectMapper mapper = new ObjectMapper();
         JsonNode node = mapper.readTree(jsonString);
 
-
         System.out.println(req.getRequestURL());
         String serverName = node.get("serverName").asText();
         String serverUrl = node.get("serverUrl").asText();
-        String accessToken = req.getParameter("accessToken");
-        String refreshToken = req.getParameter("refreshToken");
-        String expiresAtStr = req.getParameter("expiresAt");
+        String accessToken = node.get("accessToken").asText();
+        String refreshToken = node.get("refreshToken").asText();
+        String expiresAtStr = node.get("expiresAt").asText();
 
         if (serverName == null || serverName.trim().isEmpty()) {
             sendErrorResponse(resp, "Server name is required and cannot be empty", HttpServletResponse.SC_BAD_REQUEST);
@@ -175,7 +171,6 @@ public class ServerServlet extends HttpServlet {
             return;
         }
 
-        // Save auth token if provided
         if (accessToken != null && !accessToken.trim().isEmpty()) {
             Timestamp expiresAt = null;
             if (expiresAtStr != null && !expiresAtStr.trim().isEmpty()) {
@@ -328,6 +323,7 @@ public class ServerServlet extends HttpServlet {
     private void sendSuccessResponse(HttpServletResponse resp, Object data) throws IOException {
         JsonObject response = JsonUtil.createSuccessResponse(data);
         resp.setStatus(HttpServletResponse.SC_OK);
+        System.out.println(response.toString());
         resp.getWriter().write(response.toString());
     }
 
