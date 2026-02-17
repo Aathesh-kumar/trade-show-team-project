@@ -1,0 +1,194 @@
+package com.tradeshow.pulse24x7.mcp.dao;
+
+import com.tradeshow.pulse24x7.mcp.db.DBConnection;
+import com.tradeshow.pulse24x7.mcp.model.RequestLog;
+import com.tradeshow.pulse24x7.mcp.utils.DBQueries;
+import com.tradeshow.pulse24x7.mcp.utils.TimeUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+public class RequestLogDAO {
+    private static final Logger logger = LogManager.getLogger(RequestLogDAO.class);
+
+    public boolean insert(RequestLog requestLog) {
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.INSERT_REQUEST_LOG)) {
+            ps.setInt(1, requestLog.getServerId());
+            if (requestLog.getToolId() == null) {
+                ps.setNull(2, java.sql.Types.INTEGER);
+            } else {
+                ps.setInt(2, requestLog.getToolId());
+            }
+            ps.setString(3, requestLog.getToolName());
+            ps.setString(4, requestLog.getMethod());
+            ps.setInt(5, requestLog.getStatusCode());
+            ps.setString(6, requestLog.getStatusText());
+            ps.setLong(7, requestLog.getLatencyMs() == null ? 0 : requestLog.getLatencyMs());
+            ps.setString(8, requestLog.getRequestPayload());
+            ps.setString(9, requestLog.getResponseBody());
+            ps.setString(10, requestLog.getErrorMessage());
+            ps.setLong(11, requestLog.getResponseSizeBytes() == null ? 0 : requestLog.getResponseSizeBytes());
+            ps.setString(12, requestLog.getUserAgent());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            logger.error("Failed to insert request log", e);
+            return false;
+        }
+    }
+
+    public List<RequestLog> getLogs(Integer serverId, String search, Integer statusMin, Integer statusMax,
+                                    String toolName, int hours, int limit) {
+        StringBuilder query = new StringBuilder(DBQueries.SELECT_REQUEST_LOGS_BASE)
+                .append(" WHERE server_id = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(serverId);
+
+        if (search != null && !search.isBlank()) {
+            query.append(" AND (tool_name LIKE ? OR CAST(id AS CHAR) LIKE ? OR error_message LIKE ?)");
+            String pattern = "%" + search + "%";
+            params.add(pattern);
+            params.add(pattern);
+            params.add(pattern);
+        }
+
+        if (statusMin != null && statusMax != null) {
+            query.append(" AND status_code BETWEEN ? AND ?");
+            params.add(statusMin);
+            params.add(statusMax);
+        }
+
+        if (toolName != null && !toolName.isBlank()) {
+            query.append(" AND tool_name = ?");
+            params.add(toolName);
+        }
+
+        query.append(" AND created_at >= ?");
+        params.add(TimeUtil.getTimestampHoursAgo(hours));
+
+        query.append(" ORDER BY created_at DESC LIMIT ?");
+        params.add(limit);
+
+        List<RequestLog> logs = new ArrayList<>();
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(query.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                Object value = params.get(i);
+                if (value instanceof Integer) {
+                    ps.setInt(i + 1, (Integer) value);
+                } else if (value instanceof Timestamp) {
+                    ps.setTimestamp(i + 1, (Timestamp) value);
+                } else {
+                    ps.setString(i + 1, String.valueOf(value));
+                }
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    logs.add(mapResultSet(rs));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to fetch request logs", e);
+        }
+        return logs;
+    }
+
+    public Map<String, Object> getStats(Integer serverId) {
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalRequests", 0L);
+        stats.put("totalSuccess", 0L);
+        stats.put("totalErrors", 0L);
+
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.SELECT_REQUEST_STATS)) {
+            ps.setInt(1, serverId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    stats.put("totalRequests", rs.getLong("total_requests"));
+                    stats.put("totalSuccess", rs.getLong("total_success"));
+                    stats.put("totalErrors", rs.getLong("total_errors"));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to fetch request stats", e);
+        }
+
+        return stats;
+    }
+
+    public List<Map<String, Object>> getThroughputLast24Hours(Integer serverId) {
+        Timestamp since = TimeUtil.getTimestampHoursAgo(24);
+        List<Map<String, Object>> points = new ArrayList<>();
+
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.SELECT_THROUGHPUT_BY_HOUR)) {
+            ps.setInt(1, serverId);
+            ps.setTimestamp(2, since);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    row.put("time", rs.getString("hour_bucket"));
+                    row.put("value", rs.getLong("request_count"));
+                    points.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to fetch throughput points", e);
+        }
+
+        return points;
+    }
+
+    public List<Map<String, Object>> getTopTools(Integer serverId, int limit) {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.SELECT_TOP_TOOLS)) {
+            ps.setInt(1, serverId);
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("toolName", rs.getString("tool_name"));
+                    row.put("totalCalls", rs.getLong("total_calls"));
+                    row.put("avgLatency", rs.getDouble("avg_latency"));
+                    row.put("successPercent", rs.getDouble("success_percent"));
+                    rows.add(row);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to fetch top tools", e);
+        }
+        return rows;
+    }
+
+    private RequestLog mapResultSet(ResultSet rs) throws SQLException {
+        RequestLog log = new RequestLog();
+        log.setId(rs.getLong("id"));
+        log.setServerId(rs.getInt("server_id"));
+        int toolId = rs.getInt("tool_id");
+        log.setToolId(rs.wasNull() ? null : toolId);
+        log.setToolName(rs.getString("tool_name"));
+        log.setMethod(rs.getString("method"));
+        log.setStatusCode(rs.getInt("status_code"));
+        log.setStatusText(rs.getString("status_text"));
+        log.setLatencyMs(rs.getLong("latency_ms"));
+        log.setRequestPayload(rs.getString("request_payload"));
+        log.setResponseBody(rs.getString("response_body"));
+        log.setErrorMessage(rs.getString("error_message"));
+        log.setResponseSizeBytes(rs.getLong("response_size_bytes"));
+        log.setUserAgent(rs.getString("user_agent"));
+        log.setCreatedAt(rs.getTimestamp("created_at"));
+        return log;
+    }
+}
