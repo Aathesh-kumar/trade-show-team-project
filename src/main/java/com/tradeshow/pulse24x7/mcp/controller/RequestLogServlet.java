@@ -1,9 +1,8 @@
 package com.tradeshow.pulse24x7.mcp.controller;
 
 import com.google.gson.JsonObject;
-import com.tradeshow.pulse24x7.mcp.dao.RequestLogDAO;
 import com.tradeshow.pulse24x7.mcp.model.RequestLog;
-import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
+import com.tradeshow.pulse24x7.mcp.service.RequestLogService;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -20,205 +19,77 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@WebServlet("/logs/*")
+@WebServlet("/request-log/*")
 public class RequestLogServlet extends HttpServlet {
     private static final Logger logger = LogManager.getLogger(RequestLogServlet.class);
-    private RequestLogDAO requestLogDAO;
+    private RequestLogService requestLogService;
 
     @Override
     public void init() throws ServletException {
         super.init();
-        requestLogDAO = new RequestLogDAO();
+        requestLogService = new RequestLogService();
         logger.info("RequestLogServlet initialized");
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        logger.info("GET request to RequestLogServlet: {}", req.getPathInfo());
-
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
         resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
 
         String pathInfo = req.getPathInfo();
-
         try {
-            if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("/all")) {
-                handleGetAllLogs(req, resp);
-            } else if (pathInfo.equals("/stats")) {
-                handleGetStats(req, resp);
-            } else if (pathInfo.equals("/tools")) {
-                handleGetUniqueTools(req, resp);
+            if ("/stats".equals(pathInfo)) {
+                handleStats(req, resp);
             } else {
-                sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
+                handleLogs(req, resp);
             }
         } catch (Exception e) {
-            logger.error("Error processing GET request", e);
-            sendErrorResponse(resp, "Internal server error", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            logger.error("Failed to process request log endpoint", e);
+            sendErrorResponse(resp, "Failed to fetch request logs", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
-    @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        logger.info("POST request to RequestLogServlet");
-
-        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
-        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
-
-        try {
-            handleCreateLog(req, resp);
-        } catch (Exception e) {
-            logger.error("Error processing POST request", e);
-            sendErrorResponse(resp, "Internal server error", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    private void handleLogs(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Integer serverId = parseInt(req.getParameter("serverId"));
+        if (serverId == null) {
+            sendErrorResponse(resp, "serverId is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
         }
-    }
 
-    /**
-     * Get all logs with filters
-     * Query params: serverId, toolId, statusCode, hours, limit
-     */
-    private void handleGetAllLogs(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        JsonObject payload = HttpClientUtil.jsonParser(req);
+        String search = req.getParameter("search");
+        String status = req.getParameter("status");
+        String tool = req.getParameter("tool");
+        int hours = parseInt(req.getParameter("hours"), 24);
+        int limit = parseInt(req.getParameter("limit"), 100);
 
-        String serverIdStr = payload.get("serverId").getAsString();
-        String toolIdStr = payload.get("toolId").getAsString();
-        String statusCodeStr = payload.get("statusCode").getAsString();
-        String hoursStr = payload.get("hours").getAsString();
-        String limitStr = payload.get("limit").getAsString();
-
-        Integer serverId = serverIdStr != null ? parseIntOrNull(serverIdStr) : null;
-        Integer toolId = toolIdStr != null ? parseIntOrNull(toolIdStr) : null;
-        Integer statusCode = statusCodeStr != null ? parseIntOrNull(statusCodeStr) : null;
-        Integer hours = hoursStr != null ? parseIntOrNull(hoursStr) : Integer.valueOf(24); // Default 24 hours
-        Integer limit = limitStr != null ? parseIntOrNull(limitStr) : Integer.valueOf(100); // Default 100
-
-        List<RequestLog> logs = requestLogDAO.getAllRequestLogs(serverId, toolId, statusCode, hours, limit);
+        List<RequestLog> logs = requestLogService.getLogs(serverId, search, status, tool, hours, limit);
 
         Map<String, Object> response = new HashMap<>();
         response.put("logs", logs);
-        response.put("totalCount", logs.size());
-
+        response.put("stats", requestLogService.getStats(serverId));
         sendSuccessResponse(resp, response);
     }
 
-    /**
-     * Get request logs statistics
-     * Query params: serverId (required), hours
-     */
-    private void handleGetStats(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        JsonObject payload = HttpClientUtil.jsonParser(req);
-        String serverIdStr = payload.get("serverId").getAsString();
-        String hoursStr = payload.get("hours").getAsString();
-
-        if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
-            sendErrorResponse(resp, "Server ID is required", HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        Integer serverId = parseIntOrNull(serverIdStr);
-        Integer hours = hoursStr != null ? parseIntOrNull(hoursStr) : null;
-
+    private void handleStats(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Integer serverId = parseInt(req.getParameter("serverId"));
         if (serverId == null) {
-            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp, "serverId is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-
-        Map<String, Object> stats = requestLogDAO.getRequestLogsStats(serverId, hours);
-        sendSuccessResponse(resp, stats);
+        sendSuccessResponse(resp, requestLogService.getStats(serverId));
     }
 
-    /**
-     * Get unique tools for filter dropdown
-     * Query params: serverId (required)
-     */
-    private void handleGetUniqueTools(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String serverIdStr = HttpClientUtil.jsonParser(req).get("serverId").getAsString();
-
-        if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
-            sendErrorResponse(resp, "Server ID is required", HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        Integer serverId = parseIntOrNull(serverIdStr);
-        if (serverId == null) {
-            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        List<String> tools = requestLogDAO.getUniqueTools(serverId);
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("tools", tools);
-        
-        sendSuccessResponse(resp, response);
-    }
-
-    /**
-     * Create a new request log
-     * Form params: serverId, toolId, method, endpoint, statusCode, statusText, 
-     *              latencyMs, responseSizeKb, requestPayload, responseBody
-     */
-    private void handleCreateLog(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        JsonObject payload = HttpClientUtil.jsonParser(req);
-        String serverIdStr = payload.get("serverId").getAsString();
-        String toolIdStr = payload.get("toolId").getAsString();
-        String method = payload.get("method").getAsString();
-        String endpoint = payload.get("endpoint").getAsString();
-        String statusCodeStr = payload.get("statusCode").getAsString();
-        String statusText = payload.get("statusText").getAsString();
-        String latencyMsStr = payload.get("latencyMs").getAsString();
-        String responseSizeKbStr = payload.get("responseSizeKb").getAsString();
-        String requestPayload = payload.get("requestPayload").getAsString();
-        String responseBody = payload.get("responseBody").getAsString();
-        String errorMessage = payload.get("errorMessage").getAsString();
-
-        // Validate required fields
-        if (serverIdStr == null || method == null || endpoint == null || statusCodeStr == null) {
-            sendErrorResponse(resp, "Missing required fields", HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        RequestLog log = new RequestLog();
-        log.setServerId(parseIntOrNull(serverIdStr));
-        log.setToolId(toolIdStr != null ? parseIntOrNull(toolIdStr) : null);
-        log.setMethod(method);
-        log.setEndpoint(endpoint);
-        log.setStatusCode(parseIntOrNull(statusCodeStr));
-        log.setStatusText(statusText);
-        log.setLatencyMs(latencyMsStr != null ? parseIntOrNull(latencyMsStr) : 0);
-        log.setResponseSizeKb(responseSizeKbStr != null ? Double.parseDouble(responseSizeKbStr) : 0.0);
-        log.setRequestPayload(requestPayload);
-        log.setResponseBody(responseBody);
-        log.setErrorMessage(errorMessage);
-
-        if (!log.isValid()) {
-            sendErrorResponse(resp, "Invalid log data", HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        Long logId = requestLogDAO.createRequestLog(log);
-
-        if (logId != null) {
-            Map<String, Object> response = new HashMap<>();
-            response.put("logId", logId);
-            response.put("message", "Request log created successfully");
-            sendSuccessResponse(resp, response);
-        } else {
-            sendErrorResponse(resp, "Failed to create request log", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    private Integer parseIntOrNull(String value) {
+    private Integer parseInt(String value) {
         try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
+            return value == null ? null : Integer.parseInt(value);
+        } catch (Exception ex) {
             return null;
         }
+    }
+
+    private int parseInt(String value, int fallback) {
+        Integer parsed = parseInt(value);
+        return parsed == null ? fallback : parsed;
     }
 
     private void sendSuccessResponse(HttpServletResponse resp, Object data) throws IOException {
@@ -227,8 +98,7 @@ public class RequestLogServlet extends HttpServlet {
         resp.getWriter().write(response.toString());
     }
 
-    private void sendErrorResponse(HttpServletResponse resp, String message, int statusCode)
-            throws IOException {
+    private void sendErrorResponse(HttpServletResponse resp, String message, int statusCode) throws IOException {
         JsonObject response = JsonUtil.createErrorResponse(message);
         resp.setStatus(statusCode);
         resp.getWriter().write(response.toString());

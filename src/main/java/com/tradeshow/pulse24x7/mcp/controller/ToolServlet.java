@@ -1,11 +1,17 @@
 package com.tradeshow.pulse24x7.mcp.controller;
 
 import com.google.gson.JsonObject;
+import com.tradeshow.pulse24x7.mcp.model.AuthToken;
+import com.tradeshow.pulse24x7.mcp.model.HttpResult;
+import com.tradeshow.pulse24x7.mcp.model.Server;
 import com.tradeshow.pulse24x7.mcp.model.Tool;
 import com.tradeshow.pulse24x7.mcp.model.ToolHistory;
+import com.tradeshow.pulse24x7.mcp.service.AuthTokenService;
+import com.tradeshow.pulse24x7.mcp.service.RequestLogService;
+import com.tradeshow.pulse24x7.mcp.service.ServerService;
 import com.tradeshow.pulse24x7.mcp.service.ToolService;
-import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
+import com.tradeshow.pulse24x7.mcp.utils.ServletUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -17,41 +23,48 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @WebServlet("/tool/*")
 public class ToolServlet extends HttpServlet {
     private static final Logger logger = LogManager.getLogger(ToolServlet.class);
     private ToolService toolService;
+    private ServerService serverService;
+    private AuthTokenService authTokenService;
+    private RequestLogService requestLogService;
 
     @Override
     public void init() throws ServletException {
         super.init();
         toolService = new ToolService();
+        serverService = new ServerService();
+        authTokenService = new AuthTokenService();
+        requestLogService = new RequestLogService();
         logger.info("ToolServlet initialized");
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        logger.info("GET request to ToolServlet: {}", req.getPathInfo());
-
+            throws IOException {
         resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
         resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
 
         String pathInfo = req.getPathInfo();
 
         try {
-            if (pathInfo == null || pathInfo.equals("/")) {
+            if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("/all")) {
                 handleGetToolsByServer(req, resp);
             } else if (pathInfo.equals("/active")) {
                 handleGetActiveTools(req, resp);
             } else if (pathInfo.equals("/history")) {
                 handleGetToolHistory(req, resp);
             } else if (pathInfo.matches("/\\d+")) {
-                handleGetToolById(req, resp, pathInfo);
+                handleGetToolById(resp, pathInfo);
             } else {
                 sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
             }
@@ -61,96 +74,213 @@ public class ToolServlet extends HttpServlet {
         }
     }
 
-    private void handleGetToolsByServer(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String serverIdStr = HttpClientUtil.jsonParser(req).get("serverId").getAsString();
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
+        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
+        String pathInfo = req.getPathInfo();
 
-        if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
+        try {
+            if ("/refresh".equals(pathInfo)) {
+                handleRefreshTools(req, resp);
+            } else if ("/test".equals(pathInfo)) {
+                handleTestTool(req, resp);
+            } else {
+                sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
+            }
+        } catch (Exception e) {
+            logger.error("Error processing POST request", e);
+            sendErrorResponse(resp, "Internal server error", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void handleGetToolsByServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Integer serverId = parseInt(req.getParameter("serverId"));
+        if (serverId == null) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
-        try {
-            Integer serverId = Integer.parseInt(serverIdStr);
-            List<Tool> tools = toolService.getToolsByServer(serverId);
+        List<Tool> tools = toolService.getToolsByServer(serverId);
+        Integer hours = parseInt(req.getParameter("hours"));
+        String start = req.getParameter("start");
+        String end = req.getParameter("end");
 
-            if (tools.isEmpty()) {
-                logger.info("No tools found for server ID: {}", serverId);
+        if (hours != null && hours > 0) {
+            Timestamp cutoff = Timestamp.from(Instant.now().minusSeconds(hours * 3600L));
+            tools = tools.stream()
+                    .filter(t -> t.getLastModify() != null && t.getLastModify().after(cutoff))
+                    .collect(Collectors.toList());
+        } else if (start != null && end != null) {
+            Timestamp startTs = parseTimestamp(start);
+            Timestamp endTs = parseTimestamp(end);
+            if (startTs != null && endTs != null) {
+                tools = tools.stream()
+                        .filter(t -> t.getLastModify() != null
+                                && !t.getLastModify().before(startTs)
+                                && !t.getLastModify().after(endTs))
+                        .collect(Collectors.toList());
             }
-
-            sendSuccessResponse(resp, tools);
-        } catch (NumberFormatException e) {
-            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
         }
+        sendSuccessResponse(resp, tools);
     }
 
-    private void handleGetActiveTools(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String serverIdStr = HttpClientUtil.jsonParser(req).get("serverId").getAsString();
-
-        if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
+    private void handleGetActiveTools(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Integer serverId = parseInt(req.getParameter("serverId"));
+        if (serverId == null) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
-        try {
-            Integer serverId = Integer.parseInt(serverIdStr);
-            List<Tool> tools = toolService.getAvailableTools(serverId);
-
-            if (tools.isEmpty()) {
-                logger.info("No active tools found for server ID: {}", serverId);
-            }
-
-            sendSuccessResponse(resp, tools);
-        } catch (NumberFormatException e) {
-            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
-        }
+        List<Tool> tools = toolService.getAvailableTools(serverId);
+        sendSuccessResponse(resp, tools);
     }
 
-    private void handleGetToolById(HttpServletRequest req, HttpServletResponse resp, String pathInfo)
-            throws IOException {
-        try {
-            String toolIdStr = pathInfo.substring(1); // Remove leading '/'
-            Integer toolId = Integer.parseInt(toolIdStr);
-
-            Tool tool = toolService.getToolById(toolId);
-
-            if (tool == null) {
-                sendErrorResponse(resp, "Tool not found", HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-
-            sendSuccessResponse(resp, tool);
-        } catch (NumberFormatException e) {
+    private void handleGetToolById(HttpServletResponse resp, String pathInfo) throws IOException {
+        Integer toolId = parseInt(pathInfo.substring(1));
+        if (toolId == null) {
             sendErrorResponse(resp, "Invalid tool ID", HttpServletResponse.SC_BAD_REQUEST);
+            return;
         }
+
+        Tool tool = toolService.getToolById(toolId);
+        if (tool == null) {
+            sendErrorResponse(resp, "Tool not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        sendSuccessResponse(resp, tool);
     }
 
-    private void handleGetToolHistory(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        JsonObject payload = HttpClientUtil.jsonParser(req);
-        String toolIdStr = payload.get("toolId").getAsString();
-        String hoursStr = payload.get("hours").getAsString();
-
-        if (toolIdStr == null || toolIdStr.trim().isEmpty()) {
+    private void handleGetToolHistory(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Integer toolId = parseInt(req.getParameter("toolId"));
+        if (toolId == null) {
             sendErrorResponse(resp, "Tool ID is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
+        int hours = parseInt(req.getParameter("hours"), 24);
+        List<ToolHistory> history = toolService.getToolHistoryLastHours(toolId, hours);
+        Double availabilityPercent = toolService.getToolAvailabilityPercent(toolId);
+
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("history", history);
+        responseData.put("availabilityPercent", availabilityPercent);
+        sendSuccessResponse(resp, responseData);
+    }
+
+    private void handleRefreshTools(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        Integer serverId = ServletUtil.getInteger(payload, "serverId", null);
+
+        if (serverId == null) {
+            sendErrorResponse(resp, "serverId is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        Server server = serverService.getServerById(serverId);
+        if (server == null) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        AuthToken token = authTokenService.getToken(serverId);
+        String accessToken = authTokenService.ensureValidAccessToken(serverId);
+        String headerType = token != null ? token.getHeaderType() : "Bearer";
+
+        List<Tool> tools = toolService.fetchAndUpdateTools(serverId, server.getServerUrl(), accessToken, headerType);
+        sendSuccessResponse(resp, tools);
+    }
+
+    private void handleTestTool(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        Integer serverId = ServletUtil.getInteger(payload, "serverId", null);
+        Integer toolId = ServletUtil.getInteger(payload, "toolId", null);
+        String toolName = ServletUtil.getString(payload, "toolName", null);
+        String inputParamsRaw = ServletUtil.getString(payload, "inputParams", "{}");
+
+        if (serverId == null || toolName == null || toolName.isBlank()) {
+            sendErrorResponse(resp, "serverId and toolName are required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        Server server = serverService.getServerById(serverId);
+        if (server == null) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        AuthToken token = authTokenService.getToken(serverId);
+        String accessToken = authTokenService.ensureValidAccessToken(serverId);
+        String headerType = token != null ? token.getHeaderType() : "Bearer";
+        JsonObject inputParams = toolService.parseJsonObjectSafely(inputParamsRaw);
+
+        long start = System.currentTimeMillis();
+        JsonObject responseData;
+        int statusCode = HttpServletResponse.SC_OK;
+        String statusText = "OK";
+        String errorMessage = null;
+
         try {
-            Integer toolId = Integer.parseInt(toolIdStr);
-            int hours = hoursStr != null ? Integer.parseInt(hoursStr) : 24; // Default 24 hours
+            responseData = toolService.executeTool(serverId, server.getServerUrl(), headerType, accessToken, toolName, inputParams);
+        } catch (Exception ex) {
+            responseData = new JsonObject();
+            responseData.addProperty("error", ex.getMessage());
+            statusCode = HttpServletResponse.SC_BAD_GATEWAY;
+            statusText = "ERR";
+            errorMessage = ex.getMessage();
+        }
 
-            List<ToolHistory> history = toolService.getToolHistoryLastHours(toolId, hours);
-            Double availabilityPercent = toolService.getToolAvailabilityPercent(toolId);
+        long latency = System.currentTimeMillis() - start;
+        if (toolId != null) {
+            toolService.trackToolRequest(toolId, statusCode, latency);
+            toolService.recordToolHistory(toolId, statusCode >= 200 && statusCode < 300);
+        }
 
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("history", history);
-            responseData.put("availabilityPercent", availabilityPercent);
+        requestLogService.record(
+                requestLogService.buildRequestLog(
+                        serverId,
+                        toolId,
+                        toolName,
+                        "POST",
+                        statusCode,
+                        statusText,
+                        latency,
+                        payload,
+                        responseData,
+                        errorMessage,
+                        req.getHeader("User-Agent")
+                )
+        );
 
-            sendSuccessResponse(resp, responseData);
-        } catch (NumberFormatException e) {
-            sendErrorResponse(resp, "Invalid parameters", HttpServletResponse.SC_BAD_REQUEST);
+        if (statusCode >= 400) {
+            sendErrorResponse(resp, errorMessage == null ? "Tool execution failed" : errorMessage, statusCode);
+        } else {
+            Map<String, Object> response = new HashMap<>();
+            response.put("result", responseData);
+            response.put("latencyMs", latency);
+            sendSuccessResponse(resp, response);
+        }
+    }
+
+    private Integer parseInt(String value) {
+        try {
+            return value == null ? null : Integer.parseInt(value);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private int parseInt(String value, int fallback) {
+        Integer parsed = parseInt(value);
+        return parsed == null ? fallback : parsed;
+    }
+
+    private Timestamp parseTimestamp(String value) {
+        try {
+            return Timestamp.from(Instant.parse(value));
+        } catch (Exception e) {
+            return null;
         }
     }
 

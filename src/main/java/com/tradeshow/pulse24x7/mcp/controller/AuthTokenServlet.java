@@ -1,11 +1,10 @@
 package com.tradeshow.pulse24x7.mcp.controller;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.tradeshow.pulse24x7.mcp.model.AuthToken;
 import com.tradeshow.pulse24x7.mcp.service.AuthTokenService;
-import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
+import com.tradeshow.pulse24x7.mcp.utils.ServletUtil;
 import com.tradeshow.pulse24x7.mcp.utils.TimeUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -16,13 +15,10 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
-import java.util.HashMap;
 import java.util.Map;
-
 
 @WebServlet("/auth/*")
 public class AuthTokenServlet extends HttpServlet {
@@ -37,110 +33,108 @@ public class AuthTokenServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
-            throws ServletException, IOException {
-        logger.info("GET request to AuthTokenServlet");
-
-        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
-        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
-
-        String serverIdStr = HttpClientUtil.jsonParser(req).get("serverId").getAsString();
-        
-        if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        initResponse(resp);
+        Integer serverId = parseInt(req.getParameter("serverId"));
+        if (serverId == null) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-        
-        try {
-            Integer serverId = Integer.parseInt(serverIdStr);
-            AuthToken token = authTokenService.getToken(serverId);
-            
-            if (token == null) {
-                sendErrorResponse(resp, "Token not found", HttpServletResponse.SC_NOT_FOUND);
-                return;
-            }
-            
-            sendSuccessResponse(resp, token);
-        } catch (NumberFormatException e) {
-            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
+
+        AuthToken token = authTokenService.getToken(serverId);
+        if (token == null) {
+            sendErrorResponse(resp, "Token not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
         }
+        sendSuccessResponse(resp, token);
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) 
-            throws ServletException, IOException {
-        logger.info("POST request to AuthTokenServlet");
-        
-        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
-        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
-
-        JsonObject payload = HttpClientUtil.jsonParser(req);
-
-        String serverIdStr = payload.get("serverId").getAsString();
-        String headerType = payload.get("headerType").getAsString();
-        String accessToken = payload.get("accessToken").getAsString();
-        String refreshToken = payload.get("refreshToken").getAsString();
-        String expiresAtStr = payload.get("expiresAt").getAsString();
-
-        if (refreshToken == null || accessToken == null || accessToken.trim().isEmpty() || refreshToken.trim().isEmpty()) {
-            sendErrorResponse(resp, "Access token and refreshToken are required",
-                    HttpServletResponse.SC_BAD_REQUEST);
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        initResponse(resp);
+        String pathInfo = req.getPathInfo();
+        if ("/refresh".equals(pathInfo)) {
+            handleRefresh(req, resp);
             return;
         }
-        
-        try {
-            Integer serverId = Integer.parseInt(serverIdStr);
-            Timestamp expiresAt = null;
-            
-            if (expiresAtStr != null && !expiresAtStr.trim().isEmpty()){
-                expiresAt = TimeUtil.parseTimestamp(expiresAtStr);
-            }
-
-            boolean saved = authTokenService.saveToken(serverId, headerType, accessToken, refreshToken, expiresAt);
-            
-            if (saved) {
-                Map<String, Object> responseData = new HashMap<>();
-                responseData.put("message", "Token saved successfully");
-                sendSuccessResponse(resp, responseData);
-            } else {
-                sendErrorResponse(resp, "Failed to save token", 
-                        HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            }
-        } catch (NumberFormatException e) {
-            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
-        }
+        handleSave(req, resp);
     }
 
     @Override
-    protected void doDelete(HttpServletRequest req, HttpServletResponse resp) 
-            throws ServletException, IOException {
-        logger.info("DELETE request to AuthTokenServlet");
-        
-        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
-        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
-        
-        String serverIdStr = HttpClientUtil.jsonParser(req).get("serverId").getAsString();
-        
-        if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
+    protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        initResponse(resp);
+        Integer serverId = parseInt(req.getParameter("serverId"));
+        if (serverId == null) {
+            JsonObject payload = ServletUtil.readJsonBody(req);
+            serverId = ServletUtil.getInteger(payload, "serverId", null);
+        }
+
+        if (serverId == null) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-        
-        try {
-            Integer serverId = Integer.parseInt(serverIdStr);
-            boolean deleted = authTokenService.deleteToken(serverId);
-            
-            if (deleted) {
-                Map<String, Object> responseData = new HashMap<>();
-                responseData.put("message", "Token deleted successfully");
-                sendSuccessResponse(resp, responseData);
-            } else {
-                sendErrorResponse(resp, "Failed to delete token", 
-                        HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            }
-        } catch (NumberFormatException e) {
-            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
+
+        if (!authTokenService.deleteToken(serverId)) {
+            sendErrorResponse(resp, "Failed to delete token", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            return;
         }
+        sendSuccessResponse(resp, Map.of("message", "Token deleted successfully"));
+    }
+
+    private void handleSave(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        Integer serverId = ServletUtil.getInteger(payload, "serverId", null);
+        String headerType = ServletUtil.getString(payload, "headerType", "Bearer");
+        String accessToken = ServletUtil.getString(payload, "accessToken", null);
+        String refreshToken = ServletUtil.getString(payload, "refreshToken", null);
+        String expiresAtStr = ServletUtil.getString(payload, "expiresAt", null);
+        String clientId = ServletUtil.getString(payload, "clientId", null);
+        String clientSecret = ServletUtil.getString(payload, "clientSecret", null);
+        String tokenEndpoint = ServletUtil.getString(payload, "tokenEndpoint", null);
+
+        if (serverId == null || accessToken == null || accessToken.isBlank()) {
+            sendErrorResponse(resp, "serverId and accessToken are required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        Timestamp expiresAt = TimeUtil.parseTimestamp(expiresAtStr);
+        boolean saved = authTokenService.saveToken(
+                serverId, headerType, accessToken, refreshToken, expiresAt, clientId, clientSecret, tokenEndpoint
+        );
+        if (!saved) {
+            sendErrorResponse(resp, "Failed to save token", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            return;
+        }
+        sendSuccessResponse(resp, Map.of("message", "Token saved successfully"));
+    }
+
+    private void handleRefresh(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        Integer serverId = ServletUtil.getInteger(payload, "serverId", parseInt(req.getParameter("serverId")));
+        if (serverId == null) {
+            sendErrorResponse(resp, "serverId is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        try {
+            String newToken = authTokenService.refreshAccessToken(serverId);
+            sendSuccessResponse(resp, Map.of("message", "Access token refreshed", "accessToken", newToken));
+        } catch (Exception e) {
+            sendErrorResponse(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+        }
+    }
+
+    private Integer parseInt(String value) {
+        try {
+            return value == null ? null : Integer.parseInt(value);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private void initResponse(HttpServletResponse resp) {
+        resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
+        resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
     }
 
     private void sendSuccessResponse(HttpServletResponse resp, Object data) throws IOException {
@@ -149,8 +143,7 @@ public class AuthTokenServlet extends HttpServlet {
         resp.getWriter().write(response.toString());
     }
 
-    private void sendErrorResponse(HttpServletResponse resp, String message, int statusCode) 
-            throws IOException {
+    private void sendErrorResponse(HttpServletResponse resp, String message, int statusCode) throws IOException {
         JsonObject response = JsonUtil.createErrorResponse(message);
         resp.setStatus(statusCode);
         resp.getWriter().write(response.toString());

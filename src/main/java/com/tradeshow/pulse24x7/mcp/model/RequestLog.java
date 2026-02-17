@@ -3,49 +3,27 @@ package com.tradeshow.pulse24x7.mcp.model;
 import java.sql.Timestamp;
 
 public class RequestLog {
-    private Long logId;
+    private Long id;
     private Integer serverId;
     private Integer toolId;
+    private String toolName;
     private String method;
-    private String endpoint;
     private Integer statusCode;
     private String statusText;
+    private Long latencyMs;
     private String requestPayload;
     private String responseBody;
-    private Integer latencyMs;
-    private Double responseSizeKb;
-    private Timestamp timestamp;
     private String errorMessage;
-    
-    // Tool and Server names for joined queries
-    private String toolName;
-    private String serverName;
+    private Long responseSizeBytes;
+    private String userAgent;
+    private Timestamp createdAt;
 
-    // Constructors
-    public RequestLog() {}
-
-    public RequestLog(Integer serverId, Integer toolId, String method, String endpoint, 
-                     Integer statusCode, String statusText, Integer latencyMs, 
-                     Double responseSizeKb, String requestPayload, String responseBody) {
-        this.serverId = serverId;
-        this.toolId = toolId;
-        this.method = method;
-        this.endpoint = endpoint;
-        this.statusCode = statusCode;
-        this.statusText = statusText;
-        this.latencyMs = latencyMs;
-        this.responseSizeKb = responseSizeKb;
-        this.requestPayload = requestPayload;
-        this.responseBody = responseBody;
+    public Long getId() {
+        return id;
     }
 
-    // Getters and Setters
-    public Long getLogId() {
-        return logId;
-    }
-
-    public void setLogId(Long logId) {
-        this.logId = logId;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public Integer getServerId() {
@@ -64,20 +42,20 @@ public class RequestLog {
         this.toolId = toolId;
     }
 
+    public String getToolName() {
+        return toolName;
+    }
+
+    public void setToolName(String toolName) {
+        this.toolName = toolName;
+    }
+
     public String getMethod() {
         return method;
     }
 
     public void setMethod(String method) {
         this.method = method;
-    }
-
-    public String getEndpoint() {
-        return endpoint;
-    }
-
-    public void setEndpoint(String endpoint) {
-        this.endpoint = endpoint;
     }
 
     public Integer getStatusCode() {
@@ -96,6 +74,14 @@ public class RequestLog {
         this.statusText = statusText;
     }
 
+    public Long getLatencyMs() {
+        return latencyMs;
+    }
+
+    public void setLatencyMs(Long latencyMs) {
+        this.latencyMs = latencyMs;
+    }
+
     public String getRequestPayload() {
         return requestPayload;
     }
@@ -112,30 +98,6 @@ public class RequestLog {
         this.responseBody = responseBody;
     }
 
-    public Integer getLatencyMs() {
-        return latencyMs;
-    }
-
-    public void setLatencyMs(Integer latencyMs) {
-        this.latencyMs = latencyMs;
-    }
-
-    public Double getResponseSizeKb() {
-        return responseSizeKb;
-    }
-
-    public void setResponseSizeKb(Double responseSizeKb) {
-        this.responseSizeKb = responseSizeKb;
-    }
-
-    public Timestamp getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(Timestamp timestamp) {
-        this.timestamp = timestamp;
-    }
-
     public String getErrorMessage() {
         return errorMessage;
     }
@@ -144,41 +106,27 @@ public class RequestLog {
         this.errorMessage = errorMessage;
     }
 
-    public String getToolName() {
-        return toolName;
+    public Long getResponseSizeBytes() {
+        return responseSizeBytes;
     }
 
-    public void setToolName(String toolName) {
-        this.toolName = toolName;
+    public void setResponseSizeBytes(Long responseSizeBytes) {
+        this.responseSizeBytes = responseSizeBytes;
     }
 
-    public String getServerName() {
-        return serverName;
+    public String getUserAgent() {
+        return userAgent;
     }
 
-    public void setServerName(String serverName) {
-        this.serverName = serverName;
+    public void setUserAgent(String userAgent) {
+        this.userAgent = userAgent;
     }
 
-    // Validation
-    public boolean isValid() {
-        return serverId != null && serverId > 0 
-            && method != null && !method.trim().isEmpty()
-            && endpoint != null && !endpoint.trim().isEmpty()
-            && statusCode != null && statusCode >= 100 && statusCode < 600;
+    public Timestamp getCreatedAt() {
+        return createdAt;
     }
 
-    @Override
-    public String toString() {
-        return "RequestLog{" +
-                "logId=" + logId +
-                ", serverId=" + serverId +
-                ", toolId=" + toolId +
-                ", method='" + method + '\'' +
-                ", endpoint='" + endpoint + '\'' +
-                ", statusCode=" + statusCode +
-                ", latencyMs=" + latencyMs +
-                ", timestamp=" + timestamp +
-                '}';
+    public void setCreatedAt(Timestamp createdAt) {
+        this.createdAt = createdAt;
     }
 }

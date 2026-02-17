@@ -741,3 +741,64 @@
         }
     }
 }
+
+.filterSelect {
+    min-height: 36px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #fff;
+    border-radius: 8px;
+    padding: 0.4rem 0.7rem;
+}
+
+.formGroup {
+    display: grid;
+    gap: 0.4rem;
+    margin-bottom: 0.8rem;
+}
+
+.codeInput {
+    width: 100%;
+    border-radius: 8px;
+    background: #141b2f;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #e7ecff;
+    padding: 0.6rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.searchInput {
+    width: 100%;
+    min-height: 36px;
+    border-radius: 8px;
+    background: #141b2f;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #fff;
+    padding: 0.45rem 0.65rem;
+}
+
+.refreshBtn, .testBtn {
+    min-height: 38px;
+    padding: 0.45rem 0.9rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(59, 130, 246, 0.2);
+    color: #fff;
+    cursor: pointer;
+}
+
+.submitSuccess, .submitError {
+    margin: 1rem 2rem 0;
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+}
+
+.submitSuccess {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.submitError {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}

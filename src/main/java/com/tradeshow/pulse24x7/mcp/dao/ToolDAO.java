@@ -10,12 +10,12 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ToolDAO {
     private static final Logger logger = LogManager.getLogger(ToolDAO.class);
 
-    public boolean insertTool(String toolName, String description, Integer serverId) {
+    public boolean insertTool(String toolName, String description, String toolType,
+                              String inputSchema, String outputSchema, Integer serverId) {
         logger.info("Inserting/Updating tool: {} for server ID: {}", toolName, serverId);
 
         try (Connection con = DBConnection.getInstance().getConnection();
@@ -23,7 +23,10 @@ public class ToolDAO {
 
             ps.setString(1, toolName);
             ps.setString(2, description);
-            ps.setInt(3, serverId);
+            ps.setString(3, toolType);
+            ps.setString(4, inputSchema);
+            ps.setString(5, outputSchema);
+            ps.setInt(6, serverId);
 
             int affectedRows = ps.executeUpdate();
 
@@ -35,6 +38,23 @@ public class ToolDAO {
             logger.error("Failed to insert/update tool: {} for server: {}", toolName, serverId, e);
         }
         return false;
+    }
+
+    public boolean updateToolRequestMetrics(Integer toolId, boolean success, int statusCode, long latencyMs) {
+        logger.debug("Updating metrics for toolId={} success={} statusCode={} latencyMs={}",
+                toolId, success, statusCode, latencyMs);
+
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.UPDATE_TOOL_REQUEST_METRICS)) {
+            ps.setBoolean(1, success);
+            ps.setInt(2, statusCode);
+            ps.setLong(3, latencyMs);
+            ps.setInt(4, toolId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            logger.error("Failed to update tool request metrics for toolId={}", toolId, e);
+            return false;
+        }
     }
 
     public Tool getToolById(Integer toolId) {
@@ -130,7 +150,7 @@ public class ToolDAO {
         // Extract tool names
         List<String> toolNames = activeTools.stream()
                 .map(Tool::getToolName)
-                .collect(Collectors.toList());
+                .toList();
 
         // Create placeholders for IN clause
         String placeholders = String.join(",", Collections.nCopies(toolNames.size(), "?"));
@@ -162,6 +182,17 @@ public class ToolDAO {
         }
     }
 
+    public int disableAllToolsByServer(Integer serverId) {
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.DISABLE_ALL_TOOLS_BY_SERVER)) {
+            ps.setInt(1, serverId);
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Failed to disable all tools for server ID: {}", serverId, e);
+            return 0;
+        }
+    }
+
     public Integer getToolIdByNameAndServer(String toolName, Integer serverId) {
         logger.debug("Fetching tool ID for: {} on server: {}", toolName, serverId);
 
@@ -187,7 +218,14 @@ public class ToolDAO {
                 rs.getInt("tool_id"),
                 rs.getString("tool_name"),
                 rs.getString("tool_description"),
+                rs.getString("tool_type"),
+                rs.getString("input_schema"),
+                rs.getString("output_schema"),
                 rs.getBoolean("is_availability"),
+                rs.getInt("total_requests"),
+                rs.getInt("success_requests"),
+                rs.getInt("last_status_code"),
+                rs.getLong("last_latency_ms"),
                 rs.getTimestamp("create_at"),
                 rs.getTimestamp("last_modify"),
                 rs.getInt("server_id")

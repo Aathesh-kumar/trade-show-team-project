@@ -4,7 +4,6 @@ import com.google.gson.JsonObject;
 import com.tradeshow.pulse24x7.mcp.dao.RequestLogDAO;
 import com.tradeshow.pulse24x7.mcp.dao.ServerDAO;
 import com.tradeshow.pulse24x7.mcp.dao.ToolDAO;
-import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -76,7 +75,7 @@ public class DashboardServlet extends HttpServlet {
      */
     private void handleGetDashboardStats(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        String serverIdStr = HttpClientUtil.jsonParser(req).get("serverId").getAsString();
+        String serverIdStr = req.getParameter("serverId");
         Integer serverId = serverIdStr != null ? parseIntOrNull(serverIdStr) : null;
 
         Map<String, Object> stats = new HashMap<>();
@@ -95,7 +94,7 @@ public class DashboardServlet extends HttpServlet {
 
         // Get request stats
         if (serverId != null) {
-            Map<String, Object> requestStats = requestLogDAO.getRequestLogsStats(serverId, 24);
+            Map<String, Object> requestStats = requestLogDAO.getStats(serverId);
             stats.putAll(requestStats);
         }
 
@@ -107,11 +106,9 @@ public class DashboardServlet extends HttpServlet {
      */
     private void handleGetTopPerformingTools(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        JsonObject payload = HttpClientUtil.jsonParser(req);
-
-        String serverIdStr = payload.get("serverId").getAsString();
-        String limitStr = payload.get("limit").getAsString();
-        String hoursStr = payload.get("hours").getAsString();
+        String serverIdStr = req.getParameter("serverId");
+        String limitStr = req.getParameter("limit");
+        String hoursStr = req.getParameter("hours");
 
         Integer serverId = serverIdStr != null ? parseIntOrNull(serverIdStr) : null;
         int limit = limitStr != null ? parseIntOrNull(limitStr) : 5;
@@ -131,10 +128,8 @@ public class DashboardServlet extends HttpServlet {
      */
     private void handleGetSystemHealth(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        JsonObject payload = HttpClientUtil.jsonParser(req);
-
-        String serverIdStr = payload.get("serverId").getAsString();
-        String hoursStr = payload.get("hours").getAsString();
+        String serverIdStr = req.getParameter("serverId");
+        String hoursStr = req.getParameter("hours");
 
         Integer serverId = serverIdStr != null ? parseIntOrNull(serverIdStr) : null;
         int hours = hoursStr != null ? parseIntOrNull(hoursStr) : 24;
@@ -228,7 +223,7 @@ public class DashboardServlet extends HttpServlet {
                     "SUM(CASE WHEN rl.status_code >= 200 AND rl.status_code < 300 THEN 1 ELSE 0 END) as success_count " +
                     "FROM request_logs rl " +
                     "INNER JOIN tools t ON rl.tool_id = t.tool_id " +
-                    "WHERE rl.timestamp >= NOW() - INTERVAL ? HOUR " +
+                    "WHERE rl.created_at >= NOW() - INTERVAL ? HOUR " +
                     (serverId != null ? "AND rl.server_id = ? " : "") +
                     "GROUP BY t.tool_id, t.tool_name " +
                     "ORDER BY request_count DESC " +
@@ -272,13 +267,13 @@ public class DashboardServlet extends HttpServlet {
     private List<Map<String, Object>> getSystemHealthData(Integer serverId, int hours) {
         // Get hourly request counts
         String sql = "SELECT " +
-                    "DATE_FORMAT(timestamp, '%H:00') as time_label, " +
+                    "DATE_FORMAT(created_at, '%H:00') as time_label, " +
                     "COUNT(*) as value " +
                     "FROM request_logs " +
-                    "WHERE timestamp >= NOW() - INTERVAL ? HOUR " +
+                    "WHERE created_at >= NOW() - INTERVAL ? HOUR " +
                     (serverId != null ? "AND server_id = ? " : "") +
-                    "GROUP BY DATE_FORMAT(timestamp, '%Y-%m-%d %H:00:00') " +
-                    "ORDER BY timestamp";
+                    "GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') " +
+                    "ORDER BY created_at";
 
         List<Map<String, Object>> healthData = new ArrayList<>();
 

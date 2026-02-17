@@ -8,17 +8,24 @@ public class AuthToken {
     private String accessToken;
     private String refreshToken;
     private Timestamp expiresAt;
+    private String clientId;
+    private String clientSecret;
+    private String tokenEndpoint;
     private Timestamp updatedAt;
 
     public AuthToken() {
     }
 
-    public AuthToken(int serverId, String headerType, String accessToken, String refreshToken, Timestamp expiresAt, Timestamp updatedAt) {
+    public AuthToken(int serverId, String headerType, String accessToken, String refreshToken, Timestamp expiresAt,
+                     String clientId, String clientSecret, String tokenEndpoint, Timestamp updatedAt) {
         this.serverId = serverId;
         this.headerType = headerType;
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.expiresAt = expiresAt;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+        this.tokenEndpoint = tokenEndpoint;
         this.updatedAt = updatedAt;
     }
 
@@ -62,6 +69,30 @@ public class AuthToken {
         this.expiresAt = expiresAt;
     }
 
+    public String getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
+    }
+
+    public String getClientSecret() {
+        return clientSecret;
+    }
+
+    public void setClientSecret(String clientSecret) {
+        this.clientSecret = clientSecret;
+    }
+
+    public String getTokenEndpoint() {
+        return tokenEndpoint;
+    }
+
+    public void setTokenEndpoint(String tokenEndpoint) {
+        this.tokenEndpoint = tokenEndpoint;
+    }
+
     public Timestamp getUpdatedAt() {
         return updatedAt;
     }
@@ -78,6 +109,9 @@ public class AuthToken {
                 ", accessToken='" + (accessToken != null ? "***" : null) + '\'' +
                 ", refreshToken='" + (refreshToken != null ? "***" : null) + '\'' +
                 ", expiresAt=" + expiresAt +
+                ", clientId='" + (clientId != null ? "***" : null) + '\'' +
+                ", clientSecret='" + (clientSecret != null ? "***" : null) + '\'' +
+                ", tokenEndpoint='" + tokenEndpoint + '\'' +
                 ", updatedAt=" + updatedAt +
                 '}';
     }

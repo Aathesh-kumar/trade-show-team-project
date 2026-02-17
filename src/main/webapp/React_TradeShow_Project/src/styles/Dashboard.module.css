@@ -45,6 +45,7 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
+                position: relative;
                 width: 40px;
                 height: 40px;
                 background-color: rgba(255, 255, 255, 0.05);
@@ -62,6 +63,22 @@
                 &:hover {
                     background-color: rgba(255, 255, 255, 0.1);
                 }
+            }
+
+            .notificationCount {
+                position: absolute;
+                top: -6px;
+                right: -6px;
+                min-width: 18px;
+                height: 18px;
+                border-radius: 999px;
+                background: #ef4444;
+                color: #fff;
+                font-size: 0.7rem;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0 4px;
             }
         }
     }
@@ -498,6 +515,50 @@
     }
 }
 
+.notificationOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(1, 5, 15, 0.55);
+    z-index: 80;
+}
+
+.notificationPanel {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    width: min(420px, 90vw);
+    max-height: 70vh;
+    overflow: hidden;
+    background: #101935;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.notificationHeader {
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.notificationList {
+    overflow: auto;
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+}
+
+.notificationItem {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 10px;
+    color: #e7ebff;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 1440px) {
     .dashboard {
@@ -566,199 +627,5 @@
         .quickActions .actionsGrid {
             grid-template-columns: 1fr;
         }
-    }
-}
-
-.loadingState,
-.chartLoading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    color: #94A3B8;
-}
-
-.spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #1E293B;
-    border-top-color: #3B82F6;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-.spinning {
-    animation: spin 1s linear infinite;
-}
-
-/* Error States */
-.errorState,
-.chartError {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    color: #EF4444;
-    text-align: center;
-}
-
-.errorBanner {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-    color: #EF4444;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.retryBtn {
-    margin-top: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: #3B82F6;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    transition: background 0.2s;
-}
-
-.retryBtn:hover {
-    background: #2563EB;
-}
-
-/* Empty States */
-.emptyState,
-.chartEmpty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    color: #64748B;
-    text-align: center;
-}
-
-/* Skeleton Loading */
-.skeleton {
-    display: inline-block;
-    width: 80px;
-    height: 24px;
-    background: linear-gradient(
-        90deg,
-        #1E293B 25%,
-        #2D3B4E 50%,
-        #1E293B 75%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-    border-radius: 4px;
-}
-
-.skeletonSmall {
-    display: inline-block;
-    width: 50px;
-    height: 16px;
-    background: linear-gradient(
-        90deg,
-        #1E293B 25%,
-        #2D3B4E 50%,
-        #1E293B 75%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-    border-radius: 4px;
-}
-
-@keyframes shimmer {
-    0% {
-        background-position: -200% 0;
-    }
-    100% {
-        background-position: 200% 0;
-    }
-}
-
-/* Refresh Button */
-.refreshBtn {
-    background: transparent;
-    border: 1px solid #1E293B;
-    color: #94A3B8;
-    padding: 0.5rem;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-}
-
-.refreshBtn:hover:not(:disabled) {
-    background: #1E293B;
-    color: #3B82F6;
-}
-
-.refreshBtn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Notification Badge */
-.notificationBadge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    background: #EF4444;
-    color: white;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 5px;
-    border-radius: 10px;
-    min-width: 16px;
-    text-align: center;
-}
-
-/* Tab disabled state */
-.tab:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Loading state for cards */
-.statCard.loading {
-    opacity: 0.7;
-}
-
-/* Action button states */
-.actionBtn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.addServerBtn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .loadingState,
-    .errorState,
-    .emptyState {
-        padding: 1.5rem;
-    }
-
-    .spinner {
-        width: 32px;
-        height: 32px;
     }
 }

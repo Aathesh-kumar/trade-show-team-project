@@ -3,7 +3,6 @@ package com.tradeshow.pulse24x7.mcp.utils;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.tradeshow.pulse24x7.mcp.model.HttpResult;
-import jakarta.servlet.http.HttpServletRequest;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -15,12 +14,13 @@ import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.net.URLEncoder;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class HttpClientUtil {
     private static final Logger logger = LogManager.getLogger(HttpClientUtil.class);
@@ -60,7 +60,7 @@ public class HttpClientUtil {
                 logger.debug("POST response body: {}", responseBody);
 
                 if (statusCode >= 200 && statusCode < 300) {
-                    return JsonParser.parseString(responseBody).getAsJsonObject();
+                    return parseToJson(responseBody);
                 } else {
                     logger.error("POST failed | Status: {} | Body: {}", statusCode, responseBody);
 
@@ -125,7 +125,7 @@ public class HttpClientUtil {
                 logger.debug("GET response body: {}", responseBody);
 
                 if (statusCode >= 200 && statusCode < 300) {
-                    return JsonParser.parseString(responseBody).getAsJsonObject();
+                    return parseToJson(responseBody);
                 } else {
                     logger.error("GET failed | Status: {} | Body: {}", statusCode, responseBody);
                     throw new RuntimeException("GET failed with status: " + statusCode);
@@ -141,6 +141,42 @@ public class HttpClientUtil {
         } catch (IOException e) {
             logger.error("GET request failed for URL: {}", url, e);
             throw new RuntimeException("GET request failed for URL: " + url, e);
+        }
+    }
+
+    public static JsonObject doPostForm(String url, Map<String, String> headers, Map<String, String> formFields) {
+        String formBody = formFields.entrySet().stream()
+                .filter(e -> e.getValue() != null)
+                .map(e -> urlEncode(e.getKey()) + "=" + urlEncode(e.getValue()))
+                .collect(Collectors.joining("&"));
+
+        Map<String, String> finalHeaders = new java.util.HashMap<>();
+        finalHeaders.put("Content-Type", "application/x-www-form-urlencoded");
+        if (headers != null) {
+            finalHeaders.putAll(headers);
+        }
+
+        logger.info("Initiating FORM POST request to: {}", url);
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            URI uri = new URI(url);
+            HttpHost target = new HttpHost(uri.getScheme(), uri.getHost(), uri.getPort());
+            HttpPost httpPost = new HttpPost(uri);
+            finalHeaders.forEach(httpPost::addHeader);
+            httpPost.setEntity(new StringEntity(formBody, ContentType.APPLICATION_FORM_URLENCODED));
+
+            HttpClientContext context = HttpClientContext.create();
+            try (ClassicHttpResponse response = client.executeOpen(target, httpPost, context)) {
+                int statusCode = response.getCode();
+                String responseBody = response.getEntity() != null
+                        ? EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8)
+                        : "{}";
+                if (statusCode >= 200 && statusCode < 300) {
+                    return parseToJson(responseBody);
+                }
+                throw new RuntimeException("FORM POST failed: " + statusCode + " body=" + responseBody);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("FORM POST request failed for URL: " + url, e);
         }
     }
 
@@ -163,16 +199,20 @@ public class HttpClientUtil {
         }
     }
 
-    public static JsonObject jsonParser(HttpServletRequest req) throws IOException  {
-        StringBuilder sb = new StringBuilder();
-        String line;
-
-        try (BufferedReader br = req.getReader()) {
-            while ((line = br.readLine()) != null) {
-                sb.append(line);
-            }
+    private static JsonObject parseToJson(String body) {
+        if (body == null || body.isBlank()) {
+            return new JsonObject();
         }
+        try {
+            return JsonParser.parseString(body).getAsJsonObject();
+        } catch (Exception ex) {
+            JsonObject fallback = new JsonObject();
+            fallback.addProperty("raw", body);
+            return fallback;
+        }
+    }
 
-       return JsonParser.parseString(sb.toString()).getAsJsonObject();
+    private static String urlEncode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

@@ -1,17 +1,42 @@
-// API Configuration
-const API_BASE_URL = 'http://localhost:8080/trade-show-team-project';
-
-// API Endpoints
-export const ENDPOINTS = {
-    STATS: '/dashboard/stats',
-    SYSTEM_HEALTH: '/dashboard/system-health',
-    SERVERS: '/dashboard/servers',
-    TOOLS: '/dashboard/tools',
-    REFRESH_DATA: '/dashboard/refresh'
+const normalizeBase = (value) => {
+    if (!value) {
+        return 'http://localhost:8080/team-project-static';
+    }
+    return value.endsWith('/') ? value.slice(0, -1) : value;
 };
 
-// Helper function to build full URL
-export const buildUrl = (endpoint) => `${API_BASE_URL}${endpoint}`;
+export const API_BASE = normalizeBase(import.meta.env.VITE_API_BASE);
 
-// Export base URL for hooks
-export { API_BASE_URL };
+export const buildUrl = (path, params = {}) => {
+    const safePath = path.startsWith('/') ? path : `/${path}`;
+    const url = new URL(`${API_BASE}${safePath}`, window.location.origin);
+    Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+            url.searchParams.set(key, String(value));
+        }
+    });
+    return url.toString();
+};
+
+export const parseApiResponse = async (response) => {
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+    const body = isJson ? await response.json() : null;
+
+    if (!response.ok) {
+        const errorMessage = body?.message || body?.error || `${response.status} ${response.statusText}`;
+        throw new Error(errorMessage);
+    }
+
+    return body;
+};
+
+export const unwrapData = (body) => {
+    if (!body) {
+        return null;
+    }
+    if (body.status === 'success' && body.data !== undefined) {
+        return body.data;
+    }
+    return body;
+};

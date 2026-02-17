@@ -3,13 +3,20 @@ package com.tradeshow.pulse24x7.mcp.service;
 import com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO;
 import com.tradeshow.pulse24x7.mcp.dao.ToolDAO;
 import com.tradeshow.pulse24x7.mcp.dao.ToolHistoryDAO;
+import com.tradeshow.pulse24x7.mcp.model.AuthToken;
+import com.tradeshow.pulse24x7.mcp.model.HttpResult;
 import com.tradeshow.pulse24x7.mcp.model.Server;
 import com.tradeshow.pulse24x7.mcp.model.Tool;
+import com.tradeshow.pulse24x7.mcp.utils.AuthHeaderUtil;
 import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
+import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class MonitoringService {
     private static final Logger logger = LogManager.getLogger(MonitoringService.class);
@@ -20,6 +27,7 @@ public class MonitoringService {
     private final ServerHistoryDAO serverHistoryDAO;
     private final ToolDAO toolDAO;
     private final ToolHistoryDAO toolHistoryDAO;
+    private final NotificationService notificationService;
 
     public MonitoringService() {
         this.serverService = new ServerService();
@@ -28,6 +36,7 @@ public class MonitoringService {
         this.serverHistoryDAO = new ServerHistoryDAO();
         this.toolDAO = new ToolDAO();
         this.toolHistoryDAO = new ToolHistoryDAO();
+        this.notificationService = new NotificationService();
     }
 
     public void monitorServer(Integer serverId) {
@@ -40,11 +49,22 @@ public class MonitoringService {
                 return;
             }
 
-            boolean serverUp = HttpClientUtil.isServerReachable(server.getServerUrl());
+            AuthToken authToken = authTokenService.getToken(serverId);
+            String accessToken = authTokenService.ensureValidAccessToken(serverId);
+            String headerType = authToken != null ? authToken.getHeaderType() : null;
+            Boolean previousStatus = serverHistoryDAO.getLastServerStatus(serverId);
+            Set<String> previousTools = toolDAO.getAvailableTools(serverId)
+                    .stream()
+                    .map(Tool::getToolName)
+                    .collect(Collectors.toSet());
+
+            HttpResult pingResult = HttpClientUtil.canPingServer(
+                    server.getServerUrl(),
+                    AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, accessToken),
+                    JsonUtil.createMCPRequest("ping", Map.of()).toString()
+            );
+            boolean serverUp = pingResult.isSuccess();
             logger.info("Server {} is {}", serverId, serverUp ? "UP" : "DOWN");
-            
-            // Get access token
-            String accessToken = authTokenService.getAccessToken(serverId);
             
             int toolCount = 0;
             
@@ -53,9 +73,39 @@ public class MonitoringService {
                 List<Tool> tools = toolService.fetchAndUpdateTools(
                         serverId, 
                         server.getServerUrl(), 
-                        accessToken
+                        accessToken,
+                        headerType
                 );
                 toolCount = tools.size();
+
+                Set<String> currentTools = tools.stream()
+                        .map(Tool::getToolName)
+                        .collect(Collectors.toSet());
+                Set<String> addedTools = currentTools.stream()
+                        .filter(t -> !previousTools.contains(t))
+                        .collect(Collectors.toSet());
+                Set<String> removedTools = previousTools.stream()
+                        .filter(t -> !currentTools.contains(t))
+                        .collect(Collectors.toSet());
+
+                if (!addedTools.isEmpty()) {
+                    notificationService.notify(
+                            serverId,
+                            "tools",
+                            "info",
+                            "Tools added",
+                            "New tools on " + server.getServerName() + ": " + String.join(", ", addedTools)
+                    );
+                }
+                if (!removedTools.isEmpty()) {
+                    notificationService.notify(
+                            serverId,
+                            "tools",
+                            "warning",
+                            "Tools removed",
+                            "Removed tools on " + server.getServerName() + ": " + String.join(", ", removedTools)
+                    );
+                }
                 
                 // Record tool history for each tool
                 for (Tool tool : tools) {
@@ -69,6 +119,16 @@ public class MonitoringService {
             }
 
             serverHistoryDAO.insertHistory(serverId, serverUp, toolCount);
+
+            if (previousStatus == null || previousStatus != serverUp) {
+                notificationService.notify(
+                        serverId,
+                        "server",
+                        serverUp ? "info" : "error",
+                        serverUp ? "Server is up" : "Server is down",
+                        server.getServerName() + " is now " + (serverUp ? "reachable" : "unreachable")
+                );
+            }
             
             logger.info("Server monitoring completed for server ID: {}", serverId);
             
