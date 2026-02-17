@@ -37,7 +37,7 @@ export default function ToolsInventory({ selectedServer }) {
         dependencies: [serverId, timeRange, customStart, customEnd]
     });
 
-    const { execute: refreshTools, loading: refreshing } = usePost(buildUrl('/tool/refresh'));
+    const {execute: refreshTools, loading: refreshing } = usePost(buildUrl('/tool/refresh'));
 
     const mappedTools = useMemo(() => (tools || []).map((tool) => ({
         ...tool,
@@ -64,10 +64,9 @@ export default function ToolsInventory({ selectedServer }) {
         totalTools: mappedTools.filter((t) => t.type === 'ACTION').length,
         totalResources: mappedTools.filter((t) => t.type !== 'ACTION').length
     };
-
     const handleRefresh = async () => {
         if (!serverId) {
-            return;
+            return; 
         }
         await refreshTools({ serverId });
         refetch();

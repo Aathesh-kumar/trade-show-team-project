@@ -1,6 +1,6 @@
 const normalizeBase = (value) => {
     if (!value) {
-        return 'http://localhost:8080/team-project-static';
+        return 'http://localhost:8080/trade-show-team-project';
     }
     return value.endsWith('/') ? value.slice(0, -1) : value;
 };
