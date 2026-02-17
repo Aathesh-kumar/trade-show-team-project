@@ -4,7 +4,7 @@ import { useDelete } from '../customUtilHooks/useDelete';
 import { ENDPOINTS } from '../config/api';
 import SettingsStyles from '../../styles/Settings.module.css';
 import LoadingSkeleton from '../LoadingComponents/LoadingSkeleton';
-import { MdDelete, MdEdit, MdWarning } from 'react-icons/md';
+import { MdDelete, MdEdit, MdWarning, MdStorage } from 'react-icons/md';
 
 export default function Settings({ onNavigate }) {
     const [editingServer, setEditingServer] = useState(null);
@@ -60,7 +60,7 @@ export default function Settings({ onNavigate }) {
                     <LoadingSkeleton type="card" lines={4} count={2} />
                 ) : servers.length === 0 ? (
                     <div className={SettingsStyles.emptyState}>
-                        <p>📊 No servers configured</p>
+                        <p><MdStorage /> No servers configured</p>
                         <button
                             onClick={() => onNavigate('configure-server')}
                             className={SettingsStyles.primaryBtn}

@@ -40,3 +40,15 @@ export const unwrapData = (body) => {
     }
     return body;
 };
+
+export const getAuthToken = () => localStorage.getItem('mcp_jwt') || '';
+
+export const getAuthHeaders = () => {
+    const token = getAuthToken();
+    if (!token) {
+        return {};
+    }
+    return {
+        Authorization: `Bearer ${token}`
+    };
+};

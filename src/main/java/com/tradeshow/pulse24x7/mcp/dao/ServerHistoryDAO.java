@@ -153,6 +153,26 @@ public class ServerHistoryDAO {
         }
         return null;
     }
+
+    public ServerHistory getLastHistory(Integer serverId) {
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.GET_LAST_SERVER_HISTORY)) {
+            ps.setInt(1, serverId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new ServerHistory(
+                            serverId,
+                            rs.getBoolean("server_up"),
+                            rs.getInt("tool_count"),
+                            rs.getTimestamp("checked_at")
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to fetch last server history for server ID: {}", serverId, e);
+        }
+        return null;
+    }
     
     public Integer getTotalChecks(Integer serverId) {
         logger.debug("Fetching total checks for server ID: {}", serverId);

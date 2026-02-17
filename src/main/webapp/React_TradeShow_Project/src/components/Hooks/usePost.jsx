@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { parseApiResponse, unwrapData } from '../../services/api';
+import { getAuthHeaders, parseApiResponse, unwrapData } from '../../services/api';
 
 export const usePost = (url, options = {}) => {
     const {
@@ -32,6 +32,7 @@ export const usePost = (url, options = {}) => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...getAuthHeaders(),
                     ...headers,
                     ...customOptions.headers
                 },

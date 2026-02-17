@@ -18,7 +18,7 @@ export default function RequestLogs({ selectedServer }) {
     const hours = useMemo(() => {
         switch (filters.timeRange) {
             case 'last-15-minutes':
-                return 1;
+                return 0.25;
             case 'last-hour':
                 return 1;
             case 'last-7-days':
@@ -30,7 +30,7 @@ export default function RequestLogs({ selectedServer }) {
     }, [filters.timeRange]);
 
     const serverId = selectedServer?.serverId;
-    const { data, loading, error } = useGet('/request-log', {
+    const { data, loading, error, refetch } = useGet('/request-log', {
         immediate: !!serverId,
         params: {
             serverId,
@@ -47,6 +47,8 @@ export default function RequestLogs({ selectedServer }) {
         const rows = data?.logs || [];
         return rows.map((row) => ({
             id: row.id,
+            serverId: row.serverId || row.server_id,
+            toolId: row.toolId || row.tool_id,
             timestamp: row.createdAt || row.created_at,
             tool: row.toolName,
             endpoint: row.toolName,
@@ -105,6 +107,8 @@ export default function RequestLogs({ selectedServer }) {
                 {selectedRequest && (
                     <RequestDetailsPanel
                         request={selectedRequest}
+                        selectedServer={selectedServer}
+                        onReplaySuccess={() => refetch()}
                         onClose={() => setSelectedRequest(null)}
                     />
                 )}
@@ -121,7 +125,7 @@ function parseJson(raw) {
     }
     try {
         return typeof raw === 'string' ? JSON.parse(raw) : raw;
-    } catch (e) {
+    } catch (_error) {
         return { raw };
     }
 }

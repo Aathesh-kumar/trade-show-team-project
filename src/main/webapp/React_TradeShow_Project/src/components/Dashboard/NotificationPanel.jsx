@@ -1,13 +1,14 @@
 import DashboardStyles from '../../styles/Dashboard.module.css';
 import { useGet } from '../Hooks/useGet';
-import { buildUrl, parseApiResponse } from '../../services/api';
+import { buildUrl, getAuthHeaders, parseApiResponse } from '../../services/api';
 
 export default function NotificationPanel({ isOpen, onClose }) {
-  const { data: notifications = [], refetch } = useGet('/notification', {
+  const { data: notificationsData = [], refetch } = useGet('/notification', {
     immediate: isOpen,
     params: { limit: 50 },
     dependencies: [isOpen]
   });
+  const notifications = Array.isArray(notificationsData) ? notificationsData : [];
 
   if (!isOpen) {
     return null;
@@ -16,7 +17,10 @@ export default function NotificationPanel({ isOpen, onClose }) {
   const markAllRead = async () => {
     await fetch(buildUrl('/notification/read-all'), {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      }
     }).then(parseApiResponse).catch(() => null);
     refetch();
   };
@@ -26,7 +30,7 @@ export default function NotificationPanel({ isOpen, onClose }) {
       <div className={DashboardStyles.notificationPanel} onClick={(e) => e.stopPropagation()}>
         <div className={DashboardStyles.notificationHeader}>
           <h3>Notifications</h3>
-          <button className={DashboardStyles.notificationBtn} onClick={markAllRead}>Mark all read</button>
+          <button className={DashboardStyles.notificationActionBtn} onClick={markAllRead}>Mark all read</button>
         </div>
         <div className={DashboardStyles.notificationList}>
           {notifications.length === 0 && (

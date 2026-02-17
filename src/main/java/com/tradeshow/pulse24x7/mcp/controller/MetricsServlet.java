@@ -47,6 +47,8 @@ public class MetricsServlet extends HttpServlet {
             sendErrorResponse(resp, "serverId is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
+        int hours = parseInt(req.getParameter("hours"), 24);
+        int bucketMinutes = parseInt(req.getParameter("bucketMinutes"), 30);
 
         List<Server> servers = serverService.getAllServers();
         Double uptimePercent = serverService.getUptimePercent(serverId);
@@ -57,7 +59,9 @@ public class MetricsServlet extends HttpServlet {
                 activeServerCount++;
             }
         }
-        sendSuccessResponse(resp, requestLogService.getDashboardMetrics(serverId, activeServerCount, uptimePercent));
+        sendSuccessResponse(resp, requestLogService.getDashboardMetrics(
+                serverId, activeServerCount, uptimePercent, hours, bucketMinutes
+        ));
     }
 
     private Integer parseInt(String value) {
@@ -66,6 +70,11 @@ public class MetricsServlet extends HttpServlet {
         } catch (Exception ex) {
             return null;
         }
+    }
+
+    private int parseInt(String value, int fallback) {
+        Integer parsed = parseInt(value);
+        return parsed == null ? fallback : parsed;
     }
 
     private void sendSuccessResponse(HttpServletResponse resp, Object data) throws IOException {

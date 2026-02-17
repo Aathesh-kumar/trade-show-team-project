@@ -99,13 +99,16 @@ public class ToolServlet extends HttpServlet {
             return;
         }
 
-        List<Tool> tools = toolService.getToolsByServer(serverId);
-        Integer hours = parseInt(req.getParameter("hours"));
+        boolean includeInactive = "true".equalsIgnoreCase(req.getParameter("includeInactive"));
+        List<Tool> tools = includeInactive
+                ? toolService.getToolsByServer(serverId)
+                : toolService.getAvailableTools(serverId);
+        Double hours = parseDouble(req.getParameter("hours"));
         String start = req.getParameter("start");
         String end = req.getParameter("end");
 
         if (hours != null && hours > 0) {
-            Timestamp cutoff = Timestamp.from(Instant.now().minusSeconds(hours * 3600L));
+            Timestamp cutoff = Timestamp.from(Instant.now().minusSeconds((long) (hours * 3600)));
             tools = tools.stream()
                     .filter(t -> t.getLastModify() != null && t.getLastModify().after(cutoff))
                     .collect(Collectors.toList());
@@ -272,6 +275,14 @@ public class ToolServlet extends HttpServlet {
     private int parseInt(String value, int fallback) {
         Integer parsed = parseInt(value);
         return parsed == null ? fallback : parsed;
+    }
+
+    private Double parseDouble(String value) {
+        try {
+            return value == null ? null : Double.parseDouble(value);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private Timestamp parseTimestamp(String value) {

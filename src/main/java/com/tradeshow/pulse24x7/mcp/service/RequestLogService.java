@@ -42,11 +42,12 @@ public class RequestLogService {
         return requestLogDAO.getStats(serverId);
     }
 
-    public Map<String, Object> getDashboardMetrics(Integer serverId, int activeServerCount, Double uptimePercent) {
+    public Map<String, Object> getDashboardMetrics(Integer serverId, int activeServerCount, Double uptimePercent,
+                                                   int hours, int bucketMinutes) {
         Map<String, Object> response = new HashMap<>();
         Map<String, Object> requestStats = requestLogDAO.getStats(serverId);
         response.put("requestStats", requestStats);
-        response.put("throughput24h", requestLogDAO.getThroughputLast24Hours(serverId));
+        response.put("throughput24h", requestLogDAO.getThroughput(serverId, hours, bucketMinutes));
         response.put("topTools", requestLogDAO.getTopTools(serverId, 5));
         response.put("activeServerCount", activeServerCount);
         response.put("uptimePercent", uptimePercent == null ? 0.0 : uptimePercent);

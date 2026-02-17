@@ -1,7 +1,7 @@
 .configurePage {
     min-height: 100vh;
-    background-color: #0a0f1e;
-    color: white;
+    background-color: var(--bg-app);
+    color: var(--text-primary);
     padding: 2rem;
     display: flex;
     justify-content: center;
@@ -873,5 +873,4 @@
         width: 100%;
     }
 }
-
 

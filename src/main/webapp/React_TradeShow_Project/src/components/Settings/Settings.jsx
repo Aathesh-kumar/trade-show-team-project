@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import ToolsStyles from '../../styles/Tools.module.css';
-import { buildUrl, parseApiResponse, unwrapData } from '../../services/api';
+import SettingsStyles from '../../styles/Settings.module.css';
+import { buildUrl, getAuthHeaders, parseApiResponse, unwrapData } from '../../services/api';
 import { useGet } from '../Hooks/useGet';
 import { usePost } from '../Hooks/usePost';
+import InputField from '../ConfigureServer/InputField';
+import DateTimeField from '../ConfigureServer/DateTimeField';
+import { SelectField } from '../ConfigureServer/FormFields';
 
-export default function Settings({ selectedServer, onServerUpdated }) {
+const themeChoices = [
+  { id: 'default', label: 'Default (System)' },
+  { id: 'light', label: 'Light' },
+  { id: 'dark', label: 'Dark' }
+];
+
+export default function Settings({ selectedServer, onServerUpdated, themeMode = 'default', onThemeModeChange }) {
   const serverId = selectedServer?.serverId;
   const [serverName, setServerName] = useState(selectedServer?.serverName || '');
   const [serverUrl, setServerUrl] = useState(selectedServer?.serverUrl || '');
@@ -16,6 +25,7 @@ export default function Settings({ selectedServer, onServerUpdated }) {
   const [clientSecret, setClientSecret] = useState('');
   const [tokenEndpoint, setTokenEndpoint] = useState('https://accounts.zoho.in/oauth/v2/token');
   const [message, setMessage] = useState(null);
+  const [showClientSecret, setShowClientSecret] = useState(false);
 
   const { data: tokenData, refetch: refetchToken } = useGet('/auth', {
     immediate: !!serverId,
@@ -37,19 +47,20 @@ export default function Settings({ selectedServer, onServerUpdated }) {
     setHeaderType(tokenData.headerType || 'Bearer');
     setAccessToken(tokenData.accessToken || '');
     setRefreshToken(tokenData.refreshToken || '');
-    setExpiresAt(toInputDateTime(tokenData.expiresAt));
+    setExpiresAt(tokenData.expiresAt || '');
     setClientId(tokenData.clientId || '');
     setClientSecret(tokenData.clientSecret || '');
     setTokenEndpoint(tokenData.tokenEndpoint || 'https://accounts.zoho.in/oauth/v2/token');
   }, [tokenData?.updatedAt, tokenData?.serverId]);
 
-  const canSave = useMemo(() => !!serverId && !!serverName && !!serverUrl, [serverId, serverName, serverUrl]);
+  const canSaveServer = useMemo(() => !!serverId && !!serverName && !!serverUrl, [serverId, serverName, serverUrl]);
 
   if (!serverId) {
     return (
-      <div className={ToolsStyles.toolsInventory}>
-        <div className={ToolsStyles.emptyState}>
-          <p>Select a server to open settings.</p>
+      <div className={SettingsStyles.settingsPage}>
+        <div className={SettingsStyles.emptyCard}>
+          <h2>No server selected</h2>
+          <p>Select a server from Pulse24x7 dashboard to manage settings.</p>
         </div>
       </div>
     );
@@ -60,7 +71,10 @@ export default function Settings({ selectedServer, onServerUpdated }) {
     try {
       const response = await fetch(buildUrl('/server', { id: serverId }), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
         body: JSON.stringify({ serverId, serverName, serverUrl })
       });
       const body = await parseApiResponse(response);
@@ -80,7 +94,7 @@ export default function Settings({ selectedServer, onServerUpdated }) {
         headerType,
         accessToken,
         refreshToken,
-        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+        expiresAt: expiresAt || null,
         clientId,
         clientSecret,
         tokenEndpoint
@@ -107,82 +121,131 @@ export default function Settings({ selectedServer, onServerUpdated }) {
   };
 
   return (
-    <div className={ToolsStyles.toolsInventory}>
-      <header className={ToolsStyles.toolsHeader}>
-        <div>
-          <h1>Settings</h1>
-          <p>Manage server and private auth settings.</p>
-        </div>
+    <div className={SettingsStyles.settingsPage}>
+      <header className={SettingsStyles.settingsHeader}>
+        <h1>Pulse24x7 Settings</h1>
+        <p>Control server profile, secure OAuth credentials, and product appearance in one place.</p>
       </header>
 
       {message && (
-        <div className={message.type === 'success' ? ToolsStyles.submitSuccess : ToolsStyles.submitError}>
+        <div className={message.type === 'success' ? SettingsStyles.bannerOk : SettingsStyles.bannerErr}>
           {message.text}
         </div>
       )}
 
-      <div className={ToolsStyles.modalContent}>
-        <div className={ToolsStyles.formGroup}>
-          <label>Server Name</label>
-          <input value={serverName} onChange={(e) => setServerName(e.target.value)} className={ToolsStyles.searchInput} />
-        </div>
-        <div className={ToolsStyles.formGroup}>
-          <label>Server URL</label>
-          <input value={serverUrl} onChange={(e) => setServerUrl(e.target.value)} className={ToolsStyles.searchInput} />
-        </div>
-        <button className={ToolsStyles.refreshBtn} disabled={!canSave} onClick={saveServer}>Save Server</button>
+      <div className={SettingsStyles.grid}>
+        <section className={SettingsStyles.card}>
+          <h2>Server Profile</h2>
+          <p className={SettingsStyles.cardHint}>Update the connected Pulse24x7 source server details.</p>
+          <div className={SettingsStyles.fieldStack}>
+            <InputField
+              label="Server Name"
+              placeholder="Enter server name"
+              value={serverName}
+              onChange={setServerName}
+              required={true}
+              tooltip="A descriptive name for this server"
+            />
+            <InputField
+              label="Server URL"
+              placeholder="https://server.example.com/mcp"
+              value={serverUrl}
+              onChange={setServerUrl}
+              icon="link"
+              required={true}
+            />
+          </div>
+          <div className={SettingsStyles.actions}>
+            <button className={SettingsStyles.btnPrimary} disabled={!canSaveServer} onClick={saveServer}>Save Server</button>
+          </div>
+        </section>
 
-        <hr />
-
-        <div className={ToolsStyles.formGroup}>
-          <label>Header Type</label>
-          <input value={headerType} onChange={(e) => setHeaderType(e.target.value)} className={ToolsStyles.searchInput} />
-        </div>
-        <div className={ToolsStyles.formGroup}>
-          <label>Access Token</label>
-          <textarea rows="3" value={accessToken} onChange={(e) => setAccessToken(e.target.value)} className={ToolsStyles.codeInput} />
-        </div>
-        <div className={ToolsStyles.formGroup}>
-          <label>Refresh Token</label>
-          <textarea rows="3" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)} className={ToolsStyles.codeInput} />
-        </div>
-        <div className={ToolsStyles.formGroup}>
-          <label>Expires At</label>
-          <input type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className={ToolsStyles.searchInput} />
-        </div>
-        <div className={ToolsStyles.formGroup}>
-          <label>Client ID</label>
-          <input value={clientId} onChange={(e) => setClientId(e.target.value)} className={ToolsStyles.searchInput} />
-        </div>
-        <div className={ToolsStyles.formGroup}>
-          <label>Client Secret</label>
-          <input type="password" value={clientSecret} onChange={(e) => setClientSecret(e.target.value)} className={ToolsStyles.searchInput} />
-        </div>
-        <div className={ToolsStyles.formGroup}>
-          <label>Token Endpoint</label>
-          <input value={tokenEndpoint} onChange={(e) => setTokenEndpoint(e.target.value)} className={ToolsStyles.searchInput} />
-        </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button className={ToolsStyles.refreshBtn} onClick={saveToken} disabled={savingAuth}>Save Auth</button>
-          <button className={ToolsStyles.testBtn} onClick={refreshTokenNow} disabled={refreshingAuth}>Refresh Access Token</button>
-        </div>
+        <section className={SettingsStyles.card}>
+          <h2>Appearance</h2>
+          <p className={SettingsStyles.cardHint}>Choose how Pulse24x7 should render across all pages.</p>
+          <div className={SettingsStyles.themeGroup}>
+            {themeChoices.map((choice) => (
+              <button
+                key={choice.id}
+                type="button"
+                className={`${SettingsStyles.themeBtn} ${themeMode === choice.id ? SettingsStyles.themeActive : ''}`}
+                onClick={() => onThemeModeChange?.(choice.id)}
+              >
+                {choice.label}
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
+
+      <section className={SettingsStyles.cardWide}>
+        <h2>OAuth Credentials</h2>
+        <p className={SettingsStyles.cardHint}>Use secure values below for tool auth, refresh, and token management.</p>
+
+        <div className={SettingsStyles.credentialGrid}>
+          <SelectField
+            label="Header Type"
+            value={headerType}
+            onChange={setHeaderType}
+            options={['Bearer', 'Basic', 'ApiKey']}
+          />
+          <InputField
+            label="Client ID"
+            placeholder="OAuth client id"
+            value={clientId}
+            onChange={setClientId}
+          />
+          <InputField
+            label="Client Secret"
+            type={showClientSecret ? 'text' : 'password'}
+            placeholder="OAuth client secret"
+            value={clientSecret}
+            onChange={setClientSecret}
+            showToggle={true}
+            onToggle={() => setShowClientSecret((prev) => !prev)}
+          />
+          <InputField
+            label="Token Endpoint"
+            placeholder="https://accounts.zoho.in/oauth/v2/token"
+            value={tokenEndpoint}
+            onChange={setTokenEndpoint}
+            icon="link"
+          />
+        </div>
+
+        <div className={SettingsStyles.tokenAreaGrid}>
+          <div className={SettingsStyles.textBlock}>
+            <label>Access Token</label>
+            <textarea
+              rows="4"
+              value={accessToken}
+              onChange={(e) => setAccessToken(e.target.value)}
+              className={SettingsStyles.textarea}
+            />
+          </div>
+          <div className={SettingsStyles.textBlock}>
+            <label>Refresh Token</label>
+            <textarea
+              rows="4"
+              value={refreshToken}
+              onChange={(e) => setRefreshToken(e.target.value)}
+              className={SettingsStyles.textarea}
+            />
+          </div>
+        </div>
+
+        <DateTimeField
+          label="Token Expiry"
+          value={expiresAt}
+          onChange={setExpiresAt}
+          tooltip="Choose expiry by quick mode or exact date/time"
+        />
+
+        <div className={SettingsStyles.actions}>
+          <button className={SettingsStyles.btnPrimary} onClick={saveToken} disabled={savingAuth}>Save Auth</button>
+          <button className={SettingsStyles.btnSecondary} onClick={refreshTokenNow} disabled={refreshingAuth}>Refresh Access Token</button>
+        </div>
+      </section>
     </div>
   );
-}
-
-function toInputDateTime(rawValue) {
-  if (!rawValue) {
-    return '';
-  }
-  const date = new Date(rawValue);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  const hh = String(date.getHours()).padStart(2, '0');
-  const mm = String(date.getMinutes()).padStart(2, '0');
-  return `${y}-${m}-${d}T${hh}:${mm}`;
 }

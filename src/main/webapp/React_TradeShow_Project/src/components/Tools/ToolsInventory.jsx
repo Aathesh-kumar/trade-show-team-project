@@ -13,28 +13,42 @@ export default function ToolsInventory({ selectedServer }) {
     const [selectedTool, setSelectedTool] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState('all');
-    const [timeRange, setTimeRange] = useState('24h');
-    const [customStart, setCustomStart] = useState('');
-    const [customEnd, setCustomEnd] = useState('');
+    const [timeRange, setTimeRange] = useState('current');
+    const [customMinutes, setCustomMinutes] = useState(10);
     const [isTestOpen, setIsTestOpen] = useState(false);
 
     const serverId = selectedServer?.serverId;
     const queryParams = useMemo(() => {
         const params = { serverId };
-        if (timeRange === 'custom' && customStart && customEnd) {
-            params.start = new Date(customStart).toISOString();
-            params.end = new Date(customEnd).toISOString();
+        if (timeRange === 'current') {
+            params.includeInactive = false;
+            return params;
+        }
+
+        params.includeInactive = true;
+        if (timeRange === 'custom') {
+            const safeMinutes = Math.min(24 * 60, Math.max(1, Number(customMinutes) || 10));
+            params.hours = Number((safeMinutes / 60).toFixed(2));
         } else {
-            const map = { '1h': 1, '2h': 2, '4h': 4, '8h': 8, '24h': 24 };
-            params.hours = map[timeRange] || 24;
+            const map = { '1m': Number((1 / 60).toFixed(2)), '10m': Number((10 / 60).toFixed(2)), '1h': 1, '2h': 2, '24h': 24 };
+            params.hours = map[timeRange] || 1;
         }
         return params;
-    }, [serverId, timeRange, customStart, customEnd]);
+    }, [serverId, timeRange, customMinutes]);
 
     const { data: tools = [], loading, error, refetch } = useGet('/tool/all', {
         immediate: !!serverId,
         params: queryParams,
-        dependencies: [serverId, timeRange, customStart, customEnd]
+        dependencies: [serverId, timeRange, customMinutes]
+    });
+    const { data: intervalLogs } = useGet('/request-log', {
+        immediate: !!serverId && timeRange !== 'current',
+        params: {
+            serverId,
+            hours: queryParams.hours || 1,
+            limit: 500
+        },
+        dependencies: [serverId, timeRange, customMinutes]
     });
 
     const {execute: refreshTools, loading: refreshing } = usePost(buildUrl('/tool/refresh'));
@@ -53,7 +67,42 @@ export default function ToolsInventory({ selectedServer }) {
             : '0.0'
     })), [tools]);
 
-    const filteredTools = mappedTools.filter((tool) => {
+    const historicalTools = useMemo(() => {
+        if (timeRange === 'current') {
+            return [];
+        }
+        const logs = Array.isArray(intervalLogs?.logs) ? intervalLogs.logs : [];
+        const existing = new Set(mappedTools.map((tool) => tool.name));
+        const seen = new Set();
+
+        return logs
+            .map((row) => row.toolName)
+            .filter(Boolean)
+            .filter((toolName) => !existing.has(toolName))
+            .filter((toolName) => {
+                if (seen.has(toolName)) {
+                    return false;
+                }
+                seen.add(toolName);
+                return true;
+            })
+            .map((toolName) => ({
+                id: `history-${toolName}`,
+                name: toolName,
+                type: 'ACTION',
+                description: `Observed in ${timeRange === 'custom' ? `past ${Math.min(24 * 60, Math.max(1, Number(customMinutes) || 10))} minutes` : 'selected interval'} request logs`,
+                status: 'Inactive',
+                isAvailability: false,
+                latency: 'N/A',
+                jsonSchema: { type: 'object', properties: {} },
+                successRate: '0.0',
+                isHistorical: true
+            }));
+    }, [intervalLogs, mappedTools, timeRange, customMinutes]);
+
+    const inventoryTools = useMemo(() => [...mappedTools, ...historicalTools], [mappedTools, historicalTools]);
+
+    const filteredTools = inventoryTools.filter((tool) => {
         const matchesSearch = tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             tool.description.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesFilter = filterType === 'all' || tool.type.toLowerCase() === filterType.toLowerCase();
@@ -61,8 +110,8 @@ export default function ToolsInventory({ selectedServer }) {
     });
 
     const stats = {
-        totalTools: mappedTools.filter((t) => t.type === 'ACTION').length,
-        totalResources: mappedTools.filter((t) => t.type !== 'ACTION').length
+        totalTools: inventoryTools.filter((t) => t.type === 'ACTION').length,
+        totalResources: inventoryTools.filter((t) => t.type !== 'ACTION').length
     };
     const handleRefresh = async () => {
         if (!serverId) {
@@ -76,7 +125,7 @@ export default function ToolsInventory({ selectedServer }) {
         return (
             <div className={ToolsStyles.toolsInventory}>
                 <div className={ToolsStyles.emptyState}>
-                    <p>Select or configure an MCP server to load tools.</p>
+                    <p>Select or configure a Pulse24x7 server to load tools.</p>
                 </div>
             </div>
         );
@@ -92,10 +141,8 @@ export default function ToolsInventory({ selectedServer }) {
                 setFilterType={setFilterType}
                 timeRange={timeRange}
                 setTimeRange={setTimeRange}
-                customStart={customStart}
-                customEnd={customEnd}
-                setCustomStart={setCustomStart}
-                setCustomEnd={setCustomEnd}
+                customMinutes={customMinutes}
+                setCustomMinutes={setCustomMinutes}
                 onRefresh={handleRefresh}
                 refreshing={refreshing}
             />
@@ -143,7 +190,7 @@ export default function ToolsInventory({ selectedServer }) {
 function tryParse(raw) {
     try {
         return typeof raw === 'string' ? JSON.parse(raw) : raw;
-    } catch (e) {
+    } catch (_error) {
         return { type: 'object', raw };
     }
 }
