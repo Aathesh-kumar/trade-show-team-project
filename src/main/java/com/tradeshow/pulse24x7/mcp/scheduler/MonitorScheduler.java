@@ -18,31 +18,23 @@ public class MonitorScheduler implements ServletContextListener {
         logger.info("Initializing MCP Monitor Scheduler");
         
         try {
-            // Create scheduler
             scheduler = StdSchedulerFactory.getDefaultScheduler();
-            
-            // Create server monitoring job
             JobDetail serverMonitorJob = JobBuilder.newJob(ServerMonitorTask.class)
                     .withIdentity("ServerMonitorJob", "MCP_MONITOR_GROUP")
                     .build();
-            
-            // Create trigger for server monitoring (runs every hour)
+
             Trigger serverMonitorTrigger = TriggerBuilder.newTrigger()
                     .withIdentity("ServerMonitorTrigger", "MCP_MONITOR_GROUP")
                     .startNow()
-                    .withSchedule(SimpleScheduleBuilder.simpleSchedule()
-                            .withIntervalInMinutes(10)
-                            .repeatForever())
+                    .withSchedule(SimpleScheduleBuilder.repeatMinutelyForever(5))
                     .build();
-            
-            // Schedule the job
+
             scheduler.scheduleJob(serverMonitorJob, serverMonitorTrigger);
-            
-            // Start scheduler
+            System.out.println("Scheduler start");
             scheduler.start();
             
             logger.info("MCP Monitor Scheduler started successfully. " +
-                    "Monitoring interval: {} minutes", 60);
+                    "Monitoring interval: {} minutes", 5);
             
         } catch (SchedulerException e) {
             logger.error("Failed to start scheduler", e);
