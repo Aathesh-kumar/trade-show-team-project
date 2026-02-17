@@ -11,6 +11,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,40 +23,80 @@ public class RequestLogDAO {
     private static final Logger logger = LogManager.getLogger(RequestLogDAO.class);
 
     public boolean insert(RequestLog requestLog) {
-        try (Connection con = DBConnection.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(DBQueries.INSERT_REQUEST_LOG)) {
-            ps.setInt(1, requestLog.getServerId());
-            if (requestLog.getToolId() == null) {
-                ps.setNull(2, java.sql.Types.INTEGER);
-            } else {
-                ps.setInt(2, requestLog.getToolId());
+        Connection con = null;
+        try {
+            con = DBConnection.getInstance().getConnection();
+            con.setAutoCommit(false);
+            try (PreparedStatement ps = con.prepareStatement(DBQueries.INSERT_REQUEST_LOG, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setInt(1, requestLog.getServerId());
+                if (requestLog.getToolId() == null) {
+                    ps.setNull(2, java.sql.Types.INTEGER);
+                } else {
+                    ps.setInt(2, requestLog.getToolId());
+                }
+                ps.setString(3, requestLog.getToolName());
+                ps.setString(4, requestLog.getMethod());
+                ps.setInt(5, requestLog.getStatusCode());
+                ps.setString(6, requestLog.getStatusText());
+                ps.setLong(7, requestLog.getLatencyMs() == null ? 0 : requestLog.getLatencyMs());
+                ps.setString(8, requestLog.getErrorMessage());
+                ps.setLong(9, requestLog.getResponseSizeBytes() == null ? 0 : requestLog.getResponseSizeBytes());
+                ps.setString(10, requestLog.getUserAgent());
+                int inserted = ps.executeUpdate();
+                if (inserted <= 0) {
+                    con.rollback();
+                    return false;
+                }
+
+                long requestLogId;
+                try (ResultSet keys = ps.getGeneratedKeys()) {
+                    if (!keys.next()) {
+                        con.rollback();
+                        return false;
+                    }
+                    requestLogId = keys.getLong(1);
+                }
+
+                try (PreparedStatement payloadPs = con.prepareStatement(DBQueries.INSERT_REQUEST_LOG_PAYLOAD)) {
+                    payloadPs.setLong(1, requestLogId);
+                    payloadPs.setString(2, requestLog.getRequestPayload());
+                    payloadPs.setString(3, requestLog.getResponseBody());
+                    payloadPs.executeUpdate();
+                }
+                con.commit();
+                return true;
             }
-            ps.setString(3, requestLog.getToolName());
-            ps.setString(4, requestLog.getMethod());
-            ps.setInt(5, requestLog.getStatusCode());
-            ps.setString(6, requestLog.getStatusText());
-            ps.setLong(7, requestLog.getLatencyMs() == null ? 0 : requestLog.getLatencyMs());
-            ps.setString(8, requestLog.getRequestPayload());
-            ps.setString(9, requestLog.getResponseBody());
-            ps.setString(10, requestLog.getErrorMessage());
-            ps.setLong(11, requestLog.getResponseSizeBytes() == null ? 0 : requestLog.getResponseSizeBytes());
-            ps.setString(12, requestLog.getUserAgent());
-            return ps.executeUpdate() > 0;
         } catch (SQLException e) {
+            if (con != null) {
+                try {
+                    con.rollback();
+                } catch (SQLException ignored) {
+                    // no-op
+                }
+            }
             logger.error("Failed to insert request log", e);
             return false;
+        } finally {
+            if (con != null) {
+                try {
+                    con.setAutoCommit(true);
+                    con.close();
+                } catch (SQLException ignored) {
+                    // no-op
+                }
+            }
         }
     }
 
     public List<RequestLog> getLogs(Integer serverId, String search, Integer statusMin, Integer statusMax,
                                     String toolName, int hours, int limit) {
-        StringBuilder query = new StringBuilder(DBQueries.SELECT_REQUEST_LOGS_BASE)
-                .append(" WHERE server_id = ?");
+        StringBuilder query = new StringBuilder(DBQueries.SELECT_REQUEST_LOGS_WITH_PAYLOAD_BASE)
+                .append(" WHERE rl.server_id = ?");
         List<Object> params = new ArrayList<>();
         params.add(serverId);
 
         if (search != null && !search.isBlank()) {
-            query.append(" AND (tool_name LIKE ? OR CAST(id AS CHAR) LIKE ? OR error_message LIKE ?)");
+            query.append(" AND (rl.tool_name LIKE ? OR CAST(rl.id AS CHAR) LIKE ? OR rl.error_message LIKE ?)");
             String pattern = "%" + search + "%";
             params.add(pattern);
             params.add(pattern);
@@ -63,20 +104,20 @@ public class RequestLogDAO {
         }
 
         if (statusMin != null && statusMax != null) {
-            query.append(" AND status_code BETWEEN ? AND ?");
+            query.append(" AND rl.status_code BETWEEN ? AND ?");
             params.add(statusMin);
             params.add(statusMax);
         }
 
         if (toolName != null && !toolName.isBlank()) {
-            query.append(" AND tool_name = ?");
+            query.append(" AND rl.tool_name = ?");
             params.add(toolName);
         }
 
-        query.append(" AND created_at >= ?");
+        query.append(" AND rl.created_at >= ?");
         params.add(TimeUtil.getTimestampHoursAgo(hours));
 
-        query.append(" ORDER BY created_at DESC LIMIT ?");
+        query.append(" ORDER BY rl.created_at DESC LIMIT ?");
         params.add(limit);
 
         List<RequestLog> logs = new ArrayList<>();

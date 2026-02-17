@@ -165,13 +165,23 @@ public class DBQueries {
         // Request Logs Queries
         public static final String INSERT_REQUEST_LOG =
                 "INSERT INTO request_logs (server_id, tool_id, tool_name, method, status_code, status_text, latency_ms, " +
-                        "request_payload, response_body, error_message, response_size_bytes, user_agent) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        "error_message, response_size_bytes, user_agent) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        public static final String INSERT_REQUEST_LOG_PAYLOAD =
+                "INSERT INTO request_log_payloads (request_log_id, request_payload, response_body) VALUES (?, ?, ?)";
 
         public static final String SELECT_REQUEST_LOGS_BASE =
                 "SELECT id, server_id, tool_id, tool_name, method, status_code, status_text, latency_ms, " +
-                        "request_payload, response_body, error_message, response_size_bytes, user_agent, created_at " +
+                        "error_message, response_size_bytes, user_agent, created_at " +
                         "FROM request_logs";
+
+        public static final String SELECT_REQUEST_LOGS_WITH_PAYLOAD_BASE =
+                "SELECT rl.id, rl.server_id, rl.tool_id, rl.tool_name, rl.method, rl.status_code, rl.status_text, rl.latency_ms, " +
+                        "rl.error_message, rl.response_size_bytes, rl.user_agent, rl.created_at, " +
+                        "COALESCE(rp.request_payload, '{}') AS request_payload, COALESCE(rp.response_body, '{}') AS response_body " +
+                        "FROM request_logs rl " +
+                        "LEFT JOIN request_log_payloads rp ON rp.request_log_id = rl.id";
 
         public static final String SELECT_REQUEST_STATS =
                 "SELECT COUNT(*) total_requests, " +

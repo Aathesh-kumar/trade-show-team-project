@@ -1,14 +1,15 @@
-CREATE DATABASE IF NOT EXISTS Pulse24x7;
+DROP DATABASE IF EXISTS Pulse24x7;
+CREATE DATABASE Pulse24x7;
 USE Pulse24x7;
 
-CREATE TABLE IF NOT EXISTS servers (
+CREATE TABLE servers (
     server_id INT PRIMARY KEY AUTO_INCREMENT,
     server_name VARCHAR(100) NOT NULL,
     server_url VARCHAR(255) NOT NULL UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS auth_token (
+CREATE TABLE auth_token (
     server_id INT PRIMARY KEY,
     header_type VARCHAR(50) DEFAULT 'Bearer',
     access_token TEXT NOT NULL,
@@ -21,7 +22,7 @@ CREATE TABLE IF NOT EXISTS auth_token (
     CONSTRAINT fk_auth_server FOREIGN KEY (server_id) REFERENCES servers(server_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS tools (
+CREATE TABLE tools (
     tool_id INT PRIMARY KEY AUTO_INCREMENT,
     tool_name VARCHAR(120) NOT NULL,
     tool_description TEXT NULL,
@@ -40,7 +41,7 @@ CREATE TABLE IF NOT EXISTS tools (
     CONSTRAINT fk_tool_server FOREIGN KEY (server_id) REFERENCES servers(server_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS server_history (
+CREATE TABLE server_history (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     server_id INT NOT NULL,
     server_up BOOLEAN NOT NULL,
@@ -50,7 +51,7 @@ CREATE TABLE IF NOT EXISTS server_history (
     INDEX idx_server_history_server_checked (server_id, checked_at)
 );
 
-CREATE TABLE IF NOT EXISTS tools_history (
+CREATE TABLE tools_history (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     tool_id INT NOT NULL,
     is_available BOOLEAN NOT NULL,
@@ -59,7 +60,7 @@ CREATE TABLE IF NOT EXISTS tools_history (
     INDEX idx_tools_history_tool_checked (tool_id, checked_at)
 );
 
-CREATE TABLE IF NOT EXISTS request_logs (
+CREATE TABLE request_logs (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     server_id INT NOT NULL,
     tool_id INT NULL,
@@ -79,9 +80,33 @@ CREATE TABLE IF NOT EXISTS request_logs (
     INDEX idx_request_logs_status (status_code)
 );
 
-CREATE TABLE IF NOT EXISTS request_log_payloads (
+CREATE TABLE request_log_payloads (
     request_log_id BIGINT PRIMARY KEY,
     request_payload LONGTEXT NULL,
     response_body LONGTEXT NULL,
     CONSTRAINT fk_request_log_payloads_request_log FOREIGN KEY (request_log_id) REFERENCES request_logs(id) ON DELETE CASCADE
+);
+
+CREATE TABLE notifications (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    server_id INT NULL,
+    category VARCHAR(50) NOT NULL,
+    severity VARCHAR(20) NOT NULL DEFAULT 'info',
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_notifications_server FOREIGN KEY (server_id) REFERENCES servers(server_id) ON DELETE SET NULL,
+    INDEX idx_notifications_created (created_at DESC),
+    INDEX idx_notifications_read (is_read)
+);
+
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    full_name VARCHAR(120) NOT NULL,
+    email VARCHAR(180) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL DEFAULT 'ADMIN',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

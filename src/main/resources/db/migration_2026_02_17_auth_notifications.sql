@@ -26,3 +26,20 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS request_log_payloads (
+    request_log_id BIGINT PRIMARY KEY,
+    request_payload LONGTEXT NULL,
+    response_body LONGTEXT NULL,
+    CONSTRAINT fk_request_log_payloads_request_log FOREIGN KEY (request_log_id) REFERENCES request_logs(id) ON DELETE CASCADE
+);
+
+INSERT INTO request_log_payloads (request_log_id, request_payload, response_body)
+SELECT rl.id, rl.request_payload, rl.response_body
+FROM request_logs rl
+LEFT JOIN request_log_payloads rlp ON rlp.request_log_id = rl.id
+WHERE rlp.request_log_id IS NULL;
+
+ALTER TABLE request_logs
+    DROP COLUMN IF EXISTS request_payload,
+    DROP COLUMN IF EXISTS response_body;

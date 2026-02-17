@@ -5,7 +5,6 @@ import com.tradeshow.pulse24x7.mcp.model.ServerHistory;
 import com.tradeshow.pulse24x7.mcp.model.ToolHistory;
 import com.tradeshow.pulse24x7.mcp.service.ServerService;
 import com.tradeshow.pulse24x7.mcp.service.ToolService;
-import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -62,9 +61,8 @@ public class HistoryServlet extends HttpServlet {
 
     private void handleGetServerHistory(HttpServletRequest req, HttpServletResponse resp) 
             throws IOException {
-        JsonObject payload = HttpClientUtil.jsonParser(req);
-        String serverIdStr = payload.get("serverId").getAsString();
-        String hoursStr = payload.get("hours").getAsString();
+        String serverIdStr = req.getParameter("serverId");
+        String hoursStr = req.getParameter("hours");
         
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
             sendErrorResponse(resp,"Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
@@ -91,9 +89,8 @@ public class HistoryServlet extends HttpServlet {
 
     private void handleGetToolHistory(HttpServletRequest req, HttpServletResponse resp) 
             throws IOException {
-        JsonObject payload = HttpClientUtil.jsonParser(req);
-        String toolIdStr = payload.get("toolId").getAsString();
-        String hoursStr = payload.get("hours").getAsString();
+        String toolIdStr = req.getParameter("toolId");
+        String hoursStr = req.getParameter("hours");
         
         if (toolIdStr == null || toolIdStr.trim().isEmpty()) {
             sendErrorResponse(resp, "Tool ID is required", HttpServletResponse.SC_BAD_REQUEST);
