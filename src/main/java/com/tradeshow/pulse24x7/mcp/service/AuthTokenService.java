@@ -1,5 +1,6 @@
 package com.tradeshow.pulse24x7.mcp.service;
 
+import com.google.gson.JsonObject;
 import com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO;
 import com.tradeshow.pulse24x7.mcp.model.AuthToken;
 import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
@@ -13,9 +14,11 @@ import java.util.Map;
 public class AuthTokenService {
     private static final Logger logger = LogManager.getLogger(AuthTokenService.class);
     private final AuthTokenDAO authTokenDAO;
+    private final RequestLogService requestLogService;
 
     public AuthTokenService() {
         this.authTokenDAO = new AuthTokenDAO();
+        this.requestLogService = new RequestLogService();
     }
 
     public boolean saveToken(Integer serverId, String headerType, String accessToken, String refreshToken,
@@ -114,28 +117,60 @@ public class AuthTokenService {
             throw new IllegalStateException("clientId/clientSecret required for token refresh");
         }
 
-        var response = HttpClientUtil.doPostForm(tokenEndpoint, Map.of(), Map.of(
-                "refresh_token", token.getRefreshToken(),
-                "client_id", token.getClientId(),
-                "client_secret", token.getClientSecret(),
-                "grant_type", "refresh_token"
-        ));
+        try {
+            var response = HttpClientUtil.doPostForm(tokenEndpoint, Map.of(), Map.of(
+                    "refresh_token", token.getRefreshToken(),
+                    "client_id", token.getClientId(),
+                    "client_secret", token.getClientSecret(),
+                    "grant_type", "refresh_token"
+            ));
 
-        if (!response.has("access_token")) {
-            throw new IllegalStateException("Token refresh failed: " + response);
-        }
+            if (!response.has("access_token")) {
+                throw new IllegalStateException("Token refresh failed: " + response);
+            }
 
-        String newAccessToken = response.get("access_token").getAsString();
-        Timestamp expiresAt = null;
-        if (response.has("expires_in_sec")) {
-            long seconds = response.get("expires_in_sec").getAsLong();
-            expiresAt = Timestamp.from(Instant.now().plusSeconds(seconds));
-        }
+            String newAccessToken = response.get("access_token").getAsString();
+            Timestamp expiresAt = null;
+            if (response.has("expires_in_sec")) {
+                long seconds = response.get("expires_in_sec").getAsLong();
+                expiresAt = Timestamp.from(Instant.now().plusSeconds(seconds));
+            }
 
-        boolean updated = updateAccessToken(serverId, newAccessToken, expiresAt);
-        if (!updated) {
-            throw new IllegalStateException("Failed to persist refreshed token");
+            boolean updated = updateAccessToken(serverId, newAccessToken, expiresAt);
+            if (!updated) {
+                throw new IllegalStateException("Failed to persist refreshed token");
+            }
+            recordTokenRefreshLog(serverId, tokenEndpoint, true, response, null);
+            return newAccessToken;
+        } catch (Exception e) {
+            JsonObject errorBody = new JsonObject();
+            errorBody.addProperty("error", e.getMessage());
+            recordTokenRefreshLog(serverId, tokenEndpoint, false, errorBody, e.getMessage());
+            throw e;
         }
-        return newAccessToken;
+    }
+
+    private void recordTokenRefreshLog(Integer serverId, String tokenEndpoint, boolean success,
+                                       JsonObject responseBody, String errorMessage) {
+        JsonObject requestPayload = new JsonObject();
+        requestPayload.addProperty("event", "token_refresh");
+        requestPayload.addProperty("tokenEndpoint", tokenEndpoint);
+        requestPayload.addProperty("grant_type", "refresh_token");
+
+        requestLogService.record(
+                requestLogService.buildRequestLog(
+                        serverId,
+                        null,
+                        "__TOKEN_REFRESH__",
+                        "POST",
+                        success ? 200 : 401,
+                        success ? "OK" : "ERR",
+                        0L,
+                        requestPayload,
+                        responseBody == null ? new JsonObject() : responseBody,
+                        errorMessage,
+                        "Pulse24x7-AuthRefresh"
+                )
+        );
     }
 }

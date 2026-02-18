@@ -26,12 +26,12 @@ public class MonitorScheduler implements ServletContextListener {
                     .withIdentity("ServerMonitorJob", "MCP_MONITOR_GROUP")
                     .build();
             
-            // Create trigger for server monitoring (runs every hour)
+            // Create trigger for server monitoring (runs every 5 minutes)
             Trigger serverMonitorTrigger = TriggerBuilder.newTrigger()
                     .withIdentity("ServerMonitorTrigger", "MCP_MONITOR_GROUP")
                     .startNow()
                     .withSchedule(SimpleScheduleBuilder.simpleSchedule()
-                            .withIntervalInMinutes(10)
+                            .withIntervalInMinutes(5)
                             .repeatForever())
                     .build();
             
@@ -42,7 +42,7 @@ public class MonitorScheduler implements ServletContextListener {
             scheduler.start();
             
             logger.info("MCP Monitor Scheduler started successfully. " +
-                    "Monitoring interval: {} minutes", 10);
+                    "Monitoring interval: {} minutes", 5);
             
         } catch (SchedulerException e) {
             logger.error("Failed to start scheduler", e);

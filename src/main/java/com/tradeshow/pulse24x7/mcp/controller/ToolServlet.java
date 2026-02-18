@@ -10,6 +10,7 @@ import com.tradeshow.pulse24x7.mcp.service.AuthTokenService;
 import com.tradeshow.pulse24x7.mcp.service.RequestLogService;
 import com.tradeshow.pulse24x7.mcp.service.ServerService;
 import com.tradeshow.pulse24x7.mcp.service.ToolService;
+import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import com.tradeshow.pulse24x7.mcp.utils.ServletUtil;
 import jakarta.servlet.ServletException;
@@ -226,6 +227,19 @@ public class ToolServlet extends HttpServlet {
 
         try {
             responseData = toolService.executeTool(serverId, server.getServerUrl(), headerType, accessToken, toolName, inputParams);
+        } catch (HttpClientUtil.HttpRequestException ex) {
+            responseData = new JsonObject();
+            responseData.addProperty("statusCode", ex.getStatusCode());
+            if (ex.getErrorCode() != null) {
+                responseData.addProperty("error_code", ex.getErrorCode());
+            }
+            responseData.addProperty("message", ex.getMessage());
+            if (ex.getResponseBody() != null) {
+                responseData.addProperty("raw", ex.getResponseBody());
+            }
+            statusCode = ex.getStatusCode() > 0 ? ex.getStatusCode() : HttpServletResponse.SC_BAD_GATEWAY;
+            statusText = "ERR";
+            errorMessage = ex.getMessage();
         } catch (Exception ex) {
             responseData = new JsonObject();
             responseData.addProperty("error", ex.getMessage());
@@ -257,7 +271,20 @@ public class ToolServlet extends HttpServlet {
         );
 
         if (statusCode >= 400) {
-            sendErrorResponse(resp, errorMessage == null ? "Tool execution failed" : errorMessage, statusCode);
+            String derivedMessage = errorMessage;
+            if (responseData != null) {
+                String code = responseData.has("error_code") ? responseData.get("error_code").getAsString() : null;
+                String msg = responseData.has("message") ? responseData.get("message").getAsString() : null;
+                if (msg == null && responseData.has("error")) {
+                    msg = responseData.get("error").getAsString();
+                }
+                if (code != null && msg != null) {
+                    derivedMessage = code + ": " + msg;
+                } else if (msg != null) {
+                    derivedMessage = msg;
+                }
+            }
+            sendErrorResponse(resp, derivedMessage == null ? "Tool execution failed" : derivedMessage, statusCode);
         } else {
             Map<String, Object> response = new HashMap<>();
             response.put("result", responseData);

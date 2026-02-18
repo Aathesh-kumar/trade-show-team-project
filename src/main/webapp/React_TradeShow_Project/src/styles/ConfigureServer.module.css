@@ -874,3 +874,19 @@
     }
 }
 
+
+:root[data-theme='light'] .configurePage :is(h1, h2, h3, p, label, span, button, strong) {
+  color: var(--text-primary);
+}
+
+:root[data-theme='light'] .configurePage .header p,
+:root[data-theme='light'] .configurePage .breadcrumb,
+:root[data-theme='light'] .configurePage .tooltip,
+:root[data-theme='light'] .configurePage .statusLabel {
+  color: var(--text-muted);
+}
+
+:root[data-theme='light'] .configurePage .formSection {
+  background: color-mix(in srgb, var(--bg-elev-1) 92%, transparent);
+  border-color: var(--panel-border);
+}

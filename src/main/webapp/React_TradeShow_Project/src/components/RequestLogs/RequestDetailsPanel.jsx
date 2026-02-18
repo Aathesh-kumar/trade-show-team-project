@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import RequestLogsStyles from '../../styles/RequestLogs.module.css';
 import { MdClose, MdContentCopy, MdPlayArrow, MdFlag } from 'react-icons/md';
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { usePost } from '../Hooks/usePost';
 import { buildUrl } from '../../services/api';
+import JsonViewer from '../Common/JsonViewer';
 
 export default function RequestDetailsPanel({ request, selectedServer, onClose, onReplaySuccess }) {
     const [copiedSection, setCopiedSection] = useState(null);
@@ -85,9 +85,7 @@ export default function RequestDetailsPanel({ request, selectedServer, onClose, 
                             {copiedSection === 'request' ? 'Copied!' : 'Copy'}
                         </button>
                     </div>
-                    <SyntaxHighlighter className={RequestLogsStyles.jsonViewer} language="json">
-                        {JSON.stringify(request.requestPayload, null, 2)}
-                    </SyntaxHighlighter>
+                    <JsonViewer data={request.requestPayload} className={RequestLogsStyles.jsonViewer} />
                 </section>
 
                 {/* Response Body */}
@@ -102,9 +100,7 @@ export default function RequestDetailsPanel({ request, selectedServer, onClose, 
                             {copiedSection === 'response' ? 'Copied!' : 'Copy'}
                         </button>
                     </div>
-                    <SyntaxHighlighter className={RequestLogsStyles.jsonViewer} language="json">
-                        {JSON.stringify(request.responseBody, null, 2)}
-                    </SyntaxHighlighter>
+                    <JsonViewer data={request.responseBody} className={RequestLogsStyles.jsonViewer} />
                 </section>
 
                 {/* Contextual Metadata */}

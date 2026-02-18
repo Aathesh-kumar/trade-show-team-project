@@ -25,6 +25,31 @@ import java.util.stream.Collectors;
 public class HttpClientUtil {
     private static final Logger logger = LogManager.getLogger(HttpClientUtil.class);
 
+    public static class HttpRequestException extends RuntimeException {
+        private final int statusCode;
+        private final String responseBody;
+        private final String errorCode;
+
+        public HttpRequestException(int statusCode, String message, String errorCode, String responseBody) {
+            super(message);
+            this.statusCode = statusCode;
+            this.responseBody = responseBody;
+            this.errorCode = errorCode;
+        }
+
+        public int getStatusCode() {
+            return statusCode;
+        }
+
+        public String getResponseBody() {
+            return responseBody;
+        }
+
+        public String getErrorCode() {
+            return errorCode;
+        }
+    }
+
     public static JsonObject doPost(String url, Map<String, String> headers, String jsonPayload) {
         logger.info("Initiating POST request to: " + url);
         
@@ -63,23 +88,7 @@ public class HttpClientUtil {
                     return parseToJson(responseBody);
                 } else {
                     logger.error("POST failed | Status: {} | Body: {}", statusCode, responseBody);
-
-                    String errorMessage = "Unknown error";
-
-                    try {
-                        JsonObject json = JsonParser.parseString(responseBody).getAsJsonObject();
-
-                        if (json.has("data")) {
-                            JsonObject data = json.getAsJsonObject("data");
-                            if (data.has("message")) {
-                                errorMessage = data.get("message").getAsString();
-                            }
-                        }
-                    } catch (Exception parseEx) {
-                        logger.warn("Failed to extract error message from response body");
-                    }
-
-                    throw new RuntimeException(errorMessage);
+                    throw buildHttpRequestException(statusCode, responseBody);
                 }
             }
 
@@ -172,9 +181,12 @@ public class HttpClientUtil {
                 if (statusCode >= 200 && statusCode < 300) {
                     return parseToJson(responseBody);
                 }
-                throw new RuntimeException("FORM POST failed: " + statusCode + " body=" + responseBody);
+                throw buildHttpRequestException(statusCode, responseBody);
             }
         } catch (Exception e) {
+            if (e instanceof HttpRequestException) {
+                throw (HttpRequestException) e;
+            }
             throw new RuntimeException("FORM POST request failed for URL: " + url, e);
         }
     }
@@ -213,5 +225,41 @@ public class HttpClientUtil {
 
     private static String urlEncode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private static HttpRequestException buildHttpRequestException(int statusCode, String responseBody) {
+        String errorMessage = "Unknown error";
+        String errorCode = null;
+        try {
+            JsonObject json = JsonParser.parseString(responseBody).getAsJsonObject();
+            if (json.has("data") && json.get("data").isJsonObject()) {
+                JsonObject data = json.getAsJsonObject("data");
+                if (data.has("error_code")) {
+                    errorCode = safeGetString(data, "error_code");
+                }
+                if (data.has("message")) {
+                    errorMessage = safeGetString(data, "message");
+                }
+            } else if (json.has("message")) {
+                errorMessage = safeGetString(json, "message");
+            } else if (json.has("error")) {
+                errorMessage = safeGetString(json, "error");
+            }
+        } catch (Exception parseEx) {
+            logger.warn("Failed to extract error details from response body", parseEx);
+        }
+
+        if (errorMessage == null || errorMessage.isBlank()) {
+            errorMessage = "Request failed with status " + statusCode;
+        }
+        return new HttpRequestException(statusCode, errorMessage, errorCode, responseBody);
+    }
+
+    private static String safeGetString(JsonObject source, String key) {
+        try {
+            return source.get(key).getAsString();
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

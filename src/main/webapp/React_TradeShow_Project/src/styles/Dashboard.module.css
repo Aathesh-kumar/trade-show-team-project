@@ -647,3 +647,169 @@
         }
     }
 }
+
+:root[data-theme='light'] .dashboard :is(h1, h2, h3, p, span, th, td, button, label) {
+  color: var(--text-primary);
+}
+
+:root[data-theme='light'] .dashboard .sectionSubtitle,
+:root[data-theme='light'] .dashboard .statLabel,
+:root[data-theme='light'] .dashboard .toolRequests,
+:root[data-theme='light'] .dashboard .serverRegion,
+:root[data-theme='light'] .dashboard .systemStatus,
+:root[data-theme='light'] .dashboard .chartLabels,
+:root[data-theme='light'] .dashboard .statusLabel {
+  color: var(--text-muted);
+}
+
+:root[data-theme='light'] .dashboard .notificationPanel {
+  background: #ffffff;
+}
+
+.chartGrabbable {
+  cursor: var(--cursor-grab, grab);
+}
+
+.chartGrabbing {
+  cursor: var(--cursor-grabbing, grabbing);
+}
+
+.chartTooltip {
+  background: color-mix(in srgb, var(--bg-elev-1) 96%, transparent);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 0.45rem 0.58rem;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-soft);
+}
+
+.chartTooltipTime {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.chartTooltipValue {
+  margin: 0;
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.notificationMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.25rem;
+}
+
+.notificationSeverity {
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  padding: 0.1rem 0.45rem;
+  font-size: 0.72rem;
+  text-transform: capitalize;
+}
+
+.severityinfo {
+  border-left: 3px solid var(--info-color);
+  background: color-mix(in srgb, var(--info-color) 10%, transparent);
+}
+
+.severitywarning {
+  border-left: 3px solid var(--warning-color);
+  background: color-mix(in srgb, var(--warning-color) 10%, transparent);
+}
+
+.severityerror {
+  border-left: 3px solid var(--error-color);
+  background: color-mix(in srgb, var(--error-color) 10%, transparent);
+}
+
+.severitysuccess {
+  border-left: 3px solid var(--success-color);
+  background: color-mix(in srgb, var(--success-color) 10%, transparent);
+}
+
+:root[data-theme='light'] .dashboard .notificationItem {
+  color: var(--text-primary);
+  border-color: var(--panel-border);
+}
+
+:root[data-theme='light'] .dashboard .notificationSeverity {
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+}
+
+:root[data-theme='light'] .dashboard .chartTooltip {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.24);
+}
+
+:root[data-theme='light'] .dashboard .chartTooltipTime {
+  color: #475569;
+}
+
+.notificationHeaderActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.notificationInfo {
+  margin: 0.2rem 0;
+}
+
+.notificationFooter {
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notificationTime {
+  color: var(--text-muted);
+}
+
+.notificationClearBtn {
+  min-height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: color-mix(in srgb, var(--error-color) 12%, transparent);
+  color: var(--error-color);
+  padding: 0.2rem 0.6rem;
+}
+
+.chartGrabbable {
+  min-height: 360px;
+  height: clamp(350px, 44vh, 520px);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.selectedServerItem {
+  border-color: color-mix(in srgb, var(--primary-color) 65%, transparent) !important;
+  background: color-mix(in srgb, var(--primary-color) 20%, transparent) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color) 45%, transparent);
+}
+
+.actionBtn:disabled {
+  opacity: 0.6;
+  filter: grayscale(0.15);
+}
+
+:root[data-theme='light'] .dashboard .notificationPanel {
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
+:root[data-theme='light'] .dashboard .notificationBtn,
+:root[data-theme='light'] .dashboard .tabGroup,
+:root[data-theme='light'] .dashboard .toolItem,
+:root[data-theme='light'] .dashboard .serverItem,
+:root[data-theme='light'] .dashboard .actionBtn {
+  border-color: rgba(15, 23, 42, 0.14);
+}
+
+:root[data-theme='light'] .dashboard .statusDot {
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+}

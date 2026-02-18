@@ -1,6 +1,7 @@
 import RequestLogsStyles from '../../styles/RequestLogs.module.css';
 import RequestLogRow from './RequestLogRow';
 import LoadingSpinner from '../Loading/LoadingSpinner';
+import LoadingSkeleton from '../Loading/LoadingSkeleton';
 
 export default function RequestLogsTable({ logs, selectedLog, onSelectLog, loading }) {
     return (
@@ -16,6 +17,13 @@ export default function RequestLogsTable({ logs, selectedLog, onSelectLog, loadi
                     </tr>
                 </thead>
                 <tbody>
+                    {loading && logs.length === 0 && (
+                        <tr>
+                            <td colSpan="5">
+                                <LoadingSkeleton type="table" lines={6} />
+                            </td>
+                        </tr>
+                    )}
                     {loading && logs.length > 0 && (
                         <tr>
                             <td colSpan="5" className={RequestLogsStyles.loadingRow}>

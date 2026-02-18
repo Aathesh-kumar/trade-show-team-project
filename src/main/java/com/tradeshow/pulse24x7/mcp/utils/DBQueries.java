@@ -198,6 +198,11 @@ public class DBQueries {
                         "FROM request_logs WHERE server_id = ? AND created_at >= ? " +
                         "GROUP BY DATE_FORMAT(DATE_SUB(created_at, INTERVAL (MINUTE(created_at) % ?) MINUTE), '%Y-%m-%d %H:%i:00') ORDER BY hour_bucket ASC";
 
+        public static final String SELECT_THROUGHPUT_BY_SECOND =
+                "SELECT DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') hour_bucket, COUNT(*) request_count " +
+                        "FROM request_logs WHERE server_id = ? AND created_at >= ? " +
+                        "GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') ORDER BY hour_bucket ASC";
+
         public static final String SELECT_TOP_TOOLS =
                 "SELECT tool_name, COUNT(*) total_calls, " +
                         "AVG(latency_ms) avg_latency, " +

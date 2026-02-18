@@ -1,6 +1,7 @@
 import ConfigureServerStyles from '../../styles/ConfigureServer.module.css';
 import { MdExpandMore, MdInfoOutline, MdCheck, MdClose, MdCheckCircle, MdErrorOutline } from 'react-icons/md';
 import { useState } from 'react';
+import CustomDropdown from '../Common/CustomDropdown';
 
 export function SelectField({ label, value, onChange, options }) {
     const [isCustom, setIsCustom] = useState(false);
@@ -27,18 +28,17 @@ export function SelectField({ label, value, onChange, options }) {
     return (
         <div className={ConfigureServerStyles.selectField}>
             <label>{label}</label>
-            
+
             {!isCustom ? (
                 <div className={ConfigureServerStyles.selectWrapper}>
-                    <select 
-                        value={options.includes(value) ? value : '__custom__'} 
-                        onChange={handleSelectChange}
-                    >
-                        {options.map(option => (
-                            <option key={option} value={option}>{option}</option>
-                        ))}
-                        <option value="__custom__">Custom Header Type...</option>
-                    </select>
+                    <CustomDropdown
+                        value={options.includes(value) ? value : '__custom__'}
+                        onChange={(nextValue) => handleSelectChange({ target: { value: nextValue } })}
+                        options={[
+                            ...options.map((option) => ({ value: option, label: option })),
+                            { value: '__custom__', label: 'Custom Header Type...' }
+                        ]}
+                    />
                     <MdExpandMore className={ConfigureServerStyles.selectIcon} />
                 </div>
             ) : (

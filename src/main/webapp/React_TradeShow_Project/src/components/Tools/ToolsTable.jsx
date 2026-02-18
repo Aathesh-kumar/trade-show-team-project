@@ -1,6 +1,7 @@
 import ToolsStyles from '../../styles/Tools.module.css';
 import ToolRow from './ToolRow';
 import LoadingSpinner from '../Loading/LoadingSpinner';
+import LoadingSkeleton from '../Loading/LoadingSkeleton';
 
 export default function ToolsTable({ tools, selectedTool, onSelectTool, loading }) {
     return (
@@ -14,7 +15,14 @@ export default function ToolsTable({ tools, selectedTool, onSelectTool, loading 
                     </tr>
                 </thead>
                 <tbody>
-                    {loading && (
+                    {loading && tools.length === 0 && (
+                        <tr>
+                            <td colSpan="3">
+                                <LoadingSkeleton type="table" lines={6} />
+                            </td>
+                        </tr>
+                    )}
+                    {loading && tools.length > 0 && (
                         <tr>
                             <td colSpan="3">
                                 <LoadingSpinner size="small" text="Loading tools..." />

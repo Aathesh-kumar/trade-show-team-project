@@ -13,7 +13,8 @@ import { buildUrl, getAuthHeaders } from '../../services/api';
 
 export default function Dashboard({ selectedServer, onNavigate, onSelectServer }) {
     const [showNotifications, setShowNotifications] = useState(false);
-    const [timeMode, setTimeMode] = useState('current');
+    const [timeMode, setTimeMode] = useState('today');
+    const [notificationNonce, setNotificationNonce] = useState(0);
     const serverId = selectedServer?.serverId;
     const { data: serversData } = useGet('/server/all', { immediate: true, dependencies: [serverId] });
     const { data: serverStatusesData } = useGet('/server/statuses', { immediate: true, dependencies: [serverId] });
@@ -29,7 +30,7 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
     });
     const { data: unread } = useGet('/notification/unread-count', {
         immediate: true,
-        dependencies: [showNotifications]
+        dependencies: [showNotifications, serverId, notificationNonce]
     });
 
     useEffect(() => {
@@ -50,6 +51,18 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
         const id = setInterval(runMonitor, 60_000);
         return () => clearInterval(id);
     }, [serverId]);
+
+    useEffect(() => {
+        const onNotificationRefresh = () => {
+            setNotificationNonce((prev) => prev + 1);
+        };
+        const intervalId = setInterval(() => setNotificationNonce((prev) => prev + 1), 10_000);
+        window.addEventListener('pulse24x7-notification-refresh', onNotificationRefresh);
+        return () => {
+            clearInterval(intervalId);
+            window.removeEventListener('pulse24x7-notification-refresh', onNotificationRefresh);
+        };
+    }, []);
     const servers = Array.isArray(serverStatusesData) && serverStatusesData.length > 0
         ? serverStatusesData
         : (Array.isArray(serversData) ? serversData : []);
@@ -132,7 +145,7 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
                     onChangeTimeMode={setTimeMode}
                 />
                 <div className={DashboardStyles.sidePanel}>
-                    <QuickActions onNavigate={onNavigate} />
+                    <QuickActions onNavigate={onNavigate} selectedServer={selectedServer} />
                     <ActiveServers
                         servers={servers}
                         selectedServerId={selectedServer?.serverId}
@@ -150,18 +163,14 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
 
 function getTimeParams(mode) {
     switch (mode) {
-        case 'current':
-            return { hours: 1, bucketMinutes: 1 };
-        case '12h':
-            return { hours: 12, bucketMinutes: 5 };
-        case '1d':
-            return { hours: 24, bucketMinutes: 15 };
-        case '15d':
-            return { hours: 24 * 15, bucketMinutes: 180 };
-        case '30d':
-            return { hours: 24 * 30, bucketMinutes: 360 };
+        case 'today':
+            return { hours: 24, bucketMinutes: 0 };
+        case 'week':
+            return { hours: 24 * 7, bucketMinutes: 30 };
+        case 'month':
+            return { hours: 24 * 30, bucketMinutes: 120 };
         default:
-            return { hours: 1, bucketMinutes: 1 };
+            return { hours: 24, bucketMinutes: 0 };
     }
 }
 

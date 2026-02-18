@@ -2,6 +2,12 @@
 
 :root {
   --primary-font: 'Outfit', sans-serif;
+  --base-font-size: 19px;
+  --cursor-default: url('/cursors/iOS_default_cursor.svg') 2 2, default;
+  --cursor-pointer: url('/cursors/iOS_pointer_cursor.svg') 6 3, pointer;
+  --cursor-text: url('/cursors/iOS_text_cursor.svg') 4 12, text;
+  --cursor-grab: url('/cursors/iOS_grab_cursor.svg') 10 10, grab;
+  --cursor-grabbing: url('/cursors/iOS_grabbed_cursor.svg') 10 10, grabbing;
   --bg-app: #090f1f;
   --bg-elev-1: #0f172a;
   --bg-elev-2: #1a2542;
@@ -20,14 +26,14 @@
 }
 
 :root[data-theme='light'] {
-  --bg-app: #f3f7fc;
+  --bg-app: #eef3fb;
   --bg-elev-1: #ffffff;
-  --bg-elev-2: #e8eef8;
+  --bg-elev-2: #dde7f5;
   --primary-bg: #ffffff;
-  --secondary-bg: #e8eef8;
-  --text-primary: #0f172a;
-  --text-muted: #4b5563;
-  --panel-border: rgba(15, 23, 42, 0.15);
+  --secondary-bg: #dde7f5;
+  --text-primary: #0b1324;
+  --text-muted: #334155;
+  --panel-border: rgba(15, 23, 42, 0.24);
   --primary-color: #0ea5e9;
   --primary-color-strong: #0284c7;
   --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.1);
@@ -91,12 +97,14 @@ body {
     radial-gradient(1200px 650px at 8% -10%, color-mix(in srgb, var(--primary-color) 18%, transparent), transparent 65%),
     radial-gradient(800px 500px at 95% 0%, color-mix(in srgb, var(--info-color) 14%, transparent), transparent 68%),
     var(--bg-app);
-  font-size: 16px;
+  font-size: var(--base-font-size);
   font-family: var(--primary-font);
+  line-height: 1.45;
   color: var(--text-primary);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  cursor: var(--cursor-default);
 }
 
 #root {
@@ -110,6 +118,68 @@ input,
 select,
 textarea {
   font-family: var(--primary-font);
+}
+
+a,
+button,
+[role='button'],
+.clickable {
+  cursor: var(--cursor-pointer);
+}
+
+.toolRow,
+.logRow,
+.serverItem,
+.actionBtn,
+.tab,
+.filterBtn,
+.filterSelect,
+.notificationItem {
+  cursor: var(--cursor-pointer) !important;
+}
+
+input,
+textarea,
+[contenteditable='true'] {
+  cursor: var(--cursor-text);
+}
+
+[data-grab='true'],
+.grabbable {
+  cursor: var(--cursor-grab);
+}
+
+[data-grabbing='true'],
+.grabbing {
+  cursor: var(--cursor-grabbing);
+}
+
+button {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.12s ease, filter 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+button:active::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary-color) 45%, transparent);
+  transform: translate(-50%, -50%);
+  animation: click-wave 0.5s ease-out;
+  pointer-events: none;
+}
+
+button:disabled {
+  cursor: var(--cursor-default);
 }
 
 ::-webkit-scrollbar {
@@ -128,4 +198,45 @@ textarea {
 
 ::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--text-primary) 30%, transparent);
+}
+
+.paginationBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.7rem;
+  border-top: 1px solid var(--panel-border);
+  padding: 0.7rem 0.95rem;
+  flex-wrap: wrap;
+}
+
+.paginationActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.paginationActions button {
+  min-height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  color: var(--text-primary);
+  padding: 0.35rem 0.7rem;
+}
+
+.paginationMeta {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+@keyframes click-wave {
+  from {
+    transform: translate(-50%, -50%) scale(0.4);
+    opacity: 0.8;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(16);
+    opacity: 0;
+  }
 }
