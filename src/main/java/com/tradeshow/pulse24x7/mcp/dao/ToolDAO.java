@@ -144,6 +144,7 @@ public class ToolDAO {
     public int disableMissingTools(Integer serverId, List<Tool> activeTools) {
         if (activeTools == null || activeTools.isEmpty()) {
             logger.warn("No active tools provided for server ID: {}", serverId);
+            disableAllToolsByServer(serverId);
             return 0;
         }
 

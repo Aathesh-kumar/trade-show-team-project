@@ -57,8 +57,10 @@ public class ToolServlet extends HttpServlet {
         String pathInfo = req.getPathInfo();
 
         try {
-            if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("/all") ||pathInfo.equals("/active")) {
-                handleGetActiveTools(req, resp);
+            if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("/all")) {
+                handleGetToolsByServer(req, resp);
+            } else if (pathInfo.equals("/active")) {
+                handleGetActiveTools(req,resp);
             } else if (pathInfo.equals("/history")) {
                 handleGetToolHistory(req, resp);
             } else if (pathInfo.matches("/\\d+")) {

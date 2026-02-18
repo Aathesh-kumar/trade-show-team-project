@@ -41,10 +41,19 @@ public class ToolService {
             JsonObject request = JsonUtil.createMCPRequest("tools/list", params);
 
             JsonObject response = doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request);
-
-            List<Tool> tools = parseToolsFromResponse(response, serverId);
-            updateToolsInDatabase(serverId, tools);
-            return tools;
+            List<Tool> oldTools = getToolsByServer(serverId);
+            List<Tool> newTools = parseToolsFromResponse(response, serverId);
+            List<Tool> addedTools = new ArrayList<>();
+            if (!oldTools.isEmpty()) {
+                for (Tool newTool : newTools)
+                    if (!oldTools.contains(newTool))
+                        addedTools.add(newTool);
+                if (!addedTools.isEmpty())
+                    updateToolsInDatabase(serverId, addedTools);
+            } else
+                updateToolsInDatabase(serverId, newTools);
+            toolDAO.disableMissingTools(serverId, newTools);
+            return newTools;
         } catch (Exception e) {
             logger.error("Failed to fetch tools from server ID: {}", serverId, e);
             return List.of();
@@ -183,13 +192,6 @@ public class ToolService {
                     serverId
             );
         }
-
-        if (!tools.isEmpty()) {
-            toolDAO.disableMissingTools(serverId, tools);
-        } else {
-            // If server responds with an empty tools/list, mark all existing tools inactive.
-            toolDAO.disableAllToolsByServer(serverId);
-        }
     }
 
     public List<Tool> getToolsByServer(Integer serverId) {
@@ -233,7 +235,7 @@ public class ToolService {
     }
 
     public List<ToolHistory> getToolHistoryRange(Integer toolId, Timestamp startTime,
-                                                  Timestamp endTime) {
+                                                 Timestamp endTime) {
         if (toolId == null || toolId <= 0 || startTime == null || endTime == null) {
             logger.error("Invalid parameters for history range query");
             return List.of();
