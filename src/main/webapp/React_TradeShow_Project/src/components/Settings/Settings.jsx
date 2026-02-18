@@ -117,6 +117,10 @@ export default function Settings({ selectedServer, onServerUpdated, themeMode = 
       refetchToken();
     } catch (e) {
       setMessage({ type: 'error', text: e.message });
+    } finally {
+      window.dispatchEvent(new CustomEvent('pulse24x7-request-log-refresh', {
+        detail: { serverId, reason: 'token_refresh' }
+      }));
     }
   };
 

@@ -1,9 +1,8 @@
 import RequestLogsStyles from '../../styles/RequestLogs.module.css';
-import { MdSearch, MdFileDownload, MdHistory } from 'react-icons/md';
-import { useState } from 'react';
+import { MdSearch, MdFileDownload } from 'react-icons/md';
+import CustomDropdown from '../Common/CustomDropdown';
 
 export default function RequestLogsHeader({ filters, onFilterChange, stats, toolOptions = [] }) {
-    const [viewMode, setViewMode] = useState('real-time');
 
     const handleSearchChange = (e) => {
         onFilterChange({
@@ -51,21 +50,6 @@ export default function RequestLogsHeader({ filters, onFilterChange, stats, tool
                 </div>
 
                 <div className={RequestLogsStyles.headerActions}>
-                    <div className={RequestLogsStyles.viewToggle}>
-                        <button 
-                            className={`${RequestLogsStyles.toggleBtn} ${viewMode === 'real-time' ? RequestLogsStyles.active : ''}`}
-                            onClick={() => setViewMode('real-time')}
-                        >
-                            Real-time
-                        </button>
-                        <button 
-                            className={`${RequestLogsStyles.toggleBtn} ${viewMode === 'history' ? RequestLogsStyles.active : ''}`}
-                            onClick={() => setViewMode('history')}
-                        >
-                            <MdHistory /> History
-                        </button>
-                    </div>
-
                     <button className={RequestLogsStyles.exportBtn}>
                         <MdFileDownload />
                         Export
@@ -86,38 +70,39 @@ export default function RequestLogsHeader({ filters, onFilterChange, stats, tool
                 </div>
 
                 <div className={RequestLogsStyles.filterGroup}>
-                    <select 
+                    <CustomDropdown
                         value={filters.status}
-                        onChange={(e) => handleStatusChange(e.target.value)}
-                        className={RequestLogsStyles.filterSelect}
-                    >
-                        <option value="all">All Status</option>
-                        <option value="success">Success</option>
-                        <option value="error">Error</option>
-                        <option value="warning">Warning</option>
-                    </select>
+                        onChange={handleStatusChange}
+                        options={[
+                            { value: 'all', label: 'All Status' },
+                            { value: 'success', label: 'Success' },
+                            { value: 'error', label: 'Error' },
+                            { value: 'warning', label: 'Warning' }
+                        ]}
+                        buttonClassName={RequestLogsStyles.filterSelect}
+                    />
 
-                    <select 
+                    <CustomDropdown
                         value={filters.tool}
-                        onChange={(e) => handleToolChange(e.target.value)}
-                        className={RequestLogsStyles.filterSelect}
-                    >
-                        <option value="all">All Tools</option>
-                        {toolOptions.map((toolName) => (
-                            <option key={toolName} value={toolName}>{toolName}</option>
-                        ))}
-                    </select>
+                        onChange={handleToolChange}
+                        options={[
+                            { value: 'all', label: 'All Tools' },
+                            ...toolOptions.map((toolName) => ({ value: toolName, label: toolName }))
+                        ]}
+                        buttonClassName={RequestLogsStyles.filterSelect}
+                    />
 
-                    <select 
+                    <CustomDropdown
                         value={filters.timeRange}
-                        onChange={(e) => handleTimeRangeChange(e.target.value)}
-                        className={RequestLogsStyles.filterSelect}
-                    >
-                        <option value="last-15-minutes">Last 15 minutes</option>
-                        <option value="last-hour">Last hour</option>
-                        <option value="last-24-hours">Last 24 hours</option>
-                        <option value="last-7-days">Last 7 days</option>
-                    </select>
+                        onChange={handleTimeRangeChange}
+                        options={[
+                            { value: 'last-15-minutes', label: 'Last 15 minutes' },
+                            { value: 'last-hour', label: 'Last hour' },
+                            { value: 'last-24-hours', label: 'Last 24 hours' },
+                            { value: 'last-7-days', label: 'Last 7 days' }
+                        ]}
+                        buttonClassName={RequestLogsStyles.filterSelect}
+                    />
                 </div>
             </div>
         </header>

@@ -18,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,18 +42,18 @@ public class ToolService {
             JsonObject request = JsonUtil.createMCPRequest("tools/list", params);
 
             JsonObject response = doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request);
+
             List<Tool> oldTools = getToolsByServer(serverId);
             List<Tool> newTools = parseToolsFromResponse(response, serverId);
-            List<Tool> addedTools = new ArrayList<>();
-            if (!oldTools.isEmpty()) {
-                for (Tool newTool : newTools)
-                    if (!oldTools.contains(newTool))
-                        addedTools.add(newTool);
-                if (!addedTools.isEmpty())
-                    updateToolsInDatabase(serverId, addedTools);
-            } else
-                updateToolsInDatabase(serverId, newTools);
-            toolDAO.disableMissingTools(serverId, newTools);
+            List<Tool> changedOrAddedTools = getChangedOrAddedTools(oldTools, newTools);
+            if (!changedOrAddedTools.isEmpty()) {
+                updateToolsInDatabase(serverId, changedOrAddedTools);
+            }
+            if (newTools.isEmpty()) {
+                toolDAO.disableAllToolsByServer(serverId);
+            } else {
+                toolDAO.disableMissingTools(serverId, newTools);
+            }
             return newTools;
         } catch (Exception e) {
             logger.error("Failed to fetch tools from server ID: {}", serverId, e);
@@ -84,6 +85,12 @@ public class ToolService {
     }
 
     private boolean shouldRefreshToken(RuntimeException ex) {
+        if (ex instanceof HttpClientUtil.HttpRequestException httpEx) {
+            int statusCode = httpEx.getStatusCode();
+            if (statusCode == 401 || statusCode == 403) {
+                return true;
+            }
+        }
         String message = ex.getMessage();
         if (message == null) {
             return false;
@@ -168,6 +175,49 @@ public class ToolService {
         return null;
     }
 
+    private List<Tool> getChangedOrAddedTools(List<Tool> oldTools, List<Tool> newTools) {
+        Map<String, Tool> oldByName = new LinkedHashMap<>();
+        for (Tool oldTool : oldTools) {
+            if (oldTool.getToolName() != null) {
+                oldByName.put(oldTool.getToolName(), oldTool);
+            }
+        }
+        List<Tool> changed = new ArrayList<>();
+        for (Tool newTool : newTools) {
+            Tool oldTool = oldByName.get(newTool.getToolName());
+            if (oldTool == null || isToolDifferent(oldTool, newTool)) {
+                changed.add(newTool);
+            }
+        }
+        return changed;
+    }
+
+    private boolean isToolDifferent(Tool oldTool, Tool newTool) {
+        return !safeEquals(oldTool.getToolDescription(), newTool.getToolDescription())
+                || !safeEquals(oldTool.getToolType(), newTool.getToolType())
+                || !safeEquals(normalizeJson(oldTool.getInputSchema()), normalizeJson(newTool.getInputSchema()))
+                || !safeEquals(normalizeJson(oldTool.getOutputSchema()), normalizeJson(newTool.getOutputSchema()))
+                || !Boolean.TRUE.equals(oldTool.getIsAvailability());
+    }
+
+    private String normalizeJson(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        try {
+            return JsonParser.parseString(raw).toString();
+        } catch (Exception e) {
+            return raw.trim();
+        }
+    }
+
+    private boolean safeEquals(String left, String right) {
+        if (left == null) {
+            return right == null;
+        }
+        return left.equals(right);
+    }
+
     private String getString(JsonObject source, String key) {
         if (!source.has(key) || source.get(key).isJsonNull()) {
             return null;
@@ -191,6 +241,13 @@ public class ToolService {
                     tool.getOutputSchema(),
                     serverId
             );
+        }
+
+        if (!tools.isEmpty()) {
+            toolDAO.disableMissingTools(serverId, tools);
+        } else {
+            // If server responds with an empty tools/list, mark all existing tools inactive.
+            toolDAO.disableAllToolsByServer(serverId);
         }
     }
 
@@ -235,7 +292,7 @@ public class ToolService {
     }
 
     public List<ToolHistory> getToolHistoryRange(Integer toolId, Timestamp startTime,
-                                                 Timestamp endTime) {
+                                                  Timestamp endTime) {
         if (toolId == null || toolId <= 0 || startTime == null || endTime == null) {
             logger.error("Invalid parameters for history range query");
             return List.of();

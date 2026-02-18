@@ -1,5 +1,6 @@
 import ToolsStyles from '../../styles/Tools.module.css';
 import { MdSearch, MdRefresh } from 'react-icons/md';
+import CustomDropdown from '../Common/CustomDropdown';
 
 export default function ToolsHeader({
     stats,
@@ -67,19 +68,21 @@ export default function ToolsHeader({
                     >
                         Resources
                     </button>
-                    <select
+                    <CustomDropdown
                         value={timeRange}
-                        onChange={(e) => setTimeRange(e.target.value)}
-                        className={ToolsStyles.filterSelect}
-                    >
-                        <option value="current">Current tools</option>
-                        <option value="1m">Past 1min</option>
-                        <option value="10m">Past 10mins</option>
-                        <option value="1h">Past 1hr</option>
-                        <option value="2h">Past 2hrs</option>
-                        <option value="24h">Past 24hrs</option>
-                        <option value="custom">Custom interval</option>
-                    </select>
+                        onChange={setTimeRange}
+                        options={[
+                            { value: 'current', label: 'Current tools' },
+                            { value: '1m', label: 'Past 1min' },
+                            { value: '10m', label: 'Past 10mins' },
+                            { value: '1h', label: 'Past 1hr' },
+                            { value: '2h', label: 'Past 2hrs' },
+                            { value: '24h', label: 'Past 24hrs' },
+                            { value: 'custom', label: 'Custom interval' }
+                        ]}
+                        buttonClassName={ToolsStyles.filterSelect}
+                        menuClassName={ToolsStyles.filterMenu}
+                    />
                 </div>
                 {timeRange === 'custom' && (
                     <div className={ToolsStyles.filterGroup}>

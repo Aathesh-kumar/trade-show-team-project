@@ -4,6 +4,9 @@ import { MdCheckCircle, MdClose, MdContentCopy, MdErrorOutline, MdPlayArrow } fr
 import { usePost } from '../Hooks/usePost';
 import { buildUrl } from '../../services/api';
 import InputField from '../ConfigureServer/InputField';
+import JsonEditor from '../Common/JsonEditor';
+import JsonViewer from '../Common/JsonViewer';
+import CustomDropdown from '../Common/CustomDropdown';
 
 export default function TestToolModal({ tool, serverId, onClose, onCompleted }) {
     const schema = getSchema(tool);
@@ -29,7 +32,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
             onError: (error) => {
                 setTestResult({
                     success: false,
-                    error: error.message,
+                    error: normalizeError(error),
                     timestamp: new Date()
                 });
             }
@@ -37,6 +40,14 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
     );
 
     const handleTest = async () => {
+        if (!tool?.isAvailability) {
+            setTestResult({
+                success: false,
+                error: 'This tool is inactive. Activate it before running tests.',
+                timestamp: new Date()
+            });
+            return;
+        }
         setErrors({});
         setTestResult(null);
 
@@ -45,7 +56,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
             if (inputParams.trim()) {
                 try {
                     JSON.parse(inputParams);
-                } catch (_error) {
+                } catch {
                     setErrors({ inputParams: 'Invalid JSON format' });
                     return;
                 }
@@ -67,7 +78,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                 toolName: tool.toolName || tool.name,
                 inputParams: payloadJson
             });
-        } catch (_error) {
+        } catch {
             // handled in hook
         }
     };
@@ -131,15 +142,14 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
 
                         {mode === 'json' ? (
                             <>
-                                <textarea
+                                <JsonEditor
                                     id="inputParams"
                                     value={inputParams}
-                                    onChange={(e) => {
-                                        setInputParams(e.target.value);
+                                    onChange={(nextValue) => {
+                                        setInputParams(nextValue);
                                         setErrors({});
                                     }}
                                     placeholder={JSON.stringify(generateExample(schema), null, 2)}
-                                    rows="10"
                                     className={`${ToolsStyles.codeInput} ${errors.inputParams ? ToolsStyles.error : ''}`}
                                 />
                                 {errors.inputParams ? <span className={ToolsStyles.errorMessage}>{errors.inputParams}</span> : null}
@@ -176,9 +186,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                                             {payloadCopied ? 'Copied' : 'Copy'}
                                         </button>
                                     </div>
-                                    <pre className={ToolsStyles.jsonPreview}>
-                                        <code>{JSON.stringify(formValues, null, 2)}</code>
-                                    </pre>
+                                    <JsonViewer data={formValues} className={ToolsStyles.jsonPreview} />
                                 </div>
                             </div>
                         )}
@@ -211,9 +219,11 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                                     </span>
                                     <span className={ToolsStyles.statusText}>{testResult.success ? 'Success' : 'Failed'}</span>
                                 </div>
-                                <pre className={ToolsStyles.resultData}>
-                                    <code>{testResult.success ? JSON.stringify(testResult.data, null, 2) : testResult.error}</code>
-                                </pre>
+                                {testResult.success ? (
+                                    <JsonViewer data={testResult.data} className={ToolsStyles.resultData} />
+                                ) : (
+                                    <div className={ToolsStyles.resultData}>{testResult.error}</div>
+                                )}
                             </div>
                         </div>
                     ) : null}
@@ -287,15 +297,12 @@ function SchemaFields({ schema, rootValue, path, onChange, parentRequired = [] }
         return (
             <label className={ToolsStyles.schemaField}>
                 {label}
-                <select
-                    className={ToolsStyles.schemaInput}
-                    value={value ?? ''}
-                    onChange={(e) => onChange(path, e.target.value)}
-                >
-                    {schema.enum.map((option) => (
-                        <option key={String(option)} value={String(option)}>{String(option)}</option>
-                    ))}
-                </select>
+                <CustomDropdown
+                    value={value ?? String(schema.enum[0])}
+                    onChange={(nextValue) => onChange(path, nextValue)}
+                    options={schema.enum.map((option) => ({ value: String(option), label: String(option) }))}
+                    buttonClassName={ToolsStyles.schemaInput}
+                />
                 {schema.description ? <small className={ToolsStyles.schemaHint}>{schema.description}</small> : null}
             </label>
         );
@@ -342,7 +349,7 @@ function getSchema(tool) {
             return JSON.parse(raw);
         }
         return raw || {};
-    } catch (_error) {
+    } catch {
         return {};
     }
 }
@@ -425,4 +432,12 @@ function getValueAtPath(source, path) {
         cursor = cursor[part];
     }
     return cursor;
+}
+
+function normalizeError(error) {
+    const message = String(error?.message || '').trim();
+    if (!message || /^unknown error$/i.test(message)) {
+        return 'Request failed. Please verify server status, token, and tool payload.';
+    }
+    return message;
 }

@@ -170,16 +170,25 @@ public class RequestLogDAO {
 
     public List<Map<String, Object>> getThroughput(Integer serverId, int hours, int bucketMinutes) {
         int safeHours = Math.max(1, hours);
-        int safeBucket = Math.max(1, bucketMinutes);
         Timestamp since = TimeUtil.getTimestampHoursAgo(safeHours);
         List<Map<String, Object>> points = new ArrayList<>();
 
+        String query = bucketMinutes <= 0
+                ? DBQueries.SELECT_THROUGHPUT_BY_SECOND
+                : DBQueries.SELECT_THROUGHPUT_BY_HOUR;
+
         try (Connection con = DBConnection.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(DBQueries.SELECT_THROUGHPUT_BY_HOUR)) {
-            ps.setInt(1, safeBucket);
-            ps.setInt(2, serverId);
-            ps.setTimestamp(3, since);
-            ps.setInt(4, safeBucket);
+             PreparedStatement ps = con.prepareStatement(query)) {
+            if (bucketMinutes <= 0) {
+                ps.setInt(1, serverId);
+                ps.setTimestamp(2, since);
+            } else {
+                int safeBucket = Math.max(1, bucketMinutes);
+                ps.setInt(1, safeBucket);
+                ps.setInt(2, serverId);
+                ps.setTimestamp(3, since);
+                ps.setInt(4, safeBucket);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Map<String, Object> row = new LinkedHashMap<>();

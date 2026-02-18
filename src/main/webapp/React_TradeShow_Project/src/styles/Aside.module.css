@@ -290,3 +290,16 @@
         }
     }
 }
+
+:root[data-theme='light'] .asideBar {
+  box-shadow: 2px 0 10px rgba(15, 23, 42, 0.12);
+}
+
+:root[data-theme='light'] .asideBar :is(h2, p, span, button) {
+  color: var(--text-primary);
+}
+
+:root[data-theme='light'] .asideBar .statusLabel,
+:root[data-theme='light'] .asideBar .statusUptime {
+  color: var(--text-muted);
+}

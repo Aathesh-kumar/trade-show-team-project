@@ -24,7 +24,11 @@ export const parseApiResponse = async (response) => {
     const body = isJson ? await response.json() : null;
 
     if (!response.ok) {
-        const errorMessage = body?.message || body?.error || `${response.status} ${response.statusText}`;
+        const rawMessage = body?.message || body?.error || '';
+        const normalized = String(rawMessage || '').trim();
+        const errorMessage = !normalized || /^unknown error$/i.test(normalized)
+            ? `Request failed (${response.status}${response.statusText ? ` ${response.statusText}` : ''})`
+            : normalized;
         throw new Error(errorMessage);
     }
 

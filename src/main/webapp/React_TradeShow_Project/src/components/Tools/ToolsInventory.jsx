@@ -8,6 +8,9 @@ import TestToolModal from './TestToolModal';
 import { useGet } from '../Hooks/useGet';
 import { usePost } from '../Hooks/usePost';
 import { buildUrl } from '../../services/api';
+import PaginationControls from '../Common/PaginationControls';
+
+const PAGE_SIZE = 10;
 
 export default function ToolsInventory({ selectedServer }) {
     const [selectedTool, setSelectedTool] = useState(null);
@@ -16,39 +19,31 @@ export default function ToolsInventory({ selectedServer }) {
     const [timeRange, setTimeRange] = useState('current');
     const [customMinutes, setCustomMinutes] = useState(10);
     const [isTestOpen, setIsTestOpen] = useState(false);
+    const [page, setPage] = useState(1);
 
     const serverId = selectedServer?.serverId;
-    const queryParams = useMemo(() => {
-        const params = { serverId };
-        if (timeRange === 'current') {
-            params.includeInactive = false;
-            return params;
-        }
-
-        params.includeInactive = true;
+    const timeWindowMinutes = useMemo(() => {
         if (timeRange === 'custom') {
-            const safeMinutes = Math.min(24 * 60, Math.max(1, Number(customMinutes) || 10));
-            params.hours = Number((safeMinutes / 60).toFixed(2));
-        } else {
-            const map = { '1m': Number((1 / 60).toFixed(2)), '10m': Number((10 / 60).toFixed(2)), '1h': 1, '2h': 2, '24h': 24 };
-            params.hours = map[timeRange] || 1;
+            return Math.min(24 * 60, Math.max(1, Number(customMinutes) || 10));
         }
-        return params;
-    }, [serverId, timeRange, customMinutes]);
+        const map = { current: 0, '1m': 1, '10m': 10, '1h': 60, '2h': 120, '24h': 1440 };
+        return map[timeRange] || 0;
+    }, [timeRange, customMinutes]);
 
     const { data: tools = [], loading, error, refetch } = useGet('/tool/all', {
         immediate: !!serverId,
-        params: queryParams,
-        dependencies: [serverId, timeRange, customMinutes]
+        params: { serverId, includeInactive: timeRange !== 'current' },
+        dependencies: [serverId, timeRange]
     });
+
     const { data: intervalLogs } = useGet('/request-log', {
         immediate: !!serverId && timeRange !== 'current',
         params: {
             serverId,
-            hours: queryParams.hours || 1,
-            limit: 500
+            hours: Number((Math.max(1, timeWindowMinutes) / 60).toFixed(2)),
+            limit: 300
         },
-        dependencies: [serverId, timeRange, customMinutes]
+        dependencies: [serverId, timeRange, timeWindowMinutes]
     });
 
     const {execute: refreshTools, loading: refreshing } = usePost(buildUrl('/tool/refresh'));
@@ -67,12 +62,14 @@ export default function ToolsInventory({ selectedServer }) {
             : '0.0'
     })), [tools]);
 
+    const timeFilteredTools = mappedTools;
+
     const historicalTools = useMemo(() => {
         if (timeRange === 'current') {
             return [];
         }
         const logs = Array.isArray(intervalLogs?.logs) ? intervalLogs.logs : [];
-        const existing = new Set(mappedTools.map((tool) => tool.name));
+        const existing = new Set(timeFilteredTools.map((tool) => tool.name));
         const seen = new Set();
 
         return logs
@@ -90,7 +87,7 @@ export default function ToolsInventory({ selectedServer }) {
                 id: `history-${toolName}`,
                 name: toolName,
                 type: 'ACTION',
-                description: `Observed in ${timeRange === 'custom' ? `past ${Math.min(24 * 60, Math.max(1, Number(customMinutes) || 10))} minutes` : 'selected interval'} request logs`,
+                description: `Observed in ${timeWindowMinutes} minute window request logs`,
                 status: 'Inactive',
                 isAvailability: false,
                 latency: 'N/A',
@@ -98,9 +95,9 @@ export default function ToolsInventory({ selectedServer }) {
                 successRate: '0.0',
                 isHistorical: true
             }));
-    }, [intervalLogs, mappedTools, timeRange, customMinutes]);
+    }, [intervalLogs, timeFilteredTools, timeRange, timeWindowMinutes]);
 
-    const inventoryTools = useMemo(() => [...mappedTools, ...historicalTools], [mappedTools, historicalTools]);
+    const inventoryTools = useMemo(() => [...timeFilteredTools, ...historicalTools], [timeFilteredTools, historicalTools]);
 
     const filteredTools = inventoryTools.filter((tool) => {
         const matchesSearch = tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -108,6 +105,10 @@ export default function ToolsInventory({ selectedServer }) {
         const matchesFilter = filterType === 'all' || tool.type.toLowerCase() === filterType.toLowerCase();
         return matchesSearch && matchesFilter;
     });
+
+    const totalPages = Math.max(1, Math.ceil(filteredTools.length / PAGE_SIZE));
+    const safePage = Math.min(page, totalPages);
+    const pagedTools = filteredTools.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
     const stats = {
         totalTools: inventoryTools.filter((t) => t.type === 'ACTION').length,
@@ -119,6 +120,10 @@ export default function ToolsInventory({ selectedServer }) {
         }
         await refreshTools({ serverId });
         refetch();
+        window.dispatchEvent(new CustomEvent('pulse24x7-request-log-refresh', {
+            detail: { serverId, reason: 'tools_refresh' }
+        }));
+        window.dispatchEvent(new CustomEvent('pulse24x7-notification-refresh'));
     };
 
     if (!serverId) {
@@ -136,11 +141,20 @@ export default function ToolsInventory({ selectedServer }) {
             <ToolsHeader
                 stats={stats}
                 searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
+                setSearchQuery={(value) => {
+                    setSearchQuery(value);
+                    setPage(1);
+                }}
                 filterType={filterType}
-                setFilterType={setFilterType}
+                setFilterType={(value) => {
+                    setFilterType(value);
+                    setPage(1);
+                }}
                 timeRange={timeRange}
-                setTimeRange={setTimeRange}
+                setTimeRange={(value) => {
+                    setTimeRange(value);
+                    setPage(1);
+                }}
                 customMinutes={customMinutes}
                 setCustomMinutes={setCustomMinutes}
                 onRefresh={handleRefresh}
@@ -154,12 +168,22 @@ export default function ToolsInventory({ selectedServer }) {
             )}
 
             <div className={ToolsStyles.toolsContent}>
-                <ToolsTable
-                    tools={filteredTools}
-                    selectedTool={selectedTool}
-                    onSelectTool={setSelectedTool}
-                    loading={loading}
-                />
+                <div className={ToolsStyles.toolsMainColumn}>
+                    <ToolsTable
+                        tools={pagedTools}
+                        selectedTool={selectedTool}
+                        onSelectTool={setSelectedTool}
+                        loading={loading}
+                    />
+                    <PaginationControls
+                        page={safePage}
+                        totalPages={totalPages}
+                        totalItems={filteredTools.length}
+                        pageSize={PAGE_SIZE}
+                        onPageChange={setPage}
+                        className={ToolsStyles.paginationBar}
+                    />
+                </div>
 
                 {selectedTool && (
                     <ToolDefinitionPanel
@@ -190,7 +214,7 @@ export default function ToolsInventory({ selectedServer }) {
 function tryParse(raw) {
     try {
         return typeof raw === 'string' ? JSON.parse(raw) : raw;
-    } catch (_error) {
+    } catch {
         return { type: 'object', raw };
     }
 }

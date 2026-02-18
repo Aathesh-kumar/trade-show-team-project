@@ -1,25 +1,22 @@
 import RequestLogsStyles from '../../styles/RequestLogs.module.css';
 
-export default function RequestLogsFooter() {
+export default function RequestLogsFooter({ totalLogs = 0 }) {
     return (
         <footer className={RequestLogsStyles.logsFooter}>
             <div className={RequestLogsStyles.footerLeft}>
                 <div className={RequestLogsStyles.liveIndicator}>
                     <span className={RequestLogsStyles.liveDot}></span>
-                    <span>Live Tail: Active</span>
+                    <span>Auto Refresh: Active</span>
                 </div>
                 <span className={RequestLogsStyles.footerDivider}>|</span>
                 <span className={RequestLogsStyles.footerText}>
-                    Showing 5 of 12,452 logs
+                    Showing {totalLogs} logs
                 </span>
             </div>
 
             <div className={RequestLogsStyles.footerRight}>
-                <span className={RequestLogsStyles.footerLabel}>Memory:</span>
-                <span className={RequestLogsStyles.footerValue}>452MB / 1024MB</span>
-                <span className={RequestLogsStyles.footerDivider}>|</span>
-                <span className={RequestLogsStyles.footerLabel}>CPU:</span>
-                <span className={RequestLogsStyles.footerValue}>12.4%</span>
+                <span className={RequestLogsStyles.footerLabel}>Refresh:</span>
+                <span className={RequestLogsStyles.footerValue}>15s + event driven</span>
             </div>
         </footer>
     );

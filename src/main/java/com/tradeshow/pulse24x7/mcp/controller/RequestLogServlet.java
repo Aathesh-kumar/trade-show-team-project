@@ -59,7 +59,7 @@ public class RequestLogServlet extends HttpServlet {
         String search = req.getParameter("search");
         String status = req.getParameter("status");
         String tool = req.getParameter("tool");
-        int hours = parseInt(req.getParameter("hours"), 24);
+        int hours = parseHours(req.getParameter("hours"), 24);
         int limit = parseInt(req.getParameter("limit"), 100);
 
         List<RequestLog> logs = requestLogService.getLogs(serverId, search, status, tool, hours, limit);
@@ -90,6 +90,21 @@ public class RequestLogServlet extends HttpServlet {
     private int parseInt(String value, int fallback) {
         Integer parsed = parseInt(value);
         return parsed == null ? fallback : parsed;
+    }
+
+    private int parseHours(String value, int fallback) {
+        try {
+            if (value == null) {
+                return fallback;
+            }
+            double parsed = Double.parseDouble(value);
+            if (parsed <= 0) {
+                return fallback;
+            }
+            return Math.max(1, (int) Math.ceil(parsed));
+        } catch (Exception e) {
+            return fallback;
+        }
     }
 
     private void sendSuccessResponse(HttpServletResponse resp, Object data) throws IOException {

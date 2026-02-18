@@ -26,7 +26,7 @@ public class MonitorScheduler implements ServletContextListener {
                     .withIdentity("ServerMonitorJob", "MCP_MONITOR_GROUP")
                     .build();
             
-            // Create trigger for server monitoring (runs every hour)
+            // Create trigger for server monitoring (runs every 5 minutes)
             Trigger serverMonitorTrigger = TriggerBuilder.newTrigger()
                     .withIdentity("ServerMonitorTrigger", "MCP_MONITOR_GROUP")
                     .startNow()

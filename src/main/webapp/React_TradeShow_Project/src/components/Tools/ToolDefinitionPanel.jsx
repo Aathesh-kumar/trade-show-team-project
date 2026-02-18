@@ -6,6 +6,7 @@ import { FaWrench } from 'react-icons/fa';
 export default function ToolDefinitionPanel({ tool, onClose, onTest }) {
     const [copied, setCopied] = useState(false);
     const schemaText = JSON.stringify(tool.jsonSchema || {}, null, 2);
+    const canTest = Boolean(tool.isAvailability);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(schemaText);
@@ -66,9 +67,9 @@ export default function ToolDefinitionPanel({ tool, onClose, onTest }) {
                 <section className={ToolsStyles.panelSection}>
                     <h3>Implementation Details</h3>
                     <div className={ToolsStyles.actionButtons}>
-                        <button className={ToolsStyles.primaryBtn} onClick={onTest}>
+                        <button className={ToolsStyles.primaryBtn} onClick={onTest} disabled={!canTest} title={canTest ? 'Test tool' : 'Inactive tools cannot be tested'}>
                             <MdPlayArrow />
-                            Test Tool
+                            {canTest ? 'Test Tool' : 'Tool Inactive'}
                         </button>
                         <button className={ToolsStyles.secondaryBtn}>
                             <MdEdit />
