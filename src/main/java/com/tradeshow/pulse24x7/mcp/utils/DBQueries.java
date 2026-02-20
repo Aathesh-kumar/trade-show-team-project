@@ -1,25 +1,37 @@
 package com.tradeshow.pulse24x7.mcp.utils;
 
 public class DBQueries {
+        private static final String TOOL_ANALYTICS_FILTER =
+                "tool_name IS NOT NULL AND TRIM(tool_name) <> '' " +
+                "AND tool_name NOT LIKE '\\\\_\\\\_%' ESCAPE '\\\\' " +
+                "AND LOWER(tool_name) NOT LIKE '%ping%' " +
+                "AND LOWER(tool_name) NOT LIKE '%refresh%' " +
+                "AND LOWER(tool_name) NOT LIKE '%token%'";
 
         // Server Queries
         public static final String INSERT_SERVER =
-                "INSERT INTO servers (server_name, server_url) VALUES (?, ?)";
+                "INSERT INTO servers (user_id, server_name, server_url) VALUES (?, ?, ?)";
 
         public static final String GET_SERVER_BY_ID =
+                "SELECT * FROM servers WHERE server_id = ? AND user_id = ?";
+
+        public static final String GET_SERVER_BY_ID_GLOBAL =
                 "SELECT * FROM servers WHERE server_id = ?";
 
         public static final String GET_SERVER_BY_URL =
-                "SELECT * FROM servers WHERE server_url = ?";
+                "SELECT * FROM servers WHERE server_url = ? AND user_id = ?";
 
         public static final String GET_ALL_SERVERS =
+                "SELECT * FROM servers WHERE user_id = ? ORDER BY created_at DESC";
+
+        public static final String GET_ALL_SERVERS_GLOBAL =
                 "SELECT * FROM servers ORDER BY created_at DESC";
 
         public static final String UPDATE_SERVER =
-                "UPDATE servers SET server_name = ?, server_url = ? WHERE server_id = ?";
+                "UPDATE servers SET server_name = ?, server_url = ? WHERE server_id = ? AND user_id = ?";
 
         public static final String DELETE_SERVER =
-                "DELETE FROM servers WHERE server_id = ?";
+                "DELETE FROM servers WHERE server_id = ? AND user_id = ?";
 
         // Tool Queries
         public static final String INSERT_TOOL =
@@ -38,6 +50,23 @@ public class DBQueries {
 
         public static final String GET_TOOLS_BY_SERVER =
                 "SELECT * FROM tools WHERE server_id = ? ORDER BY create_at DESC";
+        public static final String GET_TOOLS_BY_SERVER_SNAPSHOT =
+                "SELECT t.tool_id, t.tool_name, t.tool_description, t.tool_type, t.input_schema, t.output_schema, " +
+                        "COALESCE(last_hist.is_available, CASE WHEN t.last_modify <= ? THEN t.is_availability ELSE TRUE END) AS is_availability, " +
+                        "t.total_requests, t.success_requests, t.last_status_code, t.last_latency_ms, t.create_at, t.last_modify, t.server_id " +
+                        "FROM tools t " +
+                        "LEFT JOIN (" +
+                        "   SELECT h.tool_id, h.is_available " +
+                        "   FROM tools_history h " +
+                        "   INNER JOIN (" +
+                        "       SELECT tool_id, MAX(checked_at) AS max_checked_at " +
+                        "       FROM tools_history " +
+                        "       WHERE checked_at <= ? " +
+                        "       GROUP BY tool_id" +
+                        "   ) m ON m.tool_id = h.tool_id AND m.max_checked_at = h.checked_at" +
+                        ") last_hist ON last_hist.tool_id = t.tool_id " +
+                        "WHERE t.server_id = ? AND t.create_at <= ? " +
+                        "ORDER BY t.create_at DESC";
 
         public static final String GET_AVAILABLE_TOOLS =
                 "SELECT * FROM tools " +
@@ -142,15 +171,15 @@ public class DBQueries {
         // Auth Token Queries
         public static final String INSERT_AUTH_TOKEN =
                 "INSERT INTO auth_token (server_id, header_type, access_token, refresh_token, expires_at, client_id, client_secret, token_endpoint) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
+                        "VALUES (?, ?, ?, ?, COALESCE(?, DATE_ADD(NOW(), INTERVAL 1 HOUR)), ?, ?, ?) " +
                         "ON DUPLICATE KEY UPDATE " +
-                        "    header_type= VALUES(header_type)," +
+                        "    header_type = COALESCE(NULLIF(VALUES(header_type), ''), header_type, 'Bearer')," +
                         "    access_token = VALUES(access_token), " +
-                        "    refresh_token = VALUES(refresh_token), " +
-                        "    expires_at = VALUES(expires_at), " +
-                        "    client_id = VALUES(client_id), " +
-                        "    client_secret = VALUES(client_secret), " +
-                        "    token_endpoint = VALUES(token_endpoint), " +
+                        "    refresh_token = COALESCE(NULLIF(VALUES(refresh_token), ''), refresh_token), " +
+                        "    expires_at = COALESCE(VALUES(expires_at), DATE_ADD(NOW(), INTERVAL 1 HOUR)), " +
+                        "    client_id = COALESCE(NULLIF(VALUES(client_id), ''), client_id), " +
+                        "    client_secret = COALESCE(NULLIF(VALUES(client_secret), ''), client_secret), " +
+                        "    token_endpoint = COALESCE(NULLIF(VALUES(token_endpoint), ''), token_endpoint), " +
                         "    updated_at = CURRENT_TIMESTAMP";
 
         public static final String GET_AUTH_TOKEN =
@@ -191,24 +220,23 @@ public class DBQueries {
                 "SELECT COUNT(*) total_requests, " +
                         "SUM(CASE WHEN status_code >= 200 AND status_code < 300 THEN 1 ELSE 0 END) total_success, " +
                         "SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) total_errors " +
-                        "FROM request_logs WHERE server_id = ?";
+                        "FROM request_logs WHERE server_id = ? AND " + TOOL_ANALYTICS_FILTER;
 
         public static final String SELECT_THROUGHPUT_BY_HOUR =
                 "SELECT DATE_FORMAT(DATE_SUB(created_at, INTERVAL (MINUTE(created_at) % ?) MINUTE), '%Y-%m-%d %H:%i:00') hour_bucket, COUNT(*) request_count " +
-                        "FROM request_logs WHERE server_id = ? AND created_at >= ? " +
-                        "GROUP BY DATE_FORMAT(DATE_SUB(created_at, INTERVAL (MINUTE(created_at) % ?) MINUTE), '%Y-%m-%d %H:%i:00') ORDER BY hour_bucket ASC";
-
+                        "FROM request_logs WHERE server_id = ? AND created_at >= ? AND " + TOOL_ANALYTICS_FILTER + " " +
+                        "GROUP BY hour_bucket ORDER BY hour_bucket ASC";
         public static final String SELECT_THROUGHPUT_BY_SECOND =
-                "SELECT DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') hour_bucket, COUNT(*) request_count " +
-                        "FROM request_logs WHERE server_id = ? AND created_at >= ? " +
-                        "GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') ORDER BY hour_bucket ASC";
+                "SELECT DATE_FORMAT(FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(created_at) / ?) * ?), '%Y-%m-%d %H:%i:%s') second_bucket, COUNT(*) request_count " +
+                        "FROM request_logs WHERE server_id = ? AND created_at >= ? AND " + TOOL_ANALYTICS_FILTER + " " +
+                        "GROUP BY second_bucket ORDER BY second_bucket ASC";
 
         public static final String SELECT_TOP_TOOLS =
                 "SELECT tool_name, COUNT(*) total_calls, " +
                         "AVG(latency_ms) avg_latency, " +
                         "(SUM(CASE WHEN status_code >= 200 AND status_code < 300 THEN 1 ELSE 0 END) / COUNT(*)) * 100 success_percent " +
                         "FROM request_logs " +
-                        "WHERE server_id = ? " +
+                        "WHERE server_id = ? AND " + TOOL_ANALYTICS_FILTER + " " +
                         "GROUP BY tool_name " +
                         "ORDER BY total_calls DESC " +
                         "LIMIT ?";
@@ -219,7 +247,21 @@ public class DBQueries {
 
         public static final String SELECT_NOTIFICATIONS =
                 "SELECT id, server_id, category, severity, title, message, is_read, created_at " +
-                        "FROM notifications ORDER BY created_at DESC LIMIT ?";
+                        "FROM notifications ORDER BY created_at DESC LIMIT ? OFFSET ?";
+
+        public static final String DELETE_NOTIFICATION =
+                "DELETE FROM notifications WHERE id = ?";
+
+        public static final String DELETE_ALL_NOTIFICATIONS =
+                "DELETE FROM notifications";
+
+        public static final String COUNT_REQUEST_LOGS_BASE =
+                "SELECT COUNT(*) total FROM request_logs rl";
+
+        public static final String EXISTS_TOOL_HISTORY_SINCE =
+                "SELECT 1 FROM tools_history WHERE tool_id = ? AND checked_at >= ? LIMIT 1";
+        public static final String EXISTS_TOOL_AVAILABLE_HISTORY_SINCE =
+                "SELECT 1 FROM tools_history WHERE tool_id = ? AND checked_at >= ? AND is_available = TRUE LIMIT 1";
 
         public static final String MARK_NOTIFICATION_READ =
                 "UPDATE notifications SET is_read = TRUE WHERE id = ?";

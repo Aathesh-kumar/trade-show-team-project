@@ -3,6 +3,7 @@ package com.tradeshow.pulse24x7.mcp.controller;
 import com.google.gson.JsonObject;
 import com.tradeshow.pulse24x7.mcp.model.RequestLog;
 import com.tradeshow.pulse24x7.mcp.service.RequestLogService;
+import com.tradeshow.pulse24x7.mcp.service.ServerService;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -23,11 +24,13 @@ import java.util.Map;
 public class RequestLogServlet extends HttpServlet {
     private static final Logger logger = LogManager.getLogger(RequestLogServlet.class);
     private RequestLogService requestLogService;
+    private ServerService serverService;
 
     @Override
     public void init() throws ServletException {
         super.init();
         requestLogService = new RequestLogService();
+        serverService = new ServerService();
         logger.info("RequestLogServlet initialized");
     }
 
@@ -50,30 +53,57 @@ public class RequestLogServlet extends HttpServlet {
     }
 
     private void handleLogs(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         Integer serverId = parseInt(req.getParameter("serverId"));
         if (serverId == null) {
             sendErrorResponse(resp, "serverId is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        if (!serverService.isServerOwnedByUser(serverId, userId)) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
             return;
         }
 
         String search = req.getParameter("search");
         String status = req.getParameter("status");
         String tool = req.getParameter("tool");
-        int hours = parseHours(req.getParameter("hours"), 24);
-        int limit = parseInt(req.getParameter("limit"), 100);
+        int hours = parseInt(req.getParameter("hours"), 24);
+        int page = Math.max(1, parseInt(req.getParameter("page"), 1));
+        int pageSize = Math.max(1, Math.min(500, parseInt(req.getParameter("limit"), 100)));
+        int offset = (page - 1) * pageSize;
 
-        List<RequestLog> logs = requestLogService.getLogs(serverId, search, status, tool, hours, limit);
+        List<RequestLog> logs = requestLogService.getLogs(serverId, search, status, tool, hours, pageSize, offset);
+        long total = requestLogService.countLogs(serverId, search, status, tool, hours);
 
         Map<String, Object> response = new HashMap<>();
         response.put("logs", logs);
         response.put("stats", requestLogService.getStats(serverId));
+        response.put("pagination", Map.of(
+                "page", page,
+                "pageSize", pageSize,
+                "totalItems", total,
+                "totalPages", Math.max(1, (int) Math.ceil((double) total / pageSize))
+        ));
         sendSuccessResponse(resp, response);
     }
 
     private void handleStats(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         Integer serverId = parseInt(req.getParameter("serverId"));
         if (serverId == null) {
             sendErrorResponse(resp, "serverId is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        if (!serverService.isServerOwnedByUser(serverId, userId)) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
             return;
         }
         sendSuccessResponse(resp, requestLogService.getStats(serverId));
@@ -92,19 +122,9 @@ public class RequestLogServlet extends HttpServlet {
         return parsed == null ? fallback : parsed;
     }
 
-    private int parseHours(String value, int fallback) {
-        try {
-            if (value == null) {
-                return fallback;
-            }
-            double parsed = Double.parseDouble(value);
-            if (parsed <= 0) {
-                return fallback;
-            }
-            return Math.max(1, (int) Math.ceil(parsed));
-        } catch (Exception e) {
-            return fallback;
-        }
+    private Long getUserId(HttpServletRequest req) {
+        Object uid = req.getAttribute("userId");
+        return (uid instanceof Long) ? (Long) uid : null;
     }
 
     private void sendSuccessResponse(HttpServletResponse resp, Object data) throws IOException {

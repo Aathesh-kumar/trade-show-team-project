@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ToolsStyles from '../../styles/Tools.module.css';
 import { MdCheckCircle, MdClose, MdContentCopy, MdErrorOutline, MdPlayArrow } from 'react-icons/md';
 import { usePost } from '../Hooks/usePost';
 import { buildUrl } from '../../services/api';
 import InputField from '../ConfigureServer/InputField';
-import JsonEditor from '../Common/JsonEditor';
-import JsonViewer from '../Common/JsonViewer';
 import CustomDropdown from '../Common/CustomDropdown';
+import { useGet } from '../Hooks/useGet';
+
+const DEFAULT_SCOPE = 'ZohoMCP.tool.execute';
 
 export default function TestToolModal({ tool, serverId, onClose, onCompleted }) {
     const schema = getSchema(tool);
@@ -16,6 +17,21 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
     const [testResult, setTestResult] = useState(null);
     const [errors, setErrors] = useState({});
     const [payloadCopied, setPayloadCopied] = useState(false);
+    const [scopeRecovery, setScopeRecovery] = useState({
+        active: false,
+        requiredScope: DEFAULT_SCOPE,
+        additionalScopes: '',
+        oauthBaseUrl: 'https://accounts.zoho.in',
+        message: '',
+        oauthState: ''
+    });
+    const [saveMessage, setSaveMessage] = useState(null);
+
+    const { data: authData } = useGet('/auth', {
+        immediate: !!serverId,
+        params: { serverId },
+        dependencies: [serverId]
+    });
 
     const { execute: testTool, loading } = usePost(
         buildUrl('/tool/test'),
@@ -32,22 +48,26 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
             onError: (error) => {
                 setTestResult({
                     success: false,
-                    error: normalizeError(error),
+                    error: error.message,
                     timestamp: new Date()
                 });
+                const payload = error?.payload || {};
+                const needsScopeRecovery = payload?.errorCode === 'scope_mismatch'
+                    || /scope/i.test(String(error?.message || ''));
+                if (needsScopeRecovery) {
+                    setScopeRecovery((prev) => ({
+                        ...prev,
+                        active: true,
+                        requiredScope: payload?.requiredScope || DEFAULT_SCOPE,
+                        message: payload?.actionMessage || error.message
+                    }));
+                }
             }
         }
     );
+    const { execute: exchangeCode, loading: exchangingCode } = usePost(buildUrl('/auth/exchange-code', { serverId }));
 
     const handleTest = async () => {
-        if (!tool?.isAvailability) {
-            setTestResult({
-                success: false,
-                error: 'This tool is inactive. Activate it before running tests.',
-                timestamp: new Date()
-            });
-            return;
-        }
         setErrors({});
         setTestResult(null);
 
@@ -56,7 +76,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
             if (inputParams.trim()) {
                 try {
                     JSON.parse(inputParams);
-                } catch {
+                } catch (e) {
                     setErrors({ inputParams: 'Invalid JSON format' });
                     return;
                 }
@@ -78,7 +98,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                 toolName: tool.toolName || tool.name,
                 inputParams: payloadJson
             });
-        } catch {
+        } catch (error) {
             // handled in hook
         }
     };
@@ -91,6 +111,142 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
             setFormValues(sample);
         }
         setErrors({});
+    };
+
+    useEffect(() => {
+        if (!authData) {
+            return;
+        }
+        const endpoint = String(authData.tokenEndpoint || '').trim();
+        const derivedBase = endpoint ? endpoint.replace(/\/oauth\/v2\/token.*$/i, '') : '';
+        setScopeRecovery((prev) => ({
+            ...prev,
+            oauthBaseUrl: derivedBase || prev.oauthBaseUrl
+        }));
+    }, [authData?.tokenEndpoint]);
+
+    const finalScope = useMemo(
+        () => buildScopeString(scopeRecovery.requiredScope || DEFAULT_SCOPE, scopeRecovery.additionalScopes),
+        [scopeRecovery.requiredScope, scopeRecovery.additionalScopes]
+    );
+
+    const oauthUrl = useMemo(() => {
+        const state = scopeRecovery.oauthState || `pulse_scope_${serverId}_${Date.now()}`;
+        return buildOAuthUrl({
+            baseUrl: scopeRecovery.oauthBaseUrl,
+            scope: finalScope,
+            clientId: authData?.clientId,
+            serverId,
+            state
+        });
+    }, [finalScope, scopeRecovery.oauthBaseUrl, scopeRecovery.oauthState, authData?.clientId, serverId]);
+
+    const handleStartOAuth = () => {
+        setSaveMessage(null);
+        const nextState = `pulse_scope_${serverId}_${Date.now()}`;
+        setScopeRecovery((prev) => ({ ...prev, oauthState: nextState }));
+        const redirectUri = `${window.location.origin}/trade-show-team-project/oauth-callback.html`;
+        const url = buildOAuthUrl({
+            baseUrl: scopeRecovery.oauthBaseUrl,
+            scope: finalScope,
+            clientId: authData?.clientId,
+            serverId,
+            state: nextState,
+            redirectUri
+        });
+        if (!url) {
+            setSaveMessage({ type: 'error', text: 'OAuth URL cannot be generated. Check scope/client ID.' });
+            return;
+        }
+        const popup = window.open(url, 'pulse_oauth_scope', 'width=860,height=760,resizable=yes,scrollbars=yes');
+        if (!popup) {
+            setSaveMessage({ type: 'error', text: 'Popup blocked. Allow popups and retry.' });
+            return;
+        }
+
+        let pollId = null;
+        const cleanup = () => {
+            window.removeEventListener('message', onMessage);
+            if (pollId) {
+                clearInterval(pollId);
+            }
+        };
+
+        const onMessage = async (event) => {
+            if (event.origin !== window.location.origin) {
+                return;
+            }
+            const payload = event.data || {};
+            if (payload.type !== 'pulse_oauth_callback') {
+                return;
+            }
+            const code = payload.code;
+            const state = payload.state;
+            if (!code || !state || state !== nextState) {
+                return;
+            }
+            cleanup();
+            popup.close();
+            await handleExchangeCode(code, redirectUri, state);
+        };
+
+        window.addEventListener('message', onMessage);
+
+        pollId = setInterval(async () => {
+            try {
+                if (popup.closed) {
+                    cleanup();
+                    return;
+                }
+                const popupUrl = popup.location.href;
+                if (!popupUrl.startsWith(redirectUri)) {
+                    return;
+                }
+                const params = new URL(popupUrl).searchParams;
+                const code = params.get('code');
+                const state = params.get('state');
+                if (!code || !state || state !== nextState) {
+                    return;
+                }
+                cleanup();
+                popup.close();
+                await handleExchangeCode(code, redirectUri, state);
+            } catch (e) {
+                // cross-origin until redirect lands on our app
+            }
+        }, 450);
+    };
+
+    const handleCopyOAuthUrl = async () => {
+        if (!oauthUrl) {
+            return;
+        }
+        await navigator.clipboard.writeText(oauthUrl);
+        setSaveMessage({ type: 'success', text: 'OAuth URL copied.' });
+    };
+
+    const handleExchangeCode = async (code, redirectUri, stateFromRedirect) => {
+        setSaveMessage(null);
+        if (!serverId) {
+            setSaveMessage({ type: 'error', text: 'Server is not selected. Select a server and retry OAuth.' });
+            return;
+        }
+        try {
+            const tokenEndpoint = `${(scopeRecovery.oauthBaseUrl || 'https://accounts.zoho.in').replace(/\/$/, '')}/oauth/v2/token`;
+            await exchangeCode({
+                serverId: Number(serverId),
+                code,
+                redirectUri,
+                tokenEndpoint,
+                state: stateFromRedirect || scopeRecovery.oauthState
+            });
+            window.dispatchEvent(new CustomEvent('pulse24x7-auth-token-updated', { detail: { serverId: Number(serverId) } }));
+            setSaveMessage({ type: 'success', text: 'Access token and refresh token updated successfully.' });
+            setScopeRecovery((prev) => ({ ...prev, active: false }));
+        } catch (e) {
+            const details = e?.payload?.message || e?.payload?.error || e?.message || 'Token exchange failed';
+            setSaveMessage({ type: 'error', text: details });
+        }
     };
 
     return (
@@ -142,14 +298,15 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
 
                         {mode === 'json' ? (
                             <>
-                                <JsonEditor
+                                <textarea
                                     id="inputParams"
                                     value={inputParams}
-                                    onChange={(nextValue) => {
-                                        setInputParams(nextValue);
+                                    onChange={(e) => {
+                                        setInputParams(e.target.value);
                                         setErrors({});
                                     }}
                                     placeholder={JSON.stringify(generateExample(schema), null, 2)}
+                                    rows="10"
                                     className={`${ToolsStyles.codeInput} ${errors.inputParams ? ToolsStyles.error : ''}`}
                                 />
                                 {errors.inputParams ? <span className={ToolsStyles.errorMessage}>{errors.inputParams}</span> : null}
@@ -186,7 +343,9 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                                             {payloadCopied ? 'Copied' : 'Copy'}
                                         </button>
                                     </div>
-                                    <JsonViewer data={formValues} className={ToolsStyles.jsonPreview} />
+                                    <pre className={ToolsStyles.jsonPreview}>
+                                        <code>{JSON.stringify(formValues, null, 2)}</code>
+                                    </pre>
                                 </div>
                             </div>
                         )}
@@ -219,12 +378,63 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                                     </span>
                                     <span className={ToolsStyles.statusText}>{testResult.success ? 'Success' : 'Failed'}</span>
                                 </div>
-                                {testResult.success ? (
-                                    <JsonViewer data={testResult.data} className={ToolsStyles.resultData} />
-                                ) : (
-                                    <div className={ToolsStyles.resultData}>{testResult.error}</div>
-                                )}
+                                <pre className={ToolsStyles.resultData}>
+                                    <code>{testResult.success ? JSON.stringify(testResult.data, null, 2) : testResult.error}</code>
+                                </pre>
                             </div>
+                        </div>
+                    ) : null}
+
+                    {scopeRecovery.active ? (
+                        <div className={ToolsStyles.scopeRecoveryCard}>
+                            <h3>OAuth Scope Recovery</h3>
+                            <p className={ToolsStyles.scopeHint}>
+                                {scopeRecovery.message || 'Scope mismatch detected. Enter correct scope and regenerate OAuth tokens.'}
+                            </p>
+                            <InputField
+                                label="Required Scope"
+                                value={scopeRecovery.requiredScope}
+                                onChange={() => null}
+                                placeholder="ZohoMCP.tool.execute"
+                                tooltip="Default scope (fixed)"
+                                readOnly={true}
+                            />
+                            <InputField
+                                label="Additional Scopes (comma separated)"
+                                value={scopeRecovery.additionalScopes}
+                                onChange={(value) => setScopeRecovery((prev) => ({ ...prev, additionalScopes: value }))}
+                                placeholder="scope.one,scope.two"
+                                tooltip="These scopes will be appended after default scope with comma"
+                            />
+                            <InputField
+                                label="OAuth Base URL"
+                                value={scopeRecovery.oauthBaseUrl}
+                                onChange={(value) => setScopeRecovery((prev) => ({ ...prev, oauthBaseUrl: value }))}
+                                placeholder="https://accounts.zoho.in"
+                            />
+                            {oauthUrl ? (
+                                <div className={ToolsStyles.oauthUrlBox}>
+                                    <textarea readOnly value={oauthUrl} rows={4} className={ToolsStyles.oauthUrlText} />
+                                    <div className={ToolsStyles.oauthActions}>
+                                        <button type="button" className={ToolsStyles.secondaryBtn} onClick={handleCopyOAuthUrl}>
+                                            Copy URL
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : null}
+                            {saveMessage ? (
+                                <div className={saveMessage.type === 'success' ? ToolsStyles.submitSuccess : ToolsStyles.submitError}>
+                                    {saveMessage.text}
+                                </div>
+                            ) : null}
+                            <button
+                                type="button"
+                                className={ToolsStyles.primaryBtn}
+                                onClick={handleStartOAuth}
+                                disabled={exchangingCode || !authData?.clientId}
+                            >
+                                {exchangingCode ? 'Regenerating...' : 'Open OAuth and Regenerate Tokens'}
+                            </button>
                         </div>
                     ) : null}
                 </div>
@@ -298,8 +508,8 @@ function SchemaFields({ schema, rootValue, path, onChange, parentRequired = [] }
             <label className={ToolsStyles.schemaField}>
                 {label}
                 <CustomDropdown
-                    value={value ?? String(schema.enum[0])}
-                    onChange={(nextValue) => onChange(path, nextValue)}
+                    value={value ?? ''}
+                    onChange={(next) => onChange(path, next)}
                     options={schema.enum.map((option) => ({ value: String(option), label: String(option) }))}
                     buttonClassName={ToolsStyles.schemaInput}
                 />
@@ -324,7 +534,7 @@ function SchemaFields({ schema, rootValue, path, onChange, parentRequired = [] }
     }
 
     return (
-        <div className={ToolsStyles.schemaField}>
+        <label className={ToolsStyles.schemaField}>
             <InputField
                 label={name}
                 type={schema.type === 'number' || schema.type === 'integer' ? 'number' : 'text'}
@@ -338,7 +548,7 @@ function SchemaFields({ schema, rootValue, path, onChange, parentRequired = [] }
                 placeholder={schema.description || `Enter ${name}`}
                 tooltip={schema.description || undefined}
             />
-        </div>
+        </label>
     );
 }
 
@@ -349,7 +559,7 @@ function getSchema(tool) {
             return JSON.parse(raw);
         }
         return raw || {};
-    } catch {
+    } catch (e) {
         return {};
     }
 }
@@ -434,10 +644,25 @@ function getValueAtPath(source, path) {
     return cursor;
 }
 
-function normalizeError(error) {
-    const message = String(error?.message || '').trim();
-    if (!message || /^unknown error$/i.test(message)) {
-        return 'Request failed. Please verify server status, token, and tool payload.';
+function buildOAuthUrl({ baseUrl, scope, clientId, serverId, state, redirectUri }) {
+    if (!scope || !clientId) {
+        return '';
     }
-    return message;
+    const base = (baseUrl || 'https://accounts.zoho.in').replace(/\/$/, '');
+    const safeRedirectUri = redirectUri || `${window.location.origin}/trade-show-team-project/oauth-callback.html`;
+    const finalState = state || `pulse_scope_${serverId}_${Date.now()}`;
+    return `${base}/oauth/v2/auth?scope=${encodeURIComponent(scope)}&client_id=${encodeURIComponent(clientId)}&state=${encodeURIComponent(finalState)}&response_type=code&redirect_uri=${encodeURIComponent(safeRedirectUri)}&access_type=offline`;
+}
+
+function buildScopeString(defaultScope, additionalScopes) {
+    const base = String(defaultScope || DEFAULT_SCOPE).trim();
+    const extras = String(additionalScopes || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .filter((s) => s !== base);
+    if (extras.length === 0) {
+        return base;
+    }
+    return `${base},${extras.join(',')}`;
 }

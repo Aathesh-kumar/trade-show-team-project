@@ -3,7 +3,6 @@ package com.tradeshow.pulse24x7.mcp.dao;
 import com.tradeshow.pulse24x7.mcp.db.DBConnection;
 import com.tradeshow.pulse24x7.mcp.model.RequestLog;
 import com.tradeshow.pulse24x7.mcp.utils.DBQueries;
-import com.tradeshow.pulse24x7.mcp.utils.TimeUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -89,36 +89,16 @@ public class RequestLogDAO {
     }
 
     public List<RequestLog> getLogs(Integer serverId, String search, Integer statusMin, Integer statusMax,
-                                    String toolName, int hours, int limit) {
+                                    String toolName, int hours, int limit, int offset) {
         StringBuilder query = new StringBuilder(DBQueries.SELECT_REQUEST_LOGS_WITH_PAYLOAD_BASE)
                 .append(" WHERE rl.server_id = ?");
         List<Object> params = new ArrayList<>();
         params.add(serverId);
 
-        if (search != null && !search.isBlank()) {
-            query.append(" AND (rl.tool_name LIKE ? OR CAST(rl.id AS CHAR) LIKE ? OR rl.error_message LIKE ?)");
-            String pattern = "%" + search + "%";
-            params.add(pattern);
-            params.add(pattern);
-            params.add(pattern);
-        }
-
-        if (statusMin != null && statusMax != null) {
-            query.append(" AND rl.status_code BETWEEN ? AND ?");
-            params.add(statusMin);
-            params.add(statusMax);
-        }
-
-        if (toolName != null && !toolName.isBlank()) {
-            query.append(" AND rl.tool_name = ?");
-            params.add(toolName);
-        }
-
-        query.append(" AND rl.created_at >= ?");
-        params.add(TimeUtil.getTimestampHoursAgo(hours));
-
-        query.append(" ORDER BY rl.created_at DESC LIMIT ?");
-        params.add(limit);
+        appendLogFilters(query, params, search, statusMin, statusMax, toolName, hours);
+        query.append(" ORDER BY rl.created_at DESC LIMIT ? OFFSET ?");
+        params.add(Math.max(1, limit));
+        params.add(Math.max(0, offset));
 
         List<RequestLog> logs = new ArrayList<>();
         try (Connection con = DBConnection.getInstance().getConnection();
@@ -145,6 +125,28 @@ public class RequestLogDAO {
         return logs;
     }
 
+    public long countLogs(Integer serverId, String search, Integer statusMin, Integer statusMax,
+                          String toolName, int hours) {
+        StringBuilder query = new StringBuilder(DBQueries.COUNT_REQUEST_LOGS_BASE)
+                .append(" WHERE rl.server_id = ?");
+        List<Object> params = new ArrayList<>();
+        params.add(serverId);
+        appendLogFilters(query, params, search, statusMin, statusMax, toolName, hours);
+
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(query.toString())) {
+            bindParams(ps, params);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong("total");
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to count request logs", e);
+        }
+        return 0;
+    }
+
     public Map<String, Object> getStats(Integer serverId) {
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalRequests", 0L);
@@ -168,31 +170,30 @@ public class RequestLogDAO {
         return stats;
     }
 
-    public List<Map<String, Object>> getThroughput(Integer serverId, int hours, int bucketMinutes) {
+    public List<Map<String, Object>> getThroughput(Integer serverId, int hours, int bucketMinutes, int bucketSeconds) {
         int safeHours = Math.max(1, hours);
-        Timestamp since = TimeUtil.getTimestampHoursAgo(safeHours);
+        int safeMinuteBucket = Math.max(1, bucketMinutes);
+        int safeSecondBucket = Math.max(0, bucketSeconds);
+        Timestamp since = timestampHoursAgo(safeHours);
         List<Map<String, Object>> points = new ArrayList<>();
 
-        String query = bucketMinutes <= 0
-                ? DBQueries.SELECT_THROUGHPUT_BY_SECOND
-                : DBQueries.SELECT_THROUGHPUT_BY_HOUR;
-
+        String query = safeSecondBucket > 0 ? DBQueries.SELECT_THROUGHPUT_BY_SECOND : DBQueries.SELECT_THROUGHPUT_BY_HOUR;
         try (Connection con = DBConnection.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(query)) {
-            if (bucketMinutes <= 0) {
-                ps.setInt(1, serverId);
-                ps.setTimestamp(2, since);
+            if (safeSecondBucket > 0) {
+                ps.setInt(1, safeSecondBucket);
+                ps.setInt(2, safeSecondBucket);
+                ps.setInt(3, serverId);
+                ps.setTimestamp(4, since);
             } else {
-                int safeBucket = Math.max(1, bucketMinutes);
-                ps.setInt(1, safeBucket);
+                ps.setInt(1, safeMinuteBucket);
                 ps.setInt(2, serverId);
                 ps.setTimestamp(3, since);
-                ps.setInt(4, safeBucket);
             }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Map<String, Object> row = new LinkedHashMap<>();
-                    row.put("time", rs.getString("hour_bucket"));
+                    row.put("time", safeSecondBucket > 0 ? rs.getString("second_bucket") : rs.getString("hour_bucket"));
                     row.put("value", rs.getLong("request_count"));
                     points.add(row);
                 }
@@ -244,5 +245,50 @@ public class RequestLogDAO {
         log.setUserAgent(rs.getString("user_agent"));
         log.setCreatedAt(rs.getTimestamp("created_at"));
         return log;
+    }
+
+    private void appendLogFilters(StringBuilder query, List<Object> params, String search,
+                                  Integer statusMin, Integer statusMax, String toolName, int hours) {
+        if (search != null && !search.isBlank()) {
+            query.append(" AND (rl.tool_name LIKE ? OR CAST(rl.id AS CHAR) LIKE ? OR rl.error_message LIKE ?)");
+            String pattern = "%" + search + "%";
+            params.add(pattern);
+            params.add(pattern);
+            params.add(pattern);
+        }
+
+        if (statusMin != null && statusMax != null) {
+            query.append(" AND rl.status_code BETWEEN ? AND ?");
+            params.add(statusMin);
+            params.add(statusMax);
+        }
+
+        if (toolName != null && !toolName.isBlank()) {
+            query.append(" AND rl.tool_name = ?");
+            params.add(toolName);
+        }
+
+        query.append(" AND rl.created_at >= ?");
+        params.add(timestampHoursAgo(hours));
+    }
+
+    private void bindParams(PreparedStatement ps, List<Object> params) throws SQLException {
+        for (int i = 0; i < params.size(); i++) {
+            Object value = params.get(i);
+            if (value instanceof Integer) {
+                ps.setInt(i + 1, (Integer) value);
+            } else if (value instanceof Timestamp) {
+                ps.setTimestamp(i + 1, (Timestamp) value);
+            } else if (value instanceof Long) {
+                ps.setLong(i + 1, (Long) value);
+            } else {
+                ps.setString(i + 1, String.valueOf(value));
+            }
+        }
+    }
+
+    private Timestamp timestampHoursAgo(int hours) {
+        int safeHours = Math.max(1, hours);
+        return Timestamp.from(Instant.now().minusSeconds(safeHours * 3600L));
     }
 }

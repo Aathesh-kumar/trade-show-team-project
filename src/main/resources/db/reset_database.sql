@@ -2,11 +2,25 @@ DROP DATABASE IF EXISTS Pulse24x7;
 CREATE DATABASE Pulse24x7;
 USE Pulse24x7;
 
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    full_name VARCHAR(120) NOT NULL,
+    email VARCHAR(180) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL DEFAULT 'ADMIN',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 CREATE TABLE servers (
     server_id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
     server_name VARCHAR(100) NOT NULL,
-    server_url VARCHAR(255) NOT NULL UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    server_url VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_servers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT uk_servers_user_url UNIQUE (user_id, server_url),
+    INDEX idx_servers_user_created (user_id, created_at)
 );
 
 CREATE TABLE auth_token (
@@ -99,14 +113,4 @@ CREATE TABLE notifications (
     CONSTRAINT fk_notifications_server FOREIGN KEY (server_id) REFERENCES servers(server_id) ON DELETE SET NULL,
     INDEX idx_notifications_created (created_at DESC),
     INDEX idx_notifications_read (is_read)
-);
-
-CREATE TABLE users (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    full_name VARCHAR(120) NOT NULL,
-    email VARCHAR(180) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL DEFAULT 'ADMIN',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

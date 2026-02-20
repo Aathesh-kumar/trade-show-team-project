@@ -1,9 +1,9 @@
 import RequestLogsStyles from '../../styles/RequestLogs.module.css';
 import RequestLogRow from './RequestLogRow';
-import LoadingSpinner from '../Loading/LoadingSpinner';
 import LoadingSkeleton from '../Loading/LoadingSkeleton';
 
 export default function RequestLogsTable({ logs, selectedLog, onSelectLog, loading }) {
+    const showSkeleton = Boolean(loading);
     return (
         <div className={RequestLogsStyles.tableContainer}>
             <table className={RequestLogsStyles.logsTable}>
@@ -17,22 +17,15 @@ export default function RequestLogsTable({ logs, selectedLog, onSelectLog, loadi
                     </tr>
                 </thead>
                 <tbody>
-                    {loading && logs.length === 0 && (
+                    {showSkeleton && (
                         <tr>
-                            <td colSpan="5">
+                            <td colSpan="5" className={RequestLogsStyles.loadingRow}>
                                 <LoadingSkeleton type="table" lines={6} />
                             </td>
                         </tr>
                     )}
-                    {loading && logs.length > 0 && (
-                        <tr>
-                            <td colSpan="5" className={RequestLogsStyles.loadingRow}>
-                                <LoadingSpinner size="small" text="Refreshing logs..." />
-                            </td>
-                        </tr>
-                    )}
-                    
-                    {logs.map((log) => (
+
+                    {!showSkeleton && logs.map((log) => (
                         <RequestLogRow
                             key={log.id}
                             log={log}
@@ -43,7 +36,7 @@ export default function RequestLogsTable({ logs, selectedLog, onSelectLog, loadi
                 </tbody>
             </table>
 
-            {logs.length === 0 && (
+            {!showSkeleton && logs.length === 0 && (
                 <div className={RequestLogsStyles.emptyState}>
                     <p>No request logs found</p>
                     <span>Requests will appear here in real-time</span>

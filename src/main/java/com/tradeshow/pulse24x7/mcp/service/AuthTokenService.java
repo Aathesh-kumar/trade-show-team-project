@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 
 public class AuthTokenService {
@@ -32,9 +33,14 @@ public class AuthTokenService {
             logger.error("Access token is required");
             return false;
         }
+
+        Timestamp normalizedExpiry = expiresAt;
+        if (normalizedExpiry == null) {
+            normalizedExpiry = Timestamp.from(Instant.now().plusSeconds(3600));
+        }
         
         return authTokenDAO.insertOrUpdateToken(
-                serverId, headerType, accessToken, refreshToken, expiresAt, clientId, clientSecret, tokenEndpoint
+                serverId, headerType, accessToken, refreshToken, normalizedExpiry, clientId, clientSecret, tokenEndpoint
         );
     }
 
@@ -148,6 +154,80 @@ public class AuthTokenService {
             recordTokenRefreshLog(serverId, tokenEndpoint, false, errorBody, e.getMessage());
             throw e;
         }
+    }
+
+    public Map<String, Object> exchangeAuthorizationCode(Integer serverId, String code, String redirectUri, String tokenEndpointOverride) {
+        if (serverId == null || serverId <= 0) {
+            throw new IllegalArgumentException("Invalid serverId");
+        }
+        if (code == null || code.isBlank()) {
+            throw new IllegalArgumentException("Authorization code is required");
+        }
+        if (redirectUri == null || redirectUri.isBlank()) {
+            throw new IllegalArgumentException("redirectUri is required");
+        }
+
+        AuthToken token = getToken(serverId);
+        if (token == null) {
+            throw new IllegalStateException("Auth token not found");
+        }
+        if (token.getClientId() == null || token.getClientId().isBlank()
+                || token.getClientSecret() == null || token.getClientSecret().isBlank()) {
+            throw new IllegalStateException("clientId/clientSecret required for authorization code exchange");
+        }
+
+        String tokenEndpoint;
+        if (tokenEndpointOverride != null && !tokenEndpointOverride.isBlank()) {
+            tokenEndpoint = tokenEndpointOverride.trim();
+        } else {
+            tokenEndpoint = (token.getTokenEndpoint() == null || token.getTokenEndpoint().isBlank())
+                    ? "https://accounts.zoho.in/oauth/v2/token"
+                    : token.getTokenEndpoint();
+        }
+
+        JsonObject response = HttpClientUtil.doPostForm(tokenEndpoint, Map.of(), Map.of(
+                "code", code,
+                "client_id", token.getClientId(),
+                "client_secret", token.getClientSecret(),
+                "redirect_uri", redirectUri,
+                "grant_type", "authorization_code"
+        ));
+
+        if (!response.has("access_token")) {
+            throw new IllegalStateException("Token exchange failed: " + response);
+        }
+
+        String newAccessToken = response.get("access_token").getAsString();
+        String newRefreshToken = response.has("refresh_token") && !response.get("refresh_token").isJsonNull()
+                ? response.get("refresh_token").getAsString()
+                : token.getRefreshToken();
+
+        Timestamp expiresAt = null;
+        if (response.has("expires_in_sec") && !response.get("expires_in_sec").isJsonNull()) {
+            long seconds = response.get("expires_in_sec").getAsLong();
+            expiresAt = Timestamp.from(Instant.now().plusSeconds(seconds));
+        }
+
+        boolean saved = saveToken(
+                serverId,
+                (token.getHeaderType() == null || token.getHeaderType().isBlank()) ? "Bearer" : token.getHeaderType(),
+                newAccessToken,
+                newRefreshToken,
+                expiresAt,
+                token.getClientId(),
+                token.getClientSecret(),
+                tokenEndpoint
+        );
+        if (!saved) {
+            throw new IllegalStateException("Failed to persist exchanged tokens");
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "OAuth tokens regenerated");
+        result.put("accessToken", newAccessToken);
+        result.put("refreshToken", newRefreshToken);
+        result.put("expiresAt", expiresAt);
+        return result;
     }
 
     private void recordTokenRefreshLog(Integer serverId, String tokenEndpoint, boolean success,

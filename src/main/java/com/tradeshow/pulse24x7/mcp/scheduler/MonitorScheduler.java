@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
+import java.util.Properties;
 
 @WebListener
 public class MonitorScheduler implements ServletContextListener {
@@ -18,20 +19,23 @@ public class MonitorScheduler implements ServletContextListener {
         logger.info("Initializing MCP Monitor Scheduler");
         
         try {
-            // Create scheduler
-            scheduler = StdSchedulerFactory.getDefaultScheduler();
+            Properties quartzProps = new Properties();
+            quartzProps.setProperty("org.quartz.scheduler.instanceName", "Pulse24x7Scheduler");
+            quartzProps.setProperty("org.quartz.threadPool.threadCount", "1");
+            quartzProps.setProperty("org.quartz.threadPool.threadPriority", "5");
+            scheduler = new StdSchedulerFactory(quartzProps).getScheduler();
             
             // Create server monitoring job
             JobDetail serverMonitorJob = JobBuilder.newJob(ServerMonitorTask.class)
                     .withIdentity("ServerMonitorJob", "MCP_MONITOR_GROUP")
                     .build();
             
-            // Create trigger for server monitoring (runs every 5 minutes)
+            // Create trigger for server monitoring (runs every hour)
             Trigger serverMonitorTrigger = TriggerBuilder.newTrigger()
                     .withIdentity("ServerMonitorTrigger", "MCP_MONITOR_GROUP")
                     .startNow()
                     .withSchedule(SimpleScheduleBuilder.simpleSchedule()
-                            .withIntervalInMinutes(5)
+                            .withIntervalInMinutes(30)
                             .repeatForever())
                     .build();
             
@@ -42,7 +46,7 @@ public class MonitorScheduler implements ServletContextListener {
             scheduler.start();
             
             logger.info("MCP Monitor Scheduler started successfully. " +
-                    "Monitoring interval: {} minutes", 5);
+                    "Monitoring interval: {} minutes", 30);
             
         } catch (SchedulerException e) {
             logger.error("Failed to start scheduler", e);

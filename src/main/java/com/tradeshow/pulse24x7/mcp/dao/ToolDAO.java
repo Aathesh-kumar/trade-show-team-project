@@ -120,6 +120,28 @@ public class ToolDAO {
         return tools;
     }
 
+    public List<Tool> getToolsByServerSnapshot(Integer serverId, Timestamp snapshotAt) {
+        logger.debug("Fetching tools snapshot for server ID: {} at {}", serverId, snapshotAt);
+        List<Tool> tools = new ArrayList<>();
+
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.GET_TOOLS_BY_SERVER_SNAPSHOT)) {
+            ps.setTimestamp(1, snapshotAt);
+            ps.setTimestamp(2, snapshotAt);
+            ps.setInt(3, serverId);
+            ps.setTimestamp(4, snapshotAt);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    tools.add(mapResultSetToTool(rs));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to fetch tools snapshot for server ID: {}", serverId, e);
+        }
+        return tools;
+    }
+
     public boolean updateToolAvailability(Integer toolId, Boolean isAvailable) {
         logger.info("Updating tool availability: toolId={}, available={}", toolId, isAvailable);
 

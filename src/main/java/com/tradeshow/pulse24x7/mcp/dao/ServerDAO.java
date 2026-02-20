@@ -13,14 +13,15 @@ import java.util.List;
 public class ServerDAO {
     private static final Logger logger = LogManager.getLogger(ServerDAO.class);
 
-    public Integer insertServer(String serverName, String serverUrl) {
-        logger.info("Inserting server: {} - {}", serverName, serverUrl);
+    public Integer insertServer(Long userId, String serverName, String serverUrl) {
+        logger.info("Inserting server for userId={}: {} - {}", userId, serverName, serverUrl);
 
         try (Connection con = DBConnection.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(DBQueries.INSERT_SERVER, Statement.RETURN_GENERATED_KEYS)) {
 
-            ps.setString(1, serverName);
-            ps.setString(2, serverUrl);
+            ps.setLong(1, userId);
+            ps.setString(2, serverName);
+            ps.setString(3, serverUrl);
 
             int affectedRows = ps.executeUpdate();
 
@@ -39,13 +40,14 @@ public class ServerDAO {
         return null;
     }
 
-    public Server getServerById(Integer serverId) {
-        logger.debug("Fetching server by ID: {}", serverId);
+    public Server getServerById(Integer serverId, Long userId) {
+        logger.debug("Fetching server by ID: {} for userId={}", serverId, userId);
 
         try (Connection con = DBConnection.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(DBQueries.GET_SERVER_BY_ID)) {
 
             ps.setInt(1, serverId);
+            ps.setLong(2, userId);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -58,13 +60,33 @@ public class ServerDAO {
         return null;
     }
 
-    public Server getServerByUrl(String serverUrl) {
-        logger.debug("Fetching server by URL: {}", serverUrl);
+    public Server getServerByIdGlobal(Integer serverId) {
+        logger.debug("Fetching server by ID globally: {}", serverId);
+
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.GET_SERVER_BY_ID_GLOBAL)) {
+
+            ps.setInt(1, serverId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToServer(rs);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to fetch server by ID globally: {}", serverId, e);
+        }
+        return null;
+    }
+
+    public Server getServerByUrl(String serverUrl, Long userId) {
+        logger.debug("Fetching server by URL: {} for userId={}", serverUrl, userId);
 
         try (Connection con = DBConnection.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(DBQueries.GET_SERVER_BY_URL)) {
 
             ps.setString(1, serverUrl);
+            ps.setLong(2, userId);
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -77,27 +99,42 @@ public class ServerDAO {
         return null;
     }
 
-    public List<Server> getAllServers() {
-        logger.debug("Fetching all servers");
+    public List<Server> getAllServers(Long userId) {
+        logger.debug("Fetching all servers for userId={}", userId);
         List<Server> servers = new ArrayList<>();
 
         try (Connection con = DBConnection.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(DBQueries.GET_ALL_SERVERS);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                servers.add(mapResultSetToServer(rs));
+             PreparedStatement ps = con.prepareStatement(DBQueries.GET_ALL_SERVERS)) {
+            ps.setLong(1, userId);
+            try (ResultSet rows = ps.executeQuery()) {
+                while (rows.next()) {
+                    servers.add(mapResultSetToServer(rows));
+                }
             }
-
-            logger.info("Fetched {} servers", servers.size());
         } catch (SQLException e) {
-            logger.error("Failed to fetch all servers", e);
+            logger.error("Failed to fetch all servers for userId={}", userId, e);
         }
         return servers;
     }
 
-    public boolean updateServer(Integer serverId, String serverName, String serverUrl) {
-        logger.info("Updating server ID {}: {} - {}", serverId, serverName, serverUrl);
+    public List<Server> getAllServersGlobal() {
+        logger.debug("Fetching all servers globally");
+        List<Server> servers = new ArrayList<>();
+
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.GET_ALL_SERVERS_GLOBAL);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                servers.add(mapResultSetToServer(rs));
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to fetch all servers globally", e);
+        }
+        return servers;
+    }
+
+    public boolean updateServer(Integer serverId, Long userId, String serverName, String serverUrl) {
+        logger.info("Updating server ID {} for userId={}: {} - {}", serverId, userId, serverName, serverUrl);
 
         try (Connection con = DBConnection.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(DBQueries.UPDATE_SERVER)) {
@@ -105,6 +142,7 @@ public class ServerDAO {
             ps.setString(1, serverName);
             ps.setString(2, serverUrl);
             ps.setInt(3, serverId);
+            ps.setLong(4, userId);
 
             int affectedRows = ps.executeUpdate();
 
@@ -118,13 +156,14 @@ public class ServerDAO {
         return false;
     }
 
-    public boolean deleteServer(Integer serverId) {
-        logger.info("Deleting server ID: {}", serverId);
+    public boolean deleteServer(Integer serverId, Long userId) {
+        logger.info("Deleting server ID={} for userId={}", serverId, userId);
 
         try (Connection con = DBConnection.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(DBQueries.DELETE_SERVER)) {
 
             ps.setInt(1, serverId);
+            ps.setLong(2, userId);
 
             int affectedRows = ps.executeUpdate();
 
@@ -138,13 +177,14 @@ public class ServerDAO {
         return false;
     }
 
-    public boolean serverExists(String serverUrl) {
-        return getServerByUrl(serverUrl) != null;
+    public boolean serverExists(String serverUrl, Long userId) {
+        return getServerByUrl(serverUrl, userId) != null;
     }
 
     private Server mapResultSetToServer(ResultSet rs) throws SQLException {
         return new Server(
                 rs.getInt("server_id"),
+                rs.getLong("user_id"),
                 rs.getString("server_name"),
                 rs.getString("server_url"),
                 rs.getTimestamp("created_at")

@@ -26,10 +26,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @WebServlet("/tool/*")
 public class ToolServlet extends HttpServlet {
@@ -65,7 +65,7 @@ public class ToolServlet extends HttpServlet {
             } else if (pathInfo.equals("/history")) {
                 handleGetToolHistory(req, resp);
             } else if (pathInfo.matches("/\\d+")) {
-                handleGetToolById(resp, pathInfo);
+                handleGetToolById(req, resp, pathInfo);
             } else {
                 sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
             }
@@ -96,9 +96,18 @@ public class ToolServlet extends HttpServlet {
     }
 
     private void handleGetToolsByServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         Integer serverId = parseInt(req.getParameter("serverId"));
         if (serverId == null) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        if (serverService.getServerById(serverId, userId) == null) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
             return;
         }
 
@@ -107,32 +116,43 @@ public class ToolServlet extends HttpServlet {
                 ? toolService.getToolsByServer(serverId)
                 : toolService.getAvailableTools(serverId);
         Double hours = parseDouble(req.getParameter("hours"));
+        Integer minutes = parseInt(req.getParameter("minutes"));
         String start = req.getParameter("start");
         String end = req.getParameter("end");
 
-        if (hours != null && hours > 0) {
+        if (minutes != null && minutes > 0) {
+            Timestamp cutoff = Timestamp.valueOf(LocalDateTime.now().minusMinutes(minutes));
+            tools = toolService.getToolsByServerSnapshot(serverId, cutoff);
+        } else if (hours != null && hours > 0) {
             Timestamp cutoff = Timestamp.from(Instant.now().minusSeconds((long) (hours * 3600)));
-            tools = tools.stream()
-                    .filter(t -> t.getLastModify() != null && t.getLastModify().after(cutoff))
-                    .collect(Collectors.toList());
+            tools = toolService.getToolsByServerSnapshot(serverId, cutoff);
         } else if (start != null && end != null) {
             Timestamp startTs = parseTimestamp(start);
-            Timestamp endTs = parseTimestamp(end);
-            if (startTs != null && endTs != null) {
-                tools = tools.stream()
-                        .filter(t -> t.getLastModify() != null
-                                && !t.getLastModify().before(startTs)
-                                && !t.getLastModify().after(endTs))
-                        .collect(Collectors.toList());
+            if (startTs != null) {
+                tools = toolService.getToolsByServerSnapshot(serverId, startTs);
             }
+        }
+        if (!includeInactive) {
+            tools = tools.stream()
+                    .filter(t -> Boolean.TRUE.equals(t.getIsAvailability()))
+                    .toList();
         }
         sendSuccessResponse(resp, tools);
     }
 
     private void handleGetActiveTools(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         Integer serverId = parseInt(req.getParameter("serverId"));
         if (serverId == null) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        if (serverService.getServerById(serverId, userId) == null) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
             return;
         }
 
@@ -140,7 +160,12 @@ public class ToolServlet extends HttpServlet {
         sendSuccessResponse(resp, tools);
     }
 
-    private void handleGetToolById(HttpServletResponse resp, String pathInfo) throws IOException {
+    private void handleGetToolById(HttpServletRequest req, HttpServletResponse resp, String pathInfo) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         Integer toolId = parseInt(pathInfo.substring(1));
         if (toolId == null) {
             sendErrorResponse(resp, "Invalid tool ID", HttpServletResponse.SC_BAD_REQUEST);
@@ -152,17 +177,31 @@ public class ToolServlet extends HttpServlet {
             sendErrorResponse(resp, "Tool not found", HttpServletResponse.SC_NOT_FOUND);
             return;
         }
+        if (serverService.getServerById(tool.getServerId(), userId) == null) {
+            sendErrorResponse(resp, "Tool not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
 
         sendSuccessResponse(resp, tool);
     }
 
     private void handleGetToolHistory(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         Integer toolId = parseInt(req.getParameter("toolId"));
         if (toolId == null) {
             sendErrorResponse(resp, "Tool ID is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
+        Tool tool = toolService.getToolById(toolId);
+        if (tool == null || serverService.getServerById(tool.getServerId(), userId) == null) {
+            sendErrorResponse(resp, "Tool not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
         int hours = parseInt(req.getParameter("hours"), 24);
         List<ToolHistory> history = toolService.getToolHistoryLastHours(toolId, hours);
         Double availabilityPercent = toolService.getToolAvailabilityPercent(toolId);
@@ -174,6 +213,11 @@ public class ToolServlet extends HttpServlet {
     }
 
     private void handleRefreshTools(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         JsonObject payload = ServletUtil.readJsonBody(req);
         Integer serverId = ServletUtil.getInteger(payload, "serverId", null);
 
@@ -182,7 +226,7 @@ public class ToolServlet extends HttpServlet {
             return;
         }
 
-        Server server = serverService.getServerById(serverId);
+        Server server = serverService.getServerById(serverId, userId);
         if (server == null) {
             sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
             return;
@@ -191,12 +235,21 @@ public class ToolServlet extends HttpServlet {
         AuthToken token = authTokenService.getToken(serverId);
         String accessToken = authTokenService.ensureValidAccessToken(serverId);
         String headerType = token != null ? token.getHeaderType() : "Bearer";
+        if (accessToken == null || accessToken.isBlank()) {
+            sendErrorResponse(resp, "Access token is not configured for this server", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
 
         List<Tool> tools = toolService.fetchAndUpdateTools(serverId, server.getServerUrl(), accessToken, headerType);
         sendSuccessResponse(resp, tools);
     }
 
     private void handleTestTool(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         JsonObject payload = ServletUtil.readJsonBody(req);
         Integer serverId = ServletUtil.getInteger(payload, "serverId", null);
         Integer toolId = ServletUtil.getInteger(payload, "toolId", null);
@@ -208,7 +261,7 @@ public class ToolServlet extends HttpServlet {
             return;
         }
 
-        Server server = serverService.getServerById(serverId);
+        Server server = serverService.getServerById(serverId, userId);
         if (server == null) {
             sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
             return;
@@ -217,6 +270,10 @@ public class ToolServlet extends HttpServlet {
         AuthToken token = authTokenService.getToken(serverId);
         String accessToken = authTokenService.ensureValidAccessToken(serverId);
         String headerType = token != null ? token.getHeaderType() : "Bearer";
+        if (accessToken == null || accessToken.isBlank()) {
+            sendErrorResponse(resp, "Access token is not configured for this server", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
         JsonObject inputParams = toolService.parseJsonObjectSafely(inputParamsRaw);
 
         long start = System.currentTimeMillis();
@@ -224,28 +281,32 @@ public class ToolServlet extends HttpServlet {
         int statusCode = HttpServletResponse.SC_OK;
         String statusText = "OK";
         String errorMessage = null;
+        boolean scopeRelatedFailure = false;
 
         try {
             responseData = toolService.executeTool(serverId, server.getServerUrl(), headerType, accessToken, toolName, inputParams);
-        } catch (HttpClientUtil.HttpRequestException ex) {
-            responseData = new JsonObject();
-            responseData.addProperty("statusCode", ex.getStatusCode());
-            if (ex.getErrorCode() != null) {
-                responseData.addProperty("error_code", ex.getErrorCode());
+            if (toolService.hasScopeErrorPayload(responseData)) {
+                statusCode = HttpServletResponse.SC_BAD_REQUEST;
+                statusText = "ERR";
+                errorMessage = "Insufficient OAuth scope for this tool execution";
+                scopeRelatedFailure = true;
             }
-            responseData.addProperty("message", ex.getMessage());
-            if (ex.getResponseBody() != null) {
-                responseData.addProperty("raw", ex.getResponseBody());
-            }
-            statusCode = ex.getStatusCode() > 0 ? ex.getStatusCode() : HttpServletResponse.SC_BAD_GATEWAY;
-            statusText = "ERR";
-            errorMessage = ex.getMessage();
         } catch (Exception ex) {
             responseData = new JsonObject();
             responseData.addProperty("error", ex.getMessage());
-            statusCode = HttpServletResponse.SC_BAD_GATEWAY;
+            boolean isScopeError = toolService.isScopeRelatedError(ex.getMessage());
+            if (ex instanceof HttpClientUtil.HttpRequestException httpEx) {
+                isScopeError = isScopeError || toolService.isScopeRelatedError(httpEx.getResponseBody());
+                responseData.addProperty("upstreamBody", httpEx.getResponseBody());
+                if (!isScopeError) {
+                    isScopeError = toolService.hasScopeErrorPayload(responseData);
+                }
+            }
+            responseData.addProperty("errorCode", isScopeError ? "scope_mismatch" : "tool_execution_error");
+            statusCode = isScopeError ? HttpServletResponse.SC_BAD_REQUEST : HttpServletResponse.SC_BAD_GATEWAY;
             statusText = "ERR";
             errorMessage = ex.getMessage();
+            scopeRelatedFailure = isScopeError;
         }
 
         long latency = System.currentTimeMillis() - start;
@@ -271,20 +332,11 @@ public class ToolServlet extends HttpServlet {
         );
 
         if (statusCode >= 400) {
-            String derivedMessage = errorMessage;
-            if (responseData != null) {
-                String code = responseData.has("error_code") ? responseData.get("error_code").getAsString() : null;
-                String msg = responseData.has("message") ? responseData.get("message").getAsString() : null;
-                if (msg == null && responseData.has("error")) {
-                    msg = responseData.get("error").getAsString();
-                }
-                if (code != null && msg != null) {
-                    derivedMessage = code + ": " + msg;
-                } else if (msg != null) {
-                    derivedMessage = msg;
-                }
+            if (scopeRelatedFailure || toolService.isScopeRelatedError(errorMessage) || toolService.hasScopeErrorPayload(responseData)) {
+                sendScopeRecoveryError(resp, errorMessage, statusCode);
+                return;
             }
-            sendErrorResponse(resp, derivedMessage == null ? "Tool execution failed" : derivedMessage, statusCode);
+            sendErrorResponse(resp, errorMessage == null ? "Tool execution failed" : errorMessage, statusCode);
         } else {
             Map<String, Object> response = new HashMap<>();
             response.put("result", responseData);
@@ -322,6 +374,11 @@ public class ToolServlet extends HttpServlet {
         }
     }
 
+    private Long getUserId(HttpServletRequest req) {
+        Object uid = req.getAttribute("userId");
+        return (uid instanceof Long) ? (Long) uid : null;
+    }
+
     private void sendSuccessResponse(HttpServletResponse resp, Object data) throws IOException {
         JsonObject response = JsonUtil.createSuccessResponse(data);
         resp.setStatus(HttpServletResponse.SC_OK);
@@ -331,6 +388,15 @@ public class ToolServlet extends HttpServlet {
     private void sendErrorResponse(HttpServletResponse resp, String message, int statusCode)
             throws IOException {
         JsonObject response = JsonUtil.createErrorResponse(message);
+        resp.setStatus(statusCode);
+        resp.getWriter().write(response.toString());
+    }
+
+    private void sendScopeRecoveryError(HttpServletResponse resp, String message, int statusCode) throws IOException {
+        JsonObject response = JsonUtil.createErrorResponse(message == null ? "OAuth scope mismatch" : message);
+        response.addProperty("errorCode", "scope_mismatch");
+        response.addProperty("actionMessage", "Invalid or insufficient scope. Enter correct scope, regenerate OAuth token, and update access/refresh tokens.");
+        response.addProperty("requiredScope", "ZohoMCP.tool.execute");
         resp.setStatus(statusCode);
         resp.getWriter().write(response.toString());
     }

@@ -1,6 +1,6 @@
 import AsideItem from "./AsideItem";
 import AsideStyles from '../styles/Aside.module.css';
-import { MdDashboard, MdListAlt, MdBuild, MdSettings } from "react-icons/md";
+import { MdDashboard, MdListAlt, MdBuild, MdSettings, MdDonutLarge } from "react-icons/md";
 import pulseLogo from '../assets/pulse24x7-logo.png';
 
 export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate, activeServer, onLogout }) {
@@ -37,6 +37,13 @@ export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate, ac
                         onClick={() => onNavigate('tools')}
                     >
                         Tools
+                    </AsideItem>
+                    <AsideItem
+                        icon={<MdDonutLarge />}
+                        active={currentPage === 'analytics'}
+                        onClick={() => onNavigate('analytics')}
+                    >
+                        Analytics
                     </AsideItem>
                     <AsideItem
                         icon={<MdSettings />}

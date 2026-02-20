@@ -47,10 +47,20 @@ public class MetricsServlet extends HttpServlet {
             sendErrorResponse(resp, "serverId is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+        if (serverService.getServerById(serverId, userId) == null) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
         int hours = parseInt(req.getParameter("hours"), 24);
         int bucketMinutes = parseInt(req.getParameter("bucketMinutes"), 30);
+        int bucketSeconds = parseInt(req.getParameter("bucketSeconds"), 0);
 
-        List<Server> servers = serverService.getAllServers();
+        List<Server> servers = serverService.getAllServers(userId);
         Double uptimePercent = serverService.getUptimePercent(serverId);
         int activeServerCount = 0;
         for (Server server : servers) {
@@ -60,7 +70,7 @@ public class MetricsServlet extends HttpServlet {
             }
         }
         sendSuccessResponse(resp, requestLogService.getDashboardMetrics(
-                serverId, activeServerCount, uptimePercent, hours, bucketMinutes
+                serverId, activeServerCount, uptimePercent, hours, bucketMinutes, bucketSeconds
         ));
     }
 
@@ -75,6 +85,11 @@ public class MetricsServlet extends HttpServlet {
     private int parseInt(String value, int fallback) {
         Integer parsed = parseInt(value);
         return parsed == null ? fallback : parsed;
+    }
+
+    private Long getUserId(HttpServletRequest req) {
+        Object uid = req.getAttribute("userId");
+        return (uid instanceof Long) ? (Long) uid : null;
     }
 
     private void sendSuccessResponse(HttpServletResponse resp, Object data) throws IOException {

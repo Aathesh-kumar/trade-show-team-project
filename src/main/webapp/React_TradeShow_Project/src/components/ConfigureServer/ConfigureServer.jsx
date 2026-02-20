@@ -20,6 +20,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
         expiresAt: '',
         clientId: '',
         clientSecret: '',
+        oauthBaseUrl: 'https://accounts.zoho.in',
         tokenEndpoint: 'https://accounts.zoho.in/oauth/v2/token',
         connectionTimeout: 5000,
         autoReconnect: true
@@ -39,8 +40,26 @@ export default function ConfigureServer({ onClose, onSuccess }) {
             if (!data.serverUrl || !/^https?:\/\/.+/.test(data.serverUrl)) {
                 return 'Invalid server URL format (must start with http:// or https://)';
             }
-            if (data.accessToken && data.accessToken.trim().length < 10) {
-                return 'Access token must be at least 10 characters';
+            if (!data.headerType || !String(data.headerType).trim()) {
+                return 'Header type is required';
+            }
+            if (!data.accessToken || data.accessToken.trim().length < 10) {
+                return 'Access token is required and must be at least 10 characters';
+            }
+            if (!data.refreshToken || data.refreshToken.trim().length < 10) {
+                return 'Refresh token is required and must be at least 10 characters';
+            }
+            if (!data.clientId || !String(data.clientId).trim()) {
+                return 'Client ID is required';
+            }
+            if (!data.clientSecret || !String(data.clientSecret).trim()) {
+                return 'Client Secret is required';
+            }
+            if (!data.oauthBaseUrl || !/^https?:\/\/.+/.test(data.oauthBaseUrl)) {
+                return 'OAuth Base URL is required and must be valid';
+            }
+            if (!data.tokenEndpoint || !/^https?:\/\/.+/.test(data.tokenEndpoint)) {
+                return 'Token Endpoint is required and must be valid';
             }
             return true;
         },
@@ -92,7 +111,11 @@ export default function ConfigureServer({ onClose, onSuccess }) {
         e.preventDefault();
     
         try {
-            await execute(formData);
+            const payload = {
+                ...formData,
+                expiresAt: formData.expiresAt || getDefaultExpiryIso()
+            };
+            await execute(payload);
         } catch (err) {
             // handled in hook
         }
@@ -185,6 +208,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                             placeholder="Zoho OAuth client id"
                             value={formData.clientId}
                             onChange={(value) => handleInputChange('clientId', value)}
+                            required
                             tooltip="Required to regenerate access token from refresh token"
                         />
 
@@ -195,8 +219,23 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                             value={formData.clientSecret}
                             onChange={(value) => handleInputChange('clientSecret', value)}
                             showToggle
+                            required
                             onToggle={() => setShowClientSecret(!showClientSecret)}
                             tooltip="Stored for backend token refresh flow"
+                        />
+
+                        <InputField
+                            label="OAuth Base URL"
+                            placeholder="https://accounts.zoho.in"
+                            value={formData.oauthBaseUrl}
+                            onChange={(value) => {
+                                const normalized = value.replace(/\/$/, '');
+                                handleInputChange('oauthBaseUrl', normalized);
+                                handleInputChange('tokenEndpoint', `${normalized}/oauth/v2/token`);
+                            }}
+                            required
+                            tooltip="Base URL used to build OAuth authorize/token endpoints"
+                            icon="link"
                         />
 
                         <InputField
@@ -204,6 +243,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                             placeholder="https://accounts.zoho.in/oauth/v2/token"
                             value={formData.tokenEndpoint}
                             onChange={(value) => handleInputChange('tokenEndpoint', value)}
+                            required
                             tooltip="OAuth refresh endpoint"
                         />
 
@@ -314,4 +354,10 @@ export default function ConfigureServer({ onClose, onSuccess }) {
             )}
         </div>
     );
+}
+
+function getDefaultExpiryIso() {
+    const d = new Date(Date.now() + 60 * 60 * 1000);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

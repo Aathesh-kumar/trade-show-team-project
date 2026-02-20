@@ -1,6 +1,5 @@
 package com.tradeshow.pulse24x7.mcp.service;
 
-import com.google.gson.JsonObject;
 import com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO;
 import com.tradeshow.pulse24x7.mcp.dao.ToolDAO;
 import com.tradeshow.pulse24x7.mcp.dao.ToolHistoryDAO;
@@ -29,7 +28,6 @@ public class MonitoringService {
     private final ToolDAO toolDAO;
     private final ToolHistoryDAO toolHistoryDAO;
     private final NotificationService notificationService;
-    private final RequestLogService requestLogService;
 
     public MonitoringService() {
         this.serverService = new ServerService();
@@ -39,14 +37,13 @@ public class MonitoringService {
         this.toolDAO = new ToolDAO();
         this.toolHistoryDAO = new ToolHistoryDAO();
         this.notificationService = new NotificationService();
-        this.requestLogService = new RequestLogService();
     }
 
     public void monitorServer(Integer serverId) {
         logger.info("Starting server monitoring for server ID: {}", serverId);
         
         try {
-            Server server = serverService.getServerById(serverId);
+            Server server = serverService.getServerByIdGlobal(serverId);
             if (server == null) {
                 logger.error("Server not found: " + serverId);
                 return;
@@ -66,7 +63,10 @@ public class MonitoringService {
                     AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, accessToken),
                     JsonUtil.createMCPRequest("ping", Map.of()).toString()
             );
-            if (!pingResult.isSuccess() && accessToken != null && !accessToken.isBlank()) {
+            if (!pingResult.isSuccess()
+                    && accessToken != null
+                    && !accessToken.isBlank()
+                    && shouldAttemptTokenRefresh(serverId, pingResult)) {
                 try {
                     String refreshedToken = authTokenService.refreshAccessToken(serverId);
                     pingResult = HttpClientUtil.canPingServer(
@@ -79,7 +79,6 @@ public class MonitoringService {
                 }
             }
             boolean serverUp = pingResult.isSuccess();
-            recordSchedulerLog(serverId, server.getServerUrl(), pingResult);
             logger.info("Server {} is {}", serverId, serverUp ? "UP" : "DOWN");
             
             int toolCount = 0;
@@ -154,10 +153,24 @@ public class MonitoringService {
         }
     }
 
+    private boolean shouldAttemptTokenRefresh(Integer serverId, HttpResult pingResult) {
+        if (pingResult == null) {
+            return false;
+        }
+        if (pingResult.getStatusCode() == 401 && authTokenService.isTokenExpired(serverId, 0)) {
+            return true;
+        }
+        String lowerError = pingResult.getErrorMessage() == null ? "" : pingResult.getErrorMessage().toLowerCase();
+        if (lowerError.contains("invalid_oauthtoken") || lowerError.contains("invalid oauth token")) {
+            return true;
+        }
+        return false;
+    }
+
     public void monitorAllServers() {
         logger.info("Starting monitoring for all servers");
         
-        List<Server> servers = serverService.getAllServers();
+        List<Server> servers = serverService.getAllServersGlobal();
         logger.info("Found {} servers to monitor", servers.size());
         
         for (Server server : servers) {
@@ -186,38 +199,5 @@ public class MonitoringService {
         } catch (Exception e) {
             logger.error("Failed to check tool availability for server ID: {}", serverId, e);
         }
-    }
-
-    private void recordSchedulerLog(Integer serverId, String serverUrl, HttpResult pingResult) {
-        JsonObject requestPayload = new JsonObject();
-        requestPayload.addProperty("event", "scheduler_ping");
-        requestPayload.addProperty("url", serverUrl);
-        requestPayload.addProperty("method", "ping");
-
-        JsonObject responseBody = new JsonObject();
-        responseBody.addProperty("success", pingResult.isSuccess());
-        responseBody.addProperty("statusCode", pingResult.getStatusCode());
-        if (pingResult.getResponseBody() != null) {
-            responseBody.addProperty("responseBody", pingResult.getResponseBody());
-        }
-        if (pingResult.getErrorMessage() != null) {
-            responseBody.addProperty("error", pingResult.getErrorMessage());
-        }
-
-        requestLogService.record(
-                requestLogService.buildRequestLog(
-                        serverId,
-                        null,
-                        "__SCHEDULER_MONITOR__",
-                        "POST",
-                        pingResult.isSuccess() ? 200 : 502,
-                        pingResult.isSuccess() ? "OK" : "ERR",
-                        0L,
-                        requestPayload,
-                        responseBody,
-                        pingResult.getErrorMessage(),
-                        "Pulse24x7-Scheduler"
-                )
-        );
     }
 }

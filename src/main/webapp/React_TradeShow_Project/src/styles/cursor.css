@@ -1,0 +1,16 @@
+:root {
+  --cursor-default: url("../assets/iOS_default_cursor.svg") 0 0, auto;
+  --cursor-pointer: url("../assets/iOS_pointer_cursor.svg") 5 0, pointer;
+  --cursor-grab: url("../assets/iOS_grab_cursor.svg") 8 8, grab;
+  --cursor-grabbing: url("../assets/iOS_grabbed_cursor.svg") 8 8, grabbing;
+  --cursor-text: url("../assets/iOS_text_cursor.svg") 4 10, text;
+}
+
+.cursor-default { cursor: var(--cursor-default); }
+.cursor-pointer { cursor: var(--cursor-pointer); }
+.cursor-grab { cursor: var(--cursor-grab); }
+.cursor-text { cursor: var(--cursor-text); }
+
+.cursor-grab:active {
+  cursor: var(--cursor-grabbing);
+}

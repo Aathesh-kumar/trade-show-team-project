@@ -3,11 +3,11 @@ package com.tradeshow.pulse24x7.mcp.dao;
 import com.tradeshow.pulse24x7.mcp.model.ToolHistory;
 import com.tradeshow.pulse24x7.mcp.db.DBConnection;
 import com.tradeshow.pulse24x7.mcp.utils.DBQueries;
-import com.tradeshow.pulse24x7.mcp.utils.TimeUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.*;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -89,7 +89,7 @@ public class ToolHistoryDAO {
         logger.debug("Fetching tool history for tool ID: {} for last {} hours", toolId, hours);
         List<ToolHistory> historyList = new ArrayList<>();
 
-        Timestamp cutoffTime = TimeUtil.getTimestampHoursAgo(hours);
+        Timestamp cutoffTime = Timestamp.from(Instant.now().minusSeconds(Math.max(1, hours) * 3600L));
 
         try (Connection con = DBConnection.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(DBQueries.GET_TOOL_HISTORY_LAST_HOURS)) {
@@ -129,6 +129,34 @@ public class ToolHistoryDAO {
             logger.error("Failed to fetch availability percentage for tool ID: {}", toolId, e);
         }
         return 0.0;
+    }
+
+    public boolean existsSince(Integer toolId, Timestamp since) {
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.EXISTS_TOOL_HISTORY_SINCE)) {
+            ps.setInt(1, toolId);
+            ps.setTimestamp(2, since);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to check tool history existence for tool ID: {}", toolId, e);
+            return false;
+        }
+    }
+
+    public boolean existsAvailableSince(Integer toolId, Timestamp since) {
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.EXISTS_TOOL_AVAILABLE_HISTORY_SINCE)) {
+            ps.setInt(1, toolId);
+            ps.setTimestamp(2, since);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to check available tool history existence for tool ID: {}", toolId, e);
+            return false;
+        }
     }
 
     private ToolHistory mapResultSetToToolHistory(ResultSet rs) throws SQLException {

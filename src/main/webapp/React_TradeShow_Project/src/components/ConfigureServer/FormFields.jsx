@@ -1,5 +1,5 @@
 import ConfigureServerStyles from '../../styles/ConfigureServer.module.css';
-import { MdExpandMore, MdInfoOutline, MdCheck, MdClose, MdCheckCircle, MdErrorOutline } from 'react-icons/md';
+import { MdInfoOutline, MdCheck, MdClose, MdCheckCircle, MdErrorOutline } from 'react-icons/md';
 import { useState } from 'react';
 import CustomDropdown from '../Common/CustomDropdown';
 
@@ -7,9 +7,7 @@ export function SelectField({ label, value, onChange, options }) {
     const [isCustom, setIsCustom] = useState(false);
     const [customValue, setCustomValue] = useState('');
 
-    const handleSelectChange = (e) => {
-        const selectedValue = e.target.value;
-        
+    const handleSelectChange = (selectedValue) => {
         if (selectedValue === '__custom__') {
             setIsCustom(true);
             onChange(customValue || '');
@@ -28,18 +26,19 @@ export function SelectField({ label, value, onChange, options }) {
     return (
         <div className={ConfigureServerStyles.selectField}>
             <label>{label}</label>
-
+            
             {!isCustom ? (
                 <div className={ConfigureServerStyles.selectWrapper}>
                     <CustomDropdown
-                        value={options.includes(value) ? value : '__custom__'}
-                        onChange={(nextValue) => handleSelectChange({ target: { value: nextValue } })}
+                        value={options.includes(value) ? value : '__custom__'} 
+                        onChange={handleSelectChange}
                         options={[
                             ...options.map((option) => ({ value: option, label: option })),
                             { value: '__custom__', label: 'Custom Header Type...' }
                         ]}
+                        buttonClassName={ConfigureServerStyles.selectDropdownButton}
+                        menuClassName={ConfigureServerStyles.selectDropdownMenu}
                     />
-                    <MdExpandMore className={ConfigureServerStyles.selectIcon} />
                 </div>
             ) : (
                 <div className={ConfigureServerStyles.customHeaderWrapper}>

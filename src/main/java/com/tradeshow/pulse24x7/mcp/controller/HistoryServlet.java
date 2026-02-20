@@ -61,6 +61,11 @@ public class HistoryServlet extends HttpServlet {
 
     private void handleGetServerHistory(HttpServletRequest req, HttpServletResponse resp) 
             throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         String serverIdStr = req.getParameter("serverId");
         String hoursStr = req.getParameter("hours");
         
@@ -71,6 +76,10 @@ public class HistoryServlet extends HttpServlet {
         
         try {
             Integer serverId = Integer.parseInt(serverIdStr);
+            if (!serverService.isServerOwnedByUser(serverId, userId)) {
+                sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
             int hours = hoursStr != null ? Integer.parseInt(hoursStr) : 24;
             
             List<ServerHistory> history = serverService.getServerHistoryLastHours(serverId, hours);
@@ -89,6 +98,11 @@ public class HistoryServlet extends HttpServlet {
 
     private void handleGetToolHistory(HttpServletRequest req, HttpServletResponse resp) 
             throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         String toolIdStr = req.getParameter("toolId");
         String hoursStr = req.getParameter("hours");
         
@@ -99,6 +113,11 @@ public class HistoryServlet extends HttpServlet {
         
         try {
             Integer toolId = Integer.parseInt(toolIdStr);
+            var tool = toolService.getToolById(toolId);
+            if (tool == null || serverService.getServerById(tool.getServerId(), userId) == null) {
+                sendErrorResponse(resp, "Tool not found", HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
             int hours = hoursStr != null ? Integer.parseInt(hoursStr) : 24;
             
             List<ToolHistory> history = toolService.getToolHistoryLastHours(toolId, hours);
@@ -126,5 +145,10 @@ public class HistoryServlet extends HttpServlet {
         JsonObject response = JsonUtil.createErrorResponse(message);
         resp.setStatus(statusCode);
         resp.getWriter().write(response.toString());
+    }
+
+    private Long getUserId(HttpServletRequest req) {
+        Object uid = req.getAttribute("userId");
+        return (uid instanceof Long) ? (Long) uid : null;
     }
 }

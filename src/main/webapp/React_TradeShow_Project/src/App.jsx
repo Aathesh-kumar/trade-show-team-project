@@ -9,6 +9,7 @@ import Settings from './components/Settings/Settings';
 import { useGet } from './components/Hooks/useGet';
 import AuthPage from './components/Auth/AuthPage';
 import { buildUrl, getAuthHeaders } from './services/api';
+import Analytics from './components/Analytics/Analytics';
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -88,6 +89,8 @@ function App() {
         return <RequestLogs selectedServer={activeServer} />;
       case 'tools':
         return <ToolsInventory selectedServer={activeServer} />;
+      case 'analytics':
+        return <Analytics selectedServer={activeServer} />;
       case 'configure-server':
         return (
           <ConfigureServer 
@@ -118,7 +121,7 @@ function App() {
         <AuthPage onAuthenticated={(user) => setCurrentUser(user)} />
       ) : null}
       {!authReady ? null : currentUser ? (
-      <main className={AppStyles.app}>
+      <main className={`${AppStyles.app} cursor-default`}>
         <AsideBar 
           isOpen={isSidebarOpen} 
           onToggle={toggleSidebar}

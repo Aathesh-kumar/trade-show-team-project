@@ -1,9 +1,9 @@
 import ToolsStyles from '../../styles/Tools.module.css';
 import ToolRow from './ToolRow';
-import LoadingSpinner from '../Loading/LoadingSpinner';
 import LoadingSkeleton from '../Loading/LoadingSkeleton';
 
 export default function ToolsTable({ tools, selectedTool, onSelectTool, loading }) {
+    const showSkeleton = Boolean(loading);
     return (
         <div className={ToolsStyles.tableContainer}>
             <table className={ToolsStyles.toolsTable}>
@@ -15,21 +15,14 @@ export default function ToolsTable({ tools, selectedTool, onSelectTool, loading 
                     </tr>
                 </thead>
                 <tbody>
-                    {loading && tools.length === 0 && (
+                    {showSkeleton && (
                         <tr>
                             <td colSpan="3">
                                 <LoadingSkeleton type="table" lines={6} />
                             </td>
                         </tr>
                     )}
-                    {loading && tools.length > 0 && (
-                        <tr>
-                            <td colSpan="3">
-                                <LoadingSpinner size="small" text="Loading tools..." />
-                            </td>
-                        </tr>
-                    )}
-                    {tools.map(tool => (
+                    {!showSkeleton && tools.map(tool => (
                         <ToolRow
                             key={tool.id}
                             tool={tool}
@@ -40,7 +33,7 @@ export default function ToolsTable({ tools, selectedTool, onSelectTool, loading 
                 </tbody>
             </table>
 
-            {tools.length === 0 && (
+            {!showSkeleton && tools.length === 0 && (
                 <div className={ToolsStyles.emptyState}>
                     <p>No tools found matching your search criteria.</p>
                 </div>

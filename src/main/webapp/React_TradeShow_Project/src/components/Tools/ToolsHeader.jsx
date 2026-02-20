@@ -78,10 +78,9 @@ export default function ToolsHeader({
                             { value: '1h', label: 'Past 1hr' },
                             { value: '2h', label: 'Past 2hrs' },
                             { value: '24h', label: 'Past 24hrs' },
-                            { value: 'custom', label: 'Custom interval' }
+                            { value: 'custom', label: 'Custom minutes' }
                         ]}
                         buttonClassName={ToolsStyles.filterSelect}
-                        menuClassName={ToolsStyles.filterMenu}
                     />
                 </div>
                 {timeRange === 'custom' && (

@@ -2,7 +2,9 @@ import DashboardStyles from '../../styles/Dashboard.module.css';
 import { MdCloud, MdSearch, MdEmail } from 'react-icons/md';
 
 export default function TopPerformingTools({ tools = [] }) {
-    const normalizedTools = tools.map((tool, index) => ({
+    const normalizedTools = tools
+        .filter((tool) => !isInternalToolName(tool?.toolName))
+        .map((tool, index) => ({
         icon: index % 3 === 0 ? <MdCloud /> : index % 3 === 1 ? <MdSearch /> : <MdEmail />,
         name: tool.toolName,
         requests: `${Number(tool.totalCalls || 0).toLocaleString()} requests`,
@@ -33,4 +35,13 @@ export default function TopPerformingTools({ tools = [] }) {
             </div>
         </div>
     );
+}
+
+function isInternalToolName(name) {
+    const lower = String(name || '').toLowerCase();
+    return !lower
+        || lower.startsWith('__')
+        || lower.includes('ping')
+        || lower.includes('refresh')
+        || lower.includes('token');
 }

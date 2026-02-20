@@ -22,8 +22,8 @@ public class NotificationService {
         return notificationDAO.insert(n);
     }
 
-    public List<Notification> getRecent(int limit) {
-        return notificationDAO.getRecent(limit);
+    public List<Notification> getRecent(int limit, int offset) {
+        return notificationDAO.getRecent(limit, offset);
     }
 
     public boolean markRead(long id) {
@@ -36,5 +36,13 @@ public class NotificationService {
 
     public long countUnread() {
         return notificationDAO.countUnread();
+    }
+
+    public boolean clearById(long id) {
+        return notificationDAO.deleteById(id);
+    }
+
+    public int clearAll() {
+        return notificationDAO.deleteAll();
     }
 }
