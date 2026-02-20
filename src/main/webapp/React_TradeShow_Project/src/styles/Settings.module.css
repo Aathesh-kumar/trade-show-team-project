@@ -133,7 +133,7 @@
 }
 
 .textBlock label {
-  font-size: 0.84rem;
+  font-size: 1.03rem;
   color: var(--text-muted);
 }
 
@@ -145,6 +145,7 @@
   background: color-mix(in srgb, var(--bg-elev-2) 78%, transparent);
   color: var(--text-primary);
   padding: 0.65rem;
+  font-size: 1.02rem;
   line-height: 1.45;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }

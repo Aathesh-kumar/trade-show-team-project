@@ -34,7 +34,8 @@ public class NotificationServlet extends HttpServlet {
             return;
         }
         int limit = parseInt(req.getParameter("limit"), 50);
-        sendSuccessResponse(resp, notificationService.getRecent(limit));
+        int offset = parseInt(req.getParameter("offset"), 0);
+        sendSuccessResponse(resp, notificationService.getRecent(limit, offset));
     }
 
     @Override
@@ -60,11 +61,46 @@ public class NotificationServlet extends HttpServlet {
         sendSuccessResponse(resp, Map.of("message", "Notification marked as read"));
     }
 
+    @Override
+    protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        initResponse(resp);
+        String pathInfo = req.getPathInfo();
+
+        if ("/all".equals(pathInfo)) {
+            int deleted = notificationService.clearAll();
+            sendSuccessResponse(resp, Map.of("deleted", deleted));
+            return;
+        }
+
+        Long id = parsePathId(pathInfo);
+        if (id == null) {
+            sendErrorResponse(resp, "Notification id is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        boolean deleted = notificationService.clearById(id);
+        if (!deleted) {
+            sendErrorResponse(resp, "Notification not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        sendSuccessResponse(resp, Map.of("message", "Notification cleared"));
+    }
+
     private int parseInt(String value, int fallback) {
         try {
             return value == null ? fallback : Integer.parseInt(value);
         } catch (Exception e) {
             return fallback;
+        }
+    }
+
+    private Long parsePathId(String pathInfo) {
+        if (pathInfo == null || pathInfo.isBlank() || "/".equals(pathInfo)) {
+            return null;
+        }
+        try {
+            return Long.parseLong(pathInfo.substring(1));
+        } catch (Exception e) {
+            return null;
         }
     }
 

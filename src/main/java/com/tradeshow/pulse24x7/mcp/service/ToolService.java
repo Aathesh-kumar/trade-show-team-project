@@ -75,7 +75,7 @@ public class ToolService {
         try {
             return HttpClientUtil.doPost(serverUrl, buildHeaders(accessToken, headerType), request.toString());
         } catch (RuntimeException ex) {
-            if (!shouldRefreshToken(ex)) {
+            if (!shouldRefreshToken(serverId, ex)) {
                 throw ex;
             }
             String refreshed = authTokenService.refreshAccessToken(serverId);
@@ -83,11 +83,21 @@ public class ToolService {
         }
     }
 
-    private boolean shouldRefreshToken(RuntimeException ex) {
+    private boolean shouldRefreshToken(Integer serverId, RuntimeException ex) {
         if (ex instanceof HttpClientUtil.HttpRequestException httpEx) {
             int statusCode = httpEx.getStatusCode();
-            if (statusCode == 401 || statusCode == 403) {
-                return true;
+            if (statusCode == 403) {
+                return false;
+            }
+            if (statusCode == 401) {
+                if (authTokenService.isTokenExpired(serverId, 0)) {
+                    return true;
+                }
+                String body = httpEx.getResponseBody();
+                String lowerBody = body == null ? "" : body.toLowerCase();
+                return lowerBody.contains("invalid_oauthtoken")
+                        || lowerBody.contains("invalid oauth token")
+                        || lowerBody.contains("expired");
             }
         }
         String message = ex.getMessage();
@@ -95,10 +105,13 @@ public class ToolService {
             return false;
         }
         String lower = message.toLowerCase();
-        return lower.contains("401")
+        return authTokenService.isTokenExpired(serverId, 0) && (
+                lower.contains("401")
+                || lower.contains("expired")
                 || lower.contains("invalid_oauthtoken")
                 || lower.contains("invalid oauth token")
-                || lower.contains("unauthorized");
+                || lower.contains("unauthorized")
+        );
     }
 
     private Map<String, String> buildHeaders(String accessToken, String headerType) {
@@ -259,6 +272,14 @@ public class ToolService {
         return toolDAO.getAvailableTools(serverId);
     }
 
+    public List<Tool> getToolsByServerSnapshot(Integer serverId, Timestamp snapshotAt) {
+        if (serverId == null || serverId <= 0 || snapshotAt == null) {
+            logger.error("Invalid parameters for tool snapshot: serverId={}, snapshotAt={}", serverId, snapshotAt);
+            return List.of();
+        }
+        return toolDAO.getToolsByServerSnapshot(serverId, snapshotAt);
+    }
+
     public Tool getToolById(Integer toolId) {
         if (toolId == null || toolId <= 0) {
             logger.error("Invalid tool ID: {}", toolId);
@@ -299,6 +320,20 @@ public class ToolService {
         return toolHistoryDAO.getToolAvailabilityPercent(toolId);
     }
 
+    public boolean hasHistorySince(Integer toolId, Timestamp since) {
+        if (toolId == null || toolId <= 0 || since == null) {
+            return false;
+        }
+        return toolHistoryDAO.existsSince(toolId, since);
+    }
+
+    public boolean hasAvailableHistorySince(Integer toolId, Timestamp since) {
+        if (toolId == null || toolId <= 0 || since == null) {
+            return false;
+        }
+        return toolHistoryDAO.existsAvailableSince(toolId, since);
+    }
+
     public boolean recordToolHistory(Integer toolId, Boolean isAvailable) {
         if (toolId == null || toolId <= 0 || isAvailable == null) {
             logger.error("Invalid parameters for recording tool history");
@@ -321,5 +356,30 @@ public class ToolService {
         } catch (Exception e) {
             return new JsonObject();
         }
+    }
+
+    public boolean isScopeRelatedError(String message) {
+        if (message == null || message.isBlank()) {
+            return false;
+        }
+        String lower = message.toLowerCase();
+        return lower.contains("insufficient scope")
+                || lower.contains("invalid scope")
+                || lower.contains("mismatch scope")
+                || lower.contains("scope mismatch")
+                || lower.contains("scope_invalid")
+                || lower.contains("oauthtoken_scope_invalid")
+                || lower.contains("scope");
+    }
+
+    public boolean hasScopeErrorPayload(JsonObject responseData) {
+        if (responseData == null) {
+            return false;
+        }
+        String payload = responseData.toString().toLowerCase();
+        return payload.contains("oauthtoken_scope_invalid")
+                || payload.contains("invalid_scope")
+                || payload.contains("insufficient scope")
+                || payload.contains("scope_invalid");
     }
 }

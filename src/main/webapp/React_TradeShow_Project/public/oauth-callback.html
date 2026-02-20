@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OAuth Callback</title>
+</head>
+<body>
+<script>
+  (function () {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const state = params.get('state');
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(
+          { type: 'pulse_oauth_callback', code: code || '', state: state || '' },
+          window.location.origin
+        );
+      }
+    } catch (e) {
+      // no-op
+    } finally {
+      window.close();
+    }
+  })();
+</script>
+</body>
+</html>

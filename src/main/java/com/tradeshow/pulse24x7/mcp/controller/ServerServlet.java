@@ -1,17 +1,19 @@
 package com.tradeshow.pulse24x7.mcp.controller;
 
 import com.google.gson.JsonObject;
+import com.tradeshow.pulse24x7.mcp.model.AuthToken;
 import com.tradeshow.pulse24x7.mcp.model.HttpResult;
 import com.tradeshow.pulse24x7.mcp.model.Server;
 import com.tradeshow.pulse24x7.mcp.model.ServerHistory;
-import com.tradeshow.pulse24x7.mcp.utils.AuthHeaderUtil;
 import com.tradeshow.pulse24x7.mcp.service.AuthTokenService;
 import com.tradeshow.pulse24x7.mcp.service.MonitoringService;
+import com.tradeshow.pulse24x7.mcp.service.RequestLogService;
 import com.tradeshow.pulse24x7.mcp.service.ServerService;
+import com.tradeshow.pulse24x7.mcp.service.UserAuthService;
+import com.tradeshow.pulse24x7.mcp.utils.AuthHeaderUtil;
 import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import com.tradeshow.pulse24x7.mcp.utils.ServletUtil;
-import com.tradeshow.pulse24x7.mcp.utils.TimeUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -24,6 +26,9 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +39,8 @@ public class ServerServlet extends HttpServlet {
     private ServerService serverService;
     private AuthTokenService authTokenService;
     private MonitoringService monitoringService;
+    private RequestLogService requestLogService;
+    private UserAuthService userAuthService;
 
     @Override
     public void init() throws ServletException {
@@ -41,6 +48,8 @@ public class ServerServlet extends HttpServlet {
         serverService = new ServerService();
         authTokenService = new AuthTokenService();
         monitoringService = new MonitoringService();
+        requestLogService = new RequestLogService();
+        userAuthService = new UserAuthService();
         logger.info("ServerServlet initialized");
     }
 
@@ -51,13 +60,13 @@ public class ServerServlet extends HttpServlet {
 
         try {
             if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("/all")) {
-                handleGetAllServers(resp);
+                handleGetAllServers(req, resp);
             } else if (pathInfo.equals("/statuses")) {
-                handleGetServerStatuses(resp);
+                handleGetServerStatuses(req, resp);
             } else if (pathInfo.equals("/history")) {
                 handleGetServerHistory(req, resp);
             } else if (pathInfo.matches("/\\d+")) {
-                handleGetServerByPath(resp, pathInfo);
+                handleGetServerByPath(req, resp, pathInfo);
             } else {
                 handleGetServerById(req, resp);
             }
@@ -79,6 +88,10 @@ public class ServerServlet extends HttpServlet {
                 handleTestServer(req, resp);
             } else if (pathInfo.equals("/monitor")) {
                 handleMonitorServer(req, resp);
+            } else if (pathInfo.equals("/ping")) {
+                handlePingServer(req, resp);
+            } else if (pathInfo.equals("/refresh-data")) {
+                handleRefreshServerData(req, resp);
             } else {
                 sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
             }
@@ -116,6 +129,16 @@ public class ServerServlet extends HttpServlet {
     }
 
     private void handleRegisterServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+        if (userAuthService.findById(userId) == null) {
+            sendErrorResponse(resp, "Unauthorized user. Please login again.", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
         JsonObject payload = ServletUtil.readJsonBody(req);
         String serverName = ServletUtil.getString(payload, "serverName", null);
         String serverUrl = ServletUtil.getString(payload, "serverUrl", null);
@@ -135,22 +158,44 @@ public class ServerServlet extends HttpServlet {
             sendErrorResponse(resp, "Server URL is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-
-        if (accessToken != null && !accessToken.isBlank()) {
-            HttpResult result = HttpClientUtil.canPingServer(
-                    serverUrl,
-                    AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, accessToken),
-                    JsonUtil.createMCPRequest("ping", Map.of()).toString()
-            );
-            if (!result.isSuccess()) {
-                sendErrorResponse(resp, "MCP ping failed: " + result.getErrorMessage(), HttpServletResponse.SC_UNAUTHORIZED);
-                return;
-            }
+        if (headerType == null || headerType.isBlank()) {
+            sendErrorResponse(resp, "Header type is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        if (accessToken == null || accessToken.isBlank()) {
+            sendErrorResponse(resp, "Access token is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        if (refreshToken == null || refreshToken.isBlank()) {
+            sendErrorResponse(resp, "Refresh token is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        if (clientId == null || clientId.isBlank()) {
+            sendErrorResponse(resp, "Client ID is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        if (clientSecret == null || clientSecret.isBlank()) {
+            sendErrorResponse(resp, "Client secret is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        if (tokenEndpoint == null || tokenEndpoint.isBlank()) {
+            sendErrorResponse(resp, "Token endpoint is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
         }
 
-        Integer serverId = serverService.registerServer(serverName, serverUrl);
+        HttpResult result = HttpClientUtil.canPingServer(
+                serverUrl,
+                AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, accessToken),
+                JsonUtil.createMCPRequest("ping", Map.of()).toString()
+        );
+        if (!result.isSuccess()) {
+            sendErrorResponse(resp, "MCP ping failed: " + result.getErrorMessage(), HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        Integer serverId = serverService.registerServer(userId, serverName, serverUrl);
         if (serverId == null) {
-            Server existing = serverService.getServerByUrl(serverUrl);
+            Server existing = serverService.getServerByUrl(serverUrl, userId);
             if (existing == null) {
                 sendErrorResponse(resp, "Server already exists or invalid data", HttpServletResponse.SC_CONFLICT);
                 return;
@@ -158,13 +203,11 @@ public class ServerServlet extends HttpServlet {
             serverId = existing.getServerId();
         }
 
-        if (accessToken != null && !accessToken.isBlank()) {
-            Timestamp expiresAt = TimeUtil.parseTimestamp(expiresAtStr);
-            authTokenService.saveToken(serverId, headerType, accessToken, refreshToken, expiresAt, clientId, clientSecret, tokenEndpoint);
-        }
+        Timestamp expiresAt = parseTimestamp(expiresAtStr);
+        authTokenService.saveToken(serverId, headerType, accessToken, refreshToken, expiresAt, clientId, clientSecret, tokenEndpoint);
 
         monitoringService.monitorServer(serverId);
-        Server server = serverService.getServerById(serverId);
+        Server server = serverService.getServerById(serverId, userId);
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("server", server);
         responseData.put("message", "Server registered successfully");
@@ -172,12 +215,18 @@ public class ServerServlet extends HttpServlet {
     }
 
     private void handleGetServerById(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
         Integer serverId = parseInt(req.getParameter("id"));
         if (serverId == null) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-        Server server = serverService.getServerById(serverId);
+        Server server = serverService.getServerById(serverId, userId);
         if (server == null) {
             sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
             return;
@@ -185,13 +234,24 @@ public class ServerServlet extends HttpServlet {
         sendSuccessResponse(resp, server);
     }
 
-    private void handleGetAllServers(HttpServletResponse resp) throws IOException {
-        List<Server> servers = serverService.getAllServers();
+    private void handleGetAllServers(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+        List<Server> servers = serverService.getAllServers(userId);
         sendSuccessResponse(resp, servers);
     }
 
-    private void handleGetServerStatuses(HttpServletResponse resp) throws IOException {
-        List<Server> servers = serverService.getAllServers();
+    private void handleGetServerStatuses(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        List<Server> servers = serverService.getAllServers(userId);
         List<Map<String, Object>> statuses = new java.util.ArrayList<>();
         for (Server server : servers) {
             List<ServerHistory> history = serverService.getServerHistory(server.getServerId(), 1);
@@ -208,13 +268,19 @@ public class ServerServlet extends HttpServlet {
         sendSuccessResponse(resp, statuses);
     }
 
-    private void handleGetServerByPath(HttpServletResponse resp, String pathInfo) throws IOException {
+    private void handleGetServerByPath(HttpServletRequest req, HttpServletResponse resp, String pathInfo) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
         Integer serverId = parseInt(pathInfo.substring(1));
         if (serverId == null) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-        Server server = serverService.getServerById(serverId);
+        Server server = serverService.getServerById(serverId, userId);
         if (server == null) {
             sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
             return;
@@ -223,11 +289,22 @@ public class ServerServlet extends HttpServlet {
     }
 
     private void handleGetServerHistory(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
         Integer serverId = parseInt(req.getParameter("id"));
         if (serverId == null) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
+        if (!serverService.isServerOwnedByUser(serverId, userId)) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
         int hours = parseInt(req.getParameter("hours"), 24);
         List<ServerHistory> history = serverService.getServerHistoryLastHours(serverId, hours);
         Double uptimePercent = serverService.getUptimePercent(serverId);
@@ -239,6 +316,12 @@ public class ServerServlet extends HttpServlet {
     }
 
     private void handleUpdateServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
         JsonObject payload = ServletUtil.readJsonBody(req);
         Integer serverId = parseInt(req.getParameter("id"));
         if (serverId == null) {
@@ -252,15 +335,21 @@ public class ServerServlet extends HttpServlet {
             return;
         }
 
-        boolean updated = serverService.updateServer(serverId, serverName, serverUrl);
+        boolean updated = serverService.updateServer(serverId, userId, serverName, serverUrl);
         if (!updated) {
             sendErrorResponse(resp, "Failed to update server", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return;
         }
-        sendSuccessResponse(resp, serverService.getServerById(serverId));
+        sendSuccessResponse(resp, serverService.getServerById(serverId, userId));
     }
 
     private void handleDeleteServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
         Integer serverId = parseInt(req.getParameter("id"));
         if (serverId == null) {
             JsonObject payload = ServletUtil.readJsonBody(req);
@@ -271,7 +360,7 @@ public class ServerServlet extends HttpServlet {
             return;
         }
 
-        boolean deleted = serverService.deleteServer(serverId);
+        boolean deleted = serverService.deleteServer(serverId, userId);
         if (!deleted) {
             sendErrorResponse(resp, "Failed to delete server", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return;
@@ -280,6 +369,12 @@ public class ServerServlet extends HttpServlet {
     }
 
     private void handleMonitorServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
         Integer serverId = parseInt(req.getParameter("id"));
         if (serverId == null) {
             JsonObject payload = ServletUtil.readJsonBody(req);
@@ -287,6 +382,10 @@ public class ServerServlet extends HttpServlet {
         }
         if (serverId == null) {
             sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        if (!serverService.isServerOwnedByUser(serverId, userId)) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
             return;
         }
 
@@ -324,6 +423,121 @@ public class ServerServlet extends HttpServlet {
         ));
     }
 
+    private void handlePingServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        Integer serverId = parseInt(req.getParameter("id"));
+        if (serverId == null) {
+            JsonObject payload = ServletUtil.readJsonBody(req);
+            serverId = ServletUtil.getInteger(payload, "serverId", null);
+        }
+        if (serverId == null) {
+            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        Server server = serverService.getServerById(serverId, userId);
+        if (server == null) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        AuthToken token = authTokenService.getToken(serverId);
+        String accessToken = authTokenService.ensureValidAccessToken(serverId);
+        String headerType = token != null ? token.getHeaderType() : "Bearer";
+        JsonObject pingBody = JsonUtil.createMCPRequest("ping", Map.of());
+        long start = System.currentTimeMillis();
+        HttpResult result = HttpClientUtil.canPingServer(
+                server.getServerUrl(),
+                AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, accessToken),
+                pingBody.toString()
+        );
+        long latency = System.currentTimeMillis() - start;
+
+        int statusCode = result.isSuccess() ? HttpServletResponse.SC_OK : HttpServletResponse.SC_BAD_GATEWAY;
+        String statusText = result.isSuccess() ? "OK" : "ERR";
+        String errorMessage = result.isSuccess() ? null : result.getErrorMessage();
+        JsonObject responsePayload = result.isSuccess()
+                ? parseOrWrapJson(result.getResponseBody())
+                : wrapError(errorMessage);
+
+        requestLogService.record(
+                requestLogService.buildRequestLog(
+                        serverId,
+                        null,
+                        "Ping Server",
+                        "POST",
+                        statusCode,
+                        statusText,
+                        latency,
+                        pingBody,
+                        responsePayload,
+                        errorMessage,
+                        req.getHeader("User-Agent")
+                )
+        );
+
+        if (!result.isSuccess()) {
+            sendErrorResponse(resp, "Ping failed: " + errorMessage, HttpServletResponse.SC_BAD_GATEWAY);
+            return;
+        }
+        sendSuccessResponse(resp, Map.of("message", "Ping successful", "latencyMs", latency));
+    }
+
+    private void handleRefreshServerData(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        Integer serverId = parseInt(req.getParameter("id"));
+        if (serverId == null) {
+            JsonObject payload = ServletUtil.readJsonBody(req);
+            serverId = ServletUtil.getInteger(payload, "serverId", null);
+        }
+        if (serverId == null) {
+            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        Server server = serverService.getServerById(serverId, userId);
+        if (server == null) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        JsonObject requestPayload = new JsonObject();
+        requestPayload.addProperty("serverId", serverId);
+        requestPayload.addProperty("event", "refresh_server_data");
+        long start = System.currentTimeMillis();
+        monitoringService.monitorServer(serverId);
+        long latency = System.currentTimeMillis() - start;
+
+        JsonObject responsePayload = new JsonObject();
+        responsePayload.addProperty("message", "Server data refreshed");
+        responsePayload.addProperty("latencyMs", latency);
+        requestLogService.record(
+                requestLogService.buildRequestLog(
+                        serverId,
+                        null,
+                        "Refresh Server Data",
+                        "POST",
+                        HttpServletResponse.SC_OK,
+                        "OK",
+                        latency,
+                        requestPayload,
+                        responsePayload,
+                        null,
+                        req.getHeader("User-Agent")
+                )
+        );
+        sendSuccessResponse(resp, Map.of("message", "Server data refreshed", "latencyMs", latency));
+    }
+
     private Integer parseInt(String value) {
         try {
             return value == null ? null : Integer.parseInt(value);
@@ -335,6 +549,50 @@ public class ServerServlet extends HttpServlet {
     private int parseInt(String value, int fallback) {
         Integer parsed = parseInt(value);
         return parsed == null ? fallback : parsed;
+    }
+
+    private Timestamp parseTimestamp(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Timestamp.from(Instant.parse(value));
+        } catch (Exception ignored) {
+            // fall through
+        }
+        try {
+            LocalDateTime dt = LocalDateTime.parse(value, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            return Timestamp.valueOf(dt);
+        } catch (Exception ignored) {
+            // fall through
+        }
+        try {
+            LocalDateTime dt = LocalDateTime.parse(value, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
+            return Timestamp.valueOf(dt);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Long getUserId(HttpServletRequest req) {
+        Object uid = req.getAttribute("userId");
+        return (uid instanceof Long) ? (Long) uid : null;
+    }
+
+    private JsonObject parseOrWrapJson(String raw) {
+        try {
+            return com.google.gson.JsonParser.parseString(raw).getAsJsonObject();
+        } catch (Exception e) {
+            JsonObject wrapped = new JsonObject();
+            wrapped.addProperty("raw", raw == null ? "" : raw);
+            return wrapped;
+        }
+    }
+
+    private JsonObject wrapError(String message) {
+        JsonObject error = new JsonObject();
+        error.addProperty("error", message == null ? "Request failed" : message);
+        return error;
     }
 
     private void sendSuccessResponse(HttpServletResponse resp, Object data) throws IOException {

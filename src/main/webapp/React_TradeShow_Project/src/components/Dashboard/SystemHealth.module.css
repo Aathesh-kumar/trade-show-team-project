@@ -1,0 +1,228 @@
+
+
+.card {
+    background: linear-gradient(160deg, #060c1b 0%, #0a1628 60%, #070f1e 100%);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    padding: 20px 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+    animation: fadein 0.35s ease both;
+}
+
+.titleRow {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.liveDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22d3ee;
+    box-shadow: 0 0 8px #22d3ee;
+    display: inline-block;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.title {
+    color: #e2e8f0;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin: 0;
+}
+
+.subtitle {
+    color: #475569;
+    font-size: 16px;
+    margin: 0;
+}
+
+.zoomedBadge {
+    color: #3b82f6;
+    margin-left: 8px;
+}
+
+.controls {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.modeTabs {
+    display: flex;
+    gap: 3px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    padding: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.modeBtn {
+    padding: 5px 13px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    background: transparent;
+    color: #64748b;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.16s;
+}
+
+.modeBtn:hover {
+    filter: brightness(1.25);
+}
+
+.modeBtnActive {
+    background: #2563eb;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.45);
+}
+
+.toolBtn {
+    padding: 5px 11px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    color: #94a3b8;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+
+.toolBtn:hover {
+    filter: brightness(1.3);
+    transform: scale(1.05);
+}
+
+.toolBtn:active {
+    transform: scale(0.95);
+}
+
+.toolBtnHighlight {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #60a5fa;
+}
+
+.statRow {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    animation: fadein 0.35s ease both;
+}
+
+.statPill {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
+    padding: 7px 14px;
+    flex: 1 1 200px;
+}
+
+.statLabel {
+    color: #475569;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 3px;
+}
+
+.statValue {
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.statPeak  { color: #fb923c; }
+.statAvg   { color: #3b82f6; }
+.statTotal { color: #a78bfa; }
+
+.chartWrap {
+    height: 100%;
+    min-height: 280px;
+    user-select: none;
+}
+
+.grab      { cursor: grab; }
+.grabbing  { cursor: grabbing; }
+.crosshair { cursor: crosshair; }
+
+.emptyState {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: fit-content;
+    color: #334155;
+    font-size: 13px;
+}
+
+.minimap {
+    margin-top: 10px;
+}
+
+.minimapTrack {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.minimapThumb {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #818cf8);
+    border-radius: 6px;
+    transition: left 0.1s, width 0.1s;
+}
+
+.minimapThumbStatic {
+    transition: none;
+}
+
+.minimapLabels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+}
+
+.minimapEdge {
+    color: #1e3a5f;
+    font-size: 10px;
+}
+
+.minimapHint {
+    color: #334155;
+    font-size: 10px;
+}
+
+@keyframes fadein {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+}

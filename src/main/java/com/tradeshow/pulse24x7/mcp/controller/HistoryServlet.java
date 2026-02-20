@@ -1,9 +1,7 @@
 package com.tradeshow.pulse24x7.mcp.controller;
 
 import com.google.gson.JsonObject;
-import com.tradeshow.pulse24x7.mcp.dao.ToolHistoryDAO;
 import com.tradeshow.pulse24x7.mcp.model.ServerHistory;
-import com.tradeshow.pulse24x7.mcp.model.Tool;
 import com.tradeshow.pulse24x7.mcp.model.ToolHistory;
 import com.tradeshow.pulse24x7.mcp.service.ServerService;
 import com.tradeshow.pulse24x7.mcp.service.ToolService;
@@ -48,12 +46,9 @@ public class HistoryServlet extends HttpServlet {
         String pathInfo = req.getPathInfo();
         
         try {
-            System.out.println("HISTORY CALLED");
             if (pathInfo != null && pathInfo.equals("/server")) {
-                System.out.println("server CALLED");
                 handleGetServerHistory(req, resp);
             } else if (pathInfo != null && pathInfo.equals("/tool")) {
-                System.out.println("tool CALLED");
                 handleGetToolHistory(req, resp);
             } else {
                 sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
@@ -66,6 +61,11 @@ public class HistoryServlet extends HttpServlet {
 
     private void handleGetServerHistory(HttpServletRequest req, HttpServletResponse resp) 
             throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         String serverIdStr = req.getParameter("serverId");
         String hoursStr = req.getParameter("hours");
         
@@ -76,6 +76,10 @@ public class HistoryServlet extends HttpServlet {
         
         try {
             Integer serverId = Integer.parseInt(serverIdStr);
+            if (!serverService.isServerOwnedByUser(serverId, userId)) {
+                sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
             int hours = hoursStr != null ? Integer.parseInt(hoursStr) : 24;
             
             List<ServerHistory> history = serverService.getServerHistoryLastHours(serverId, hours);
@@ -94,22 +98,37 @@ public class HistoryServlet extends HttpServlet {
 
     private void handleGetToolHistory(HttpServletRequest req, HttpServletResponse resp) 
             throws IOException {
-        String severIdStr = req.getParameter("serverId");
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+        String toolIdStr = req.getParameter("toolId");
         String hoursStr = req.getParameter("hours");
-        System.out.println(hoursStr);
-        if (severIdStr == null || severIdStr.trim().isEmpty()) {
+        
+        if (toolIdStr == null || toolIdStr.trim().isEmpty()) {
             sendErrorResponse(resp, "Tool ID is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
         
         try {
-            Integer severId = Integer.parseInt(severIdStr);
-
-            List<Tool> tools = new ToolHistoryDAO().getToolHistory(severId);
-            for(Tool tool:tools){
-                System.out.println(tool.getToolName()+ tool.getToolId());
+            Integer toolId = Integer.parseInt(toolIdStr);
+            var tool = toolService.getToolById(toolId);
+            if (tool == null || serverService.getServerById(tool.getServerId(), userId) == null) {
+                sendErrorResponse(resp, "Tool not found", HttpServletResponse.SC_NOT_FOUND);
+                return;
             }
-            sendSuccessResponse(resp, tools);
+            int hours = hoursStr != null ? Integer.parseInt(hoursStr) : 24;
+            
+            List<ToolHistory> history = toolService.getToolHistoryLastHours(toolId, hours);
+            Double availabilityPercent = toolService.getToolAvailabilityPercent(toolId);
+            
+            Map<String, Object> responseData = new HashMap<>();
+            responseData.put("history", history);
+            responseData.put("availabilityPercent", availabilityPercent);
+            responseData.put("hours", hours);
+            
+            sendSuccessResponse(resp, responseData);
         } catch (NumberFormatException e) {
             sendErrorResponse(resp, "Invalid parameters", HttpServletResponse.SC_BAD_REQUEST);
         }
@@ -126,5 +145,10 @@ public class HistoryServlet extends HttpServlet {
         JsonObject response = JsonUtil.createErrorResponse(message);
         resp.setStatus(statusCode);
         resp.getWriter().write(response.toString());
+    }
+
+    private Long getUserId(HttpServletRequest req) {
+        Object uid = req.getAttribute("userId");
+        return (uid instanceof Long) ? (Long) uid : null;
     }
 }

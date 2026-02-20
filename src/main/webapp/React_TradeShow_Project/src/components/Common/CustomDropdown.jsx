@@ -8,6 +8,7 @@ export default function CustomDropdown({
   options = [],
   onChange,
   placeholder = 'Select',
+  disabled = false,
   className = '',
   buttonClassName = '',
   menuClassName = '',
@@ -41,7 +42,8 @@ export default function CustomDropdown({
       {label ? <label className={styles.label}>{label}</label> : null}
       <button
         type="button"
-        className={`${styles.trigger} ${buttonClassName}`.trim()}
+        className={`${styles.trigger} ${buttonClassName} cursor-pointer`.trim()}
+        disabled={disabled}
         onClick={() => setOpen((prev) => !prev)}
       >
         <span>{selected?.label || placeholder}</span>
@@ -53,7 +55,7 @@ export default function CustomDropdown({
             <button
               key={String(opt.value)}
               type="button"
-              className={`${styles.option} ${String(opt.value) === String(value) ? styles.optionActive : ''} ${optionClassName}`.trim()}
+              className={`${styles.option} ${String(opt.value) === String(value) ? styles.optionActive : ''} ${optionClassName} cursor-pointer`.trim()}
               onClick={() => {
                 onChange?.(opt.value);
                 setOpen(false);

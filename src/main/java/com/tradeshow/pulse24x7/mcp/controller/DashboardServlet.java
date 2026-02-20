@@ -1,9 +1,7 @@
 package com.tradeshow.pulse24x7.mcp.controller;
 
 import com.google.gson.JsonObject;
-import com.tradeshow.pulse24x7.mcp.dao.RequestLogDAO;
-import com.tradeshow.pulse24x7.mcp.dao.ServerDAO;
-import com.tradeshow.pulse24x7.mcp.dao.ToolDAO;
+import com.tradeshow.pulse24x7.mcp.db.DBConnection;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -25,38 +23,35 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.tradeshow.pulse24x7.mcp.db.DBConnection;
-
-
 @WebServlet("/dashboard/*")
 public class DashboardServlet extends HttpServlet {
     private static final Logger logger = LogManager.getLogger(DashboardServlet.class);
-    private RequestLogDAO requestLogDAO;
 
     @Override
     public void init() throws ServletException {
         super.init();
-        requestLogDAO = new RequestLogDAO();
         logger.info("DashboardServlet initialized");
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        logger.info("GET request to DashboardServlet: {}", req.getPathInfo());
-
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
         resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
 
-        String pathInfo = req.getPathInfo();
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
 
+        String pathInfo = req.getPathInfo();
         try {
             if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("/stats")) {
-                handleGetDashboardStats(req, resp);
+                handleGetDashboardStats(req, resp, userId);
             } else if (pathInfo.equals("/top-tools")) {
-                handleGetTopPerformingTools(req, resp);
+                handleGetTopPerformingTools(req, resp, userId);
             } else if (pathInfo.equals("/system-health")) {
-                handleGetSystemHealth(req, resp);
+                handleGetSystemHealth(req, resp, userId);
             } else {
                 sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
             }
@@ -66,77 +61,78 @@ public class DashboardServlet extends HttpServlet {
         }
     }
 
-    private void handleGetDashboardStats(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String serverIdStr = req.getParameter("serverId");
-        Integer serverId = serverIdStr != null ? parseIntOrNull(serverIdStr) : null;
+    private void handleGetDashboardStats(HttpServletRequest req, HttpServletResponse resp, Long userId) throws IOException {
+        Integer serverId = parseIntOrNull(req.getParameter("serverId"));
+        if (serverId != null && !isServerOwnedByUser(serverId, userId)) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
 
         Map<String, Object> stats = new HashMap<>();
-
-        // Get server stats
-        int totalServers = getTotalServersCount();
-        int activeServers = getActiveServersCount();
+        int totalServers = getTotalServersCount(userId);
+        int activeServers = getActiveServersCount(userId);
         stats.put("totalServers", totalServers);
         stats.put("activeServers", activeServers);
 
-        // Get tool stats
-        int totalTools = getTotalToolsCount(serverId);
-        int activeTools = getActiveToolsCount(serverId);
+        int totalTools = getTotalToolsCount(userId, serverId);
+        int activeTools = getActiveToolsCount(userId, serverId);
         stats.put("totalTools", totalTools);
         stats.put("activeTools", activeTools);
 
-        // Get request stats
         if (serverId != null) {
-            Map<String, Object> requestStats = requestLogDAO.getStats(serverId);
+            Map<String, Object> requestStats = getRequestStats(serverId, userId);
             stats.putAll(requestStats);
         }
 
         sendSuccessResponse(resp, stats);
     }
 
-    private void handleGetTopPerformingTools(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String serverIdStr = req.getParameter("serverId");
-        String limitStr = req.getParameter("limit");
-        String hoursStr = req.getParameter("hours");
+    private void handleGetTopPerformingTools(HttpServletRequest req, HttpServletResponse resp, Long userId) throws IOException {
+        Integer serverId = parseIntOrNull(req.getParameter("serverId"));
+        Integer limit = parseIntOrNull(req.getParameter("limit"));
+        Integer hours = parseIntOrNull(req.getParameter("hours"));
 
-        Integer serverId = serverIdStr != null ? parseIntOrNull(serverIdStr) : null;
-        int limit = limitStr != null ? parseIntOrNull(limitStr) : 5;
-        int hours = hoursStr != null ? parseIntOrNull(hoursStr) : 24;
+        int safeLimit = (limit == null || limit <= 0) ? 5 : limit;
+        int safeHours = (hours == null || hours <= 0) ? 24 : hours;
 
-        List<Map<String, Object>> topTools = getTopPerformingTools(serverId, limit, hours);
+        if (serverId != null && !isServerOwnedByUser(serverId, userId)) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
 
+        List<Map<String, Object>> topTools = getTopPerformingTools(userId, serverId, safeLimit, safeHours);
         Map<String, Object> response = new HashMap<>();
         response.put("tools", topTools);
-        response.put("period", hours + " hours");
-
+        response.put("period", safeHours + " hours");
         sendSuccessResponse(resp, response);
     }
 
-    private void handleGetSystemHealth(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {
-        String serverIdStr = req.getParameter("serverId");
-        String hoursStr = req.getParameter("hours");
+    private void handleGetSystemHealth(HttpServletRequest req, HttpServletResponse resp, Long userId) throws IOException {
+        Integer serverId = parseIntOrNull(req.getParameter("serverId"));
+        Integer hours = parseIntOrNull(req.getParameter("hours"));
+        int safeHours = (hours == null || hours <= 0) ? 24 : hours;
 
-        Integer serverId = serverIdStr != null ? parseIntOrNull(serverIdStr) : null;
-        int hours = hoursStr != null ? parseIntOrNull(hoursStr) : 24;
+        if (serverId != null && !isServerOwnedByUser(serverId, userId)) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
 
-        List<Map<String, Object>> healthData = getSystemHealthData(serverId, hours);
-
+        List<Map<String, Object>> healthData = getSystemHealthData(userId, serverId, safeHours);
         Map<String, Object> response = new HashMap<>();
         response.put("data", healthData);
-        response.put("period", hours + " hours");
-
+        response.put("period", safeHours + " hours");
         sendSuccessResponse(resp, response);
     }
 
-    private int getTotalServersCount() {
-        String sql = "SELECT COUNT(*) as count FROM servers";
+    private int getTotalServersCount(Long userId) {
+        String sql = "SELECT COUNT(*) as count FROM servers WHERE user_id = ?";
         try (Connection conn = DBConnection.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            if (rs.next()) {
-                return rs.getInt("count");
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("count");
+                }
             }
         } catch (SQLException e) {
             logger.error("Error getting total servers count", e);
@@ -144,14 +140,17 @@ public class DashboardServlet extends HttpServlet {
         return 0;
     }
 
-    private int getActiveServersCount() {
-        String sql = "SELECT COUNT(DISTINCT server_id) as count FROM server_history " +
-                    "WHERE checked_at >= NOW() - INTERVAL 1 HOUR AND server_up = 1";
+    private int getActiveServersCount(Long userId) {
+        String sql = "SELECT COUNT(DISTINCT sh.server_id) as count FROM server_history sh " +
+                "INNER JOIN servers s ON s.server_id = sh.server_id " +
+                "WHERE s.user_id = ? AND sh.checked_at >= NOW() - INTERVAL 1 HOUR AND sh.server_up = 1";
         try (Connection conn = DBConnection.getInstance().getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            if (rs.next()) {
-                return rs.getInt("count");
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("count");
+                }
             }
         } catch (SQLException e) {
             logger.error("Error getting active servers count", e);
@@ -159,15 +158,14 @@ public class DashboardServlet extends HttpServlet {
         return 0;
     }
 
-    private int getTotalToolsCount(Integer serverId) {
-        String sql = serverId != null ? 
-            "SELECT COUNT(*) as count FROM tools WHERE server_id = ?" :
-            "SELECT COUNT(*) as count FROM tools";
-            
+    private int getTotalToolsCount(Long userId, Integer serverId) {
+        String sql = "SELECT COUNT(*) as count FROM tools t INNER JOIN servers s ON s.server_id = t.server_id " +
+                "WHERE s.user_id = ? " + (serverId != null ? "AND t.server_id = ?" : "");
         try (Connection conn = DBConnection.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, userId);
             if (serverId != null) {
-                stmt.setInt(1, serverId);
+                stmt.setInt(2, serverId);
             }
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
@@ -180,18 +178,18 @@ public class DashboardServlet extends HttpServlet {
         return 0;
     }
 
-    private int getActiveToolsCount(Integer serverId) {
-        String sql = serverId != null ?
-            "SELECT COUNT(DISTINCT tool_id) as count FROM tools_history " +
-            "WHERE checked_at >= NOW() - INTERVAL 1 HOUR AND is_available = 1 " +
-            "AND tool_id IN (SELECT tool_id FROM tools WHERE server_id = ?)" :
-            "SELECT COUNT(DISTINCT tool_id) as count FROM tools_history " +
-            "WHERE checked_at >= NOW() - INTERVAL 1 HOUR AND is_available = 1";
+    private int getActiveToolsCount(Long userId, Integer serverId) {
+        String sql = "SELECT COUNT(DISTINCT th.tool_id) as count FROM tools_history th " +
+                "INNER JOIN tools t ON t.tool_id = th.tool_id " +
+                "INNER JOIN servers s ON s.server_id = t.server_id " +
+                "WHERE s.user_id = ? AND th.checked_at >= NOW() - INTERVAL 1 HOUR AND th.is_available = 1 " +
+                (serverId != null ? "AND t.server_id = ?" : "");
 
         try (Connection conn = DBConnection.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, userId);
             if (serverId != null) {
-                stmt.setInt(1, serverId);
+                stmt.setInt(2, serverId);
             }
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
@@ -204,17 +202,45 @@ public class DashboardServlet extends HttpServlet {
         return 0;
     }
 
-    private List<Map<String, Object>> getTopPerformingTools(Integer serverId, int limit, int hours) {
+    private Map<String, Object> getRequestStats(Integer serverId, Long userId) {
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalRequests", 0L);
+        stats.put("totalSuccess", 0L);
+        stats.put("totalErrors", 0L);
+
+        String sql = "SELECT COUNT(*) total_requests, " +
+                "SUM(CASE WHEN rl.status_code >= 200 AND rl.status_code < 300 THEN 1 ELSE 0 END) total_success, " +
+                "SUM(CASE WHEN rl.status_code >= 400 THEN 1 ELSE 0 END) total_errors " +
+                "FROM request_logs rl INNER JOIN servers s ON s.server_id = rl.server_id " +
+                "WHERE rl.server_id = ? AND s.user_id = ?";
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, serverId);
+            stmt.setLong(2, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    stats.put("totalRequests", rs.getLong("total_requests"));
+                    stats.put("totalSuccess", rs.getLong("total_success"));
+                    stats.put("totalErrors", rs.getLong("total_errors"));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error getting request stats", e);
+        }
+
+        return stats;
+    }
+
+    private List<Map<String, Object>> getTopPerformingTools(Long userId, Integer serverId, int limit, int hours) {
         String sql = "SELECT t.tool_name, COUNT(*) as request_count, " +
-                    "AVG(rl.latency_ms) as avg_latency, " +
-                    "SUM(CASE WHEN rl.status_code >= 200 AND rl.status_code < 300 THEN 1 ELSE 0 END) as success_count " +
-                    "FROM request_logs rl " +
-                    "INNER JOIN tools t ON rl.tool_id = t.tool_id " +
-                    "WHERE rl.created_at >= NOW() - INTERVAL ? HOUR " +
-                    (serverId != null ? "AND rl.server_id = ? " : "") +
-                    "GROUP BY t.tool_id, t.tool_name " +
-                    "ORDER BY request_count DESC " +
-                    "LIMIT ?";
+                "AVG(rl.latency_ms) as avg_latency, " +
+                "SUM(CASE WHEN rl.status_code >= 200 AND rl.status_code < 300 THEN 1 ELSE 0 END) as success_count " +
+                "FROM request_logs rl " +
+                "INNER JOIN tools t ON rl.tool_id = t.tool_id " +
+                "INNER JOIN servers s ON s.server_id = rl.server_id " +
+                "WHERE s.user_id = ? AND rl.created_at >= NOW() - INTERVAL ? HOUR " +
+                (serverId != null ? "AND rl.server_id = ? " : "") +
+                "GROUP BY t.tool_id, t.tool_name ORDER BY request_count DESC LIMIT ?";
 
         List<Map<String, Object>> topTools = new ArrayList<>();
 
@@ -222,6 +248,7 @@ public class DashboardServlet extends HttpServlet {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             int paramIndex = 1;
+            stmt.setLong(paramIndex++, userId);
             stmt.setInt(paramIndex++, hours);
             if (serverId != null) {
                 stmt.setInt(paramIndex++, serverId);
@@ -235,12 +262,12 @@ public class DashboardServlet extends HttpServlet {
                     tool.put("requestCount", rs.getInt("request_count"));
                     tool.put("avgLatency", Math.round(rs.getDouble("avg_latency")));
                     tool.put("successCount", rs.getInt("success_count"));
-                    
+
                     int total = rs.getInt("request_count");
                     int success = rs.getInt("success_count");
                     double successRate = total > 0 ? (success * 100.0 / total) : 0;
                     tool.put("successRate", Math.round(successRate * 10) / 10.0);
-                    
+
                     topTools.add(tool);
                 }
             }
@@ -251,25 +278,23 @@ public class DashboardServlet extends HttpServlet {
         return topTools;
     }
 
-    private List<Map<String, Object>> getSystemHealthData(Integer serverId, int hours) {
-        // Get hourly request counts
-        String sql = "SELECT " +
-                    "DATE_FORMAT(created_at, '%H:00') as time_label, " +
-                    "COUNT(*) as value " +
-                    "FROM request_logs " +
-                    "WHERE created_at >= NOW() - INTERVAL ? HOUR " +
-                    (serverId != null ? "AND server_id = ? " : "") +
-                    "GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00') " +
-                    "ORDER BY created_at";
+    private List<Map<String, Object>> getSystemHealthData(Long userId, Integer serverId, int hours) {
+        String sql = "SELECT DATE_FORMAT(rl.created_at, '%H:00') as time_label, COUNT(*) as value " +
+                "FROM request_logs rl " +
+                "INNER JOIN servers s ON s.server_id = rl.server_id " +
+                "WHERE s.user_id = ? AND rl.created_at >= NOW() - INTERVAL ? HOUR " +
+                (serverId != null ? "AND rl.server_id = ? " : "") +
+                "GROUP BY DATE_FORMAT(rl.created_at, '%Y-%m-%d %H:00:00') ORDER BY rl.created_at";
 
         List<Map<String, Object>> healthData = new ArrayList<>();
 
         try (Connection conn = DBConnection.getInstance().getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setInt(1, hours);
+            stmt.setLong(1, userId);
+            stmt.setInt(2, hours);
             if (serverId != null) {
-                stmt.setInt(2, serverId);
+                stmt.setInt(3, serverId);
             }
 
             try (ResultSet rs = stmt.executeQuery()) {
@@ -287,10 +312,33 @@ public class DashboardServlet extends HttpServlet {
         return healthData;
     }
 
+    private boolean isServerOwnedByUser(Integer serverId, Long userId) {
+        if (serverId == null || userId == null) {
+            return false;
+        }
+        String sql = "SELECT 1 FROM servers WHERE server_id = ? AND user_id = ?";
+        try (Connection conn = DBConnection.getInstance().getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, serverId);
+            stmt.setLong(2, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            logger.error("Error validating server ownership", e);
+            return false;
+        }
+    }
+
+    private Long getUserId(HttpServletRequest req) {
+        Object uid = req.getAttribute("userId");
+        return (uid instanceof Long) ? (Long) uid : null;
+    }
+
     private Integer parseIntOrNull(String value) {
         try {
             return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
+        } catch (Exception e) {
             return null;
         }
     }
@@ -301,8 +349,7 @@ public class DashboardServlet extends HttpServlet {
         resp.getWriter().write(response.toString());
     }
 
-    private void sendErrorResponse(HttpServletResponse resp, String message, int statusCode)
-            throws IOException {
+    private void sendErrorResponse(HttpServletResponse resp, String message, int statusCode) throws IOException {
         JsonObject response = JsonUtil.createErrorResponse(message);
         resp.setStatus(statusCode);
         resp.getWriter().write(response.toString());

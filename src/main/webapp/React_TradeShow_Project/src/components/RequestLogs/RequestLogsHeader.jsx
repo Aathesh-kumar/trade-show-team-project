@@ -3,7 +3,6 @@ import { MdSearch, MdFileDownload } from 'react-icons/md';
 import CustomDropdown from '../Common/CustomDropdown';
 
 export default function RequestLogsHeader({ filters, onFilterChange, stats, toolOptions = [] }) {
-
     const handleSearchChange = (e) => {
         onFilterChange({
             ...filters,

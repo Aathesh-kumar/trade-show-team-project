@@ -10,27 +10,30 @@ import { IoNotifications } from 'react-icons/io5';
 import { useGet } from '../Hooks/useGet';
 import NotificationPanel from './NotificationPanel';
 import { buildUrl, getAuthHeaders } from '../../services/api';
+import useBufferedLoading from '../Hooks/useBufferedLoading';
+import LoadingSkeleton from '../Loading/LoadingSkeleton';
 
 export default function Dashboard({ selectedServer, onNavigate, onSelectServer }) {
     const [showNotifications, setShowNotifications] = useState(false);
     const [timeMode, setTimeMode] = useState('today');
-    const [notificationNonce, setNotificationNonce] = useState(0);
     const serverId = selectedServer?.serverId;
     const { data: serversData } = useGet('/server/all', { immediate: true, dependencies: [serverId] });
     const { data: serverStatusesData } = useGet('/server/statuses', { immediate: true, dependencies: [serverId] });
     const timeParams = getTimeParams(timeMode);
-    const { data: metrics } = useGet('/metrics/overview', {
+    const { data: metrics, loading: metricsRawLoading } = useGet('/metrics/overview', {
         immediate: !!serverId,
         params: {
             serverId,
             hours: timeParams.hours,
-            bucketMinutes: timeParams.bucketMinutes
+            bucketMinutes: timeParams.bucketMinutes,
+            bucketSeconds: timeParams.bucketSeconds
         },
         dependencies: [serverId, timeMode]
     });
+    const metricsLoading = useBufferedLoading(metricsRawLoading, 2200);
     const { data: unread } = useGet('/notification/unread-count', {
         immediate: true,
-        dependencies: [showNotifications, serverId, notificationNonce]
+        dependencies: [showNotifications]
     });
 
     useEffect(() => {
@@ -38,6 +41,9 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
             return;
         }
         const runMonitor = () => {
+            if (document.visibilityState === 'hidden') {
+                return;
+            }
             fetch(buildUrl('/server/monitor'), {
                 method: 'POST',
                 headers: {
@@ -48,21 +54,9 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
             }).catch(() => null);
         };
         runMonitor();
-        const id = setInterval(runMonitor, 60_000);
+        const id = setInterval(runMonitor, 300_000);
         return () => clearInterval(id);
     }, [serverId]);
-
-    useEffect(() => {
-        const onNotificationRefresh = () => {
-            setNotificationNonce((prev) => prev + 1);
-        };
-        const intervalId = setInterval(() => setNotificationNonce((prev) => prev + 1), 10_000);
-        window.addEventListener('pulse24x7-notification-refresh', onNotificationRefresh);
-        return () => {
-            clearInterval(intervalId);
-            window.removeEventListener('pulse24x7-notification-refresh', onNotificationRefresh);
-        };
-    }, []);
     const servers = Array.isArray(serverStatusesData) && serverStatusesData.length > 0
         ? serverStatusesData
         : (Array.isArray(serversData) ? serversData : []);
@@ -104,43 +98,55 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
             </header>
 
             <div className={DashboardStyles.statsGrid}>
-                <StatCard
-                    icon={<MdInfo />}
-                    label="Uptime"
-                    value={`${(metrics?.uptimePercent || 0).toFixed(1)}%`}
-                    trend={`${metrics?.activeServerCount || 0} active servers`}
-                    trendPositive={true}
-                    iconBg="#3B82F6"
-                />
-                <StatCard
-                    icon={<MdSync />}
-                    label="Total Requests"
-                    value={totalRequests.toLocaleString()}
-                    trend="Live from request logs"
-                    trendPositive={true}
-                    iconBg="#06B6D4"
-                />
-                <StatCard
-                    icon={<MdError />}
-                    label="Error Rate"
-                    value={totalRequests > 0 ? `${((totalErrors / totalRequests) * 100).toFixed(2)}%` : '0.00%'}
-                    trend={`${totalErrors} failed requests`}
-                    trendPositive={totalErrors === 0}
-                    iconBg="#EF4444"
-                />
-                <StatCard
-                    icon={<MdSpeed />}
-                    label="Avg Latency"
-                    value={`${Math.round(avgLatency)}ms`}
-                    trend="Across top tools"
-                    trendPositive={avgLatency <= 250}
-                    iconBg="#F59E0B"
-                />
+                {metricsLoading ? (
+                    <>
+                        <LoadingSkeleton type="stat-card" />
+                        <LoadingSkeleton type="stat-card" />
+                        <LoadingSkeleton type="stat-card" />
+                        <LoadingSkeleton type="stat-card" />
+                    </>
+                ) : (
+                    <>
+                        <StatCard
+                            icon={<MdInfo />}
+                            label="Uptime"
+                            value={`${(metrics?.uptimePercent || 0).toFixed(1)}%`}
+                            trend={`${metrics?.activeServerCount || 0} active servers`}
+                            trendPositive={true}
+                            iconBg="#3B82F6"
+                        />
+                        <StatCard
+                            icon={<MdSync />}
+                            label="Total Requests"
+                            value={totalRequests.toLocaleString()}
+                            trend="Live from request logs"
+                            trendPositive={true}
+                            iconBg="#06B6D4"
+                        />
+                        <StatCard
+                            icon={<MdError />}
+                            label="Error Rate"
+                            value={totalRequests > 0 ? `${((totalErrors / totalRequests) * 100).toFixed(2)}%` : '0.00%'}
+                            trend={`${totalErrors} failed requests`}
+                            trendPositive={totalErrors === 0}
+                            iconBg="#EF4444"
+                        />
+                        <StatCard
+                            icon={<MdSpeed />}
+                            label="Avg Latency"
+                            value={`${Math.round(avgLatency)}ms`}
+                            trend="Across top tools"
+                            trendPositive={avgLatency <= 250}
+                            iconBg="#F59E0B"
+                        />
+                    </>
+                )}
             </div>
 
             <div className={DashboardStyles.mainGrid}>
                 <SystemHealth
                     data={metrics?.throughput24h || []}
+                    loading={metricsLoading}
                     timeMode={timeMode}
                     onChangeTimeMode={setTimeMode}
                 />
@@ -164,20 +170,30 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
 function getTimeParams(mode) {
     switch (mode) {
         case 'today':
-            return { hours: 24, bucketMinutes: 0 };
+            return { hours: 24, bucketMinutes: 0, bucketSeconds: 30 };
         case 'week':
-            return { hours: 24 * 7, bucketMinutes: 30 };
+            return { hours: 24 * 7, bucketMinutes: 30, bucketSeconds: 0 };
         case 'month':
-            return { hours: 24 * 30, bucketMinutes: 120 };
+            return { hours: 24 * 30, bucketMinutes: 120, bucketSeconds: 0 };
         default:
-            return { hours: 24, bucketMinutes: 0 };
+            return { hours: 24, bucketMinutes: 0, bucketSeconds: 30 };
     }
 }
 
 function averageLatency(tools) {
-    if (!tools || tools.length === 0) {
+    const filtered = (tools || []).filter((tool) => !isInternalToolName(tool?.toolName));
+    if (filtered.length === 0) {
         return 0;
     }
-    const total = tools.reduce((sum, tool) => sum + (Number(tool.avgLatency) || 0), 0);
-    return total / tools.length;
+    const total = filtered.reduce((sum, tool) => sum + (Number(tool.avgLatency) || 0), 0);
+    return total / filtered.length;
+}
+
+function isInternalToolName(name) {
+    const lower = String(name || '').toLowerCase();
+    return !lower
+        || lower.startsWith('__')
+        || lower.includes('ping')
+        || lower.includes('refresh')
+        || lower.includes('token');
 }

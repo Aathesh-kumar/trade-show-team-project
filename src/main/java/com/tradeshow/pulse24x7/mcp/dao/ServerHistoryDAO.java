@@ -3,11 +3,11 @@ package com.tradeshow.pulse24x7.mcp.dao;
 import com.tradeshow.pulse24x7.mcp.model.ServerHistory;
 import com.tradeshow.pulse24x7.mcp.db.DBConnection;
 import com.tradeshow.pulse24x7.mcp.utils.DBQueries;
-import com.tradeshow.pulse24x7.mcp.utils.TimeUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.sql.*;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -93,7 +93,7 @@ public class ServerHistoryDAO {
                 serverId, hours);
         List<ServerHistory> historyList = new ArrayList<>();
 
-        Timestamp cutoffTime = TimeUtil.getTimestampHoursAgo(hours);
+        Timestamp cutoffTime = Timestamp.from(Instant.now().minusSeconds(Math.max(1, hours) * 3600L));
 
         try (Connection con = DBConnection.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(DBQueries.GET_SERVER_HISTORY_LAST_HOURS)) {

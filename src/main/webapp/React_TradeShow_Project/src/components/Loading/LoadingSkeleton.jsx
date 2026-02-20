@@ -38,6 +38,19 @@ export const LoadingSkeleton = ({
         );
     }
 
+    if (type === 'stat-card') {
+        return (
+            <div className={LoadingStyles.skeletonStatCard}>
+                <div className={LoadingStyles.skeletonStatIcon}></div>
+                <div className={LoadingStyles.skeletonStatContent}>
+                    <div className={LoadingStyles.skeletonLine} style={{ width: '48%', height: '0.8rem' }}></div>
+                    <div className={LoadingStyles.skeletonLine} style={{ width: '72%', height: '1.6rem' }}></div>
+                    <div className={LoadingStyles.skeletonLine} style={{ width: '56%', height: '0.75rem' }}></div>
+                </div>
+            </div>
+        );
+    }
+
     // Table skeleton
     if (type === 'table') {
         return (

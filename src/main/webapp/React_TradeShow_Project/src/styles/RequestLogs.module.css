@@ -149,6 +149,7 @@
   background: transparent;
   color: var(--text-primary);
   min-height: 36px;
+  font-size: 1.02rem;
   outline: none;
 }
 
@@ -169,7 +170,7 @@
   background: transparent;
   color: var(--text-primary);
   padding: 0.35rem 0.68rem;
-  font-size: 0.84rem;
+  font-size: 0.96rem;
 }
 
 .logsContent {
@@ -179,20 +180,9 @@
   overflow: hidden;
 }
 
-.logsMainColumn {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
 .tableContainer {
   flex: 1;
   overflow: auto;
-}
-
-.paginationBar {
-  border-top: 1px solid var(--panel-border);
 }
 
 .logsTable {
@@ -352,7 +342,7 @@
 
 .panelContent {
   padding: 0.95rem;
-  overflow: hidden;
+  overflow: auto;
   display: grid;
   gap: 0.8rem;
 }

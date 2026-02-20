@@ -24,16 +24,42 @@ export const parseApiResponse = async (response) => {
     const body = isJson ? await response.json() : null;
 
     if (!response.ok) {
-        const rawMessage = body?.message || body?.error || '';
+        const rawMessage = extractMessage(body);
         const normalized = String(rawMessage || '').trim();
         const errorMessage = !normalized || /^unknown error$/i.test(normalized)
             ? `Request failed (${response.status}${response.statusText ? ` ${response.statusText}` : ''})`
             : normalized;
-        throw new Error(errorMessage);
+        const err = new Error(errorMessage);
+        err.status = response.status;
+        err.payload = body;
+        err.code = body?.errorCode || body?.code || null;
+        throw err;
     }
 
     return body;
 };
+
+function extractMessage(body) {
+    if (!body || typeof body !== 'object') {
+        return '';
+    }
+    const candidates = [
+        body.message,
+        body.error,
+        body.error_description,
+        body.description,
+        body?.data?.message,
+        body?.data?.error,
+        body?.result?.message,
+        body?.result?.error
+    ];
+    for (const candidate of candidates) {
+        if (typeof candidate === 'string' && candidate.trim()) {
+            return candidate;
+        }
+    }
+    return '';
+}
 
 export const unwrapData = (body) => {
     if (!body) {

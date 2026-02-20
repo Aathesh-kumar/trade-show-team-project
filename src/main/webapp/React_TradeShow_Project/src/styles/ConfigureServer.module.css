@@ -107,7 +107,7 @@
 }
 
 .inputField label {
-    font-size: 0.875rem;
+    font-size: 1.03rem;
     font-weight: 500;
     display: flex;
     align-items: center;
@@ -137,7 +137,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     color: white;
-    font-size: 0.95rem;
+    font-size: 1.06rem;
     transition: all 0.2s;
 }
 
@@ -189,7 +189,7 @@
 }
 
 .selectField label {
-    font-size: 0.875rem;
+    font-size: 1.03rem;
     font-weight: 500;
 }
 
@@ -197,30 +197,18 @@
     position: relative;
 }
 
-.selectWrapper select {
+.selectDropdownButton {
     width: 100%;
     padding: 0.875rem 1rem;
-    padding-right: 2.5rem;
     background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     color: white;
-    font-size: 0.95rem;
-    cursor: pointer;
-    appearance: none;
+    font-size: 1.06rem;
 }
 
-.selectWrapper select option {
+.selectDropdownMenu {
     background-color: #1B2335;
-}
-
-.selectIcon {
-    position: absolute;
-    right: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-    color: rgba(255, 255, 255, 0.5);
 }
 
 .authFields {
@@ -237,7 +225,7 @@
 }
 
 .dateTimeField label {
-    font-size: 0.875rem;
+    font-size: 1.03rem;
     font-weight: 500;
     display: flex;
     align-items: center;
@@ -319,7 +307,7 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     color: white;
-    font-size: 0.95rem;
+    font-size: 1.06rem;
     transition: all 0.2s;
 }
 
@@ -858,12 +846,6 @@
     border-color: #EF4444;
 }
 
-.selectWrapper select option[value="__custom__"] {
-    color: #3B82F6;
-    font-weight: 600;
-}
-
-
 @media (max-width: 768px) {
     .customHeaderWrapper {
         flex-direction: column;
@@ -889,4 +871,35 @@
 :root[data-theme='light'] .configurePage .formSection {
   background: color-mix(in srgb, var(--bg-elev-1) 92%, transparent);
   border-color: var(--panel-border);
+}
+
+:root[data-theme='light'] .configurePage .inputWrapper input,
+:root[data-theme='light'] .configurePage .selectDropdownButton,
+:root[data-theme='light'] .configurePage .dateTimeInput,
+:root[data-theme='light'] .configurePage .customHeaderInput {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.2);
+}
+
+:root[data-theme='light'] .configurePage .inputWrapper input::placeholder,
+:root[data-theme='light'] .configurePage .customHeaderInput::placeholder {
+  color: #64748b;
+}
+
+:root[data-theme='light'] .configurePage .sectionTitle,
+:root[data-theme='light'] .configurePage .previewLabel,
+:root[data-theme='light'] .configurePage .toggleInfo p,
+:root[data-theme='light'] .configurePage .testInfo p,
+:root[data-theme='light'] .configurePage .helpCard p {
+  color: #475569;
+}
+
+:root[data-theme='light'] .configurePage .toggleBtn,
+:root[data-theme='light'] .configurePage .inputIcon {
+  color: #334155;
+}
+
+:root[data-theme='light'] .configurePage .toggleBtn:hover {
+  background: rgba(15, 23, 42, 0.08);
 }

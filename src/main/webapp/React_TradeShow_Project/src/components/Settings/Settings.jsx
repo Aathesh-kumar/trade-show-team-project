@@ -53,6 +53,20 @@ export default function Settings({ selectedServer, onServerUpdated, themeMode = 
     setTokenEndpoint(tokenData.tokenEndpoint || 'https://accounts.zoho.in/oauth/v2/token');
   }, [tokenData?.updatedAt, tokenData?.serverId]);
 
+  useEffect(() => {
+    if (!serverId) {
+      return undefined;
+    }
+    const onTokenUpdate = (event) => {
+      const nextServerId = Number(event?.detail?.serverId || 0);
+      if (nextServerId === Number(serverId)) {
+        refetchToken();
+      }
+    };
+    window.addEventListener('pulse24x7-auth-token-updated', onTokenUpdate);
+    return () => window.removeEventListener('pulse24x7-auth-token-updated', onTokenUpdate);
+  }, [serverId, refetchToken]);
+
   const canSaveServer = useMemo(() => !!serverId && !!serverName && !!serverUrl, [serverId, serverName, serverUrl]);
 
   if (!serverId) {
@@ -99,6 +113,7 @@ export default function Settings({ selectedServer, onServerUpdated, themeMode = 
         clientSecret,
         tokenEndpoint
       });
+      window.dispatchEvent(new CustomEvent('pulse24x7-auth-token-updated', { detail: { serverId: Number(serverId) } }));
       setMessage({ type: 'success', text: 'Auth configuration saved.' });
       refetchToken();
     } catch (e) {
@@ -117,10 +132,6 @@ export default function Settings({ selectedServer, onServerUpdated, themeMode = 
       refetchToken();
     } catch (e) {
       setMessage({ type: 'error', text: e.message });
-    } finally {
-      window.dispatchEvent(new CustomEvent('pulse24x7-request-log-refresh', {
-        detail: { serverId, reason: 'token_refresh' }
-      }));
     }
   };
 

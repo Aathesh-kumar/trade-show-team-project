@@ -20,8 +20,12 @@ public class ServerService {
         this.serverHistoryDAO = new ServerHistoryDAO();
     }
 
-    public Integer registerServer(String serverName, String serverUrl) {
-        logger.info("Registering new server: {} - {}", serverName, serverUrl);
+    public Integer registerServer(Long userId, String serverName, String serverUrl) {
+        logger.info("Registering new server for userId={}: {} - {}", userId, serverName, serverUrl);
+        if (userId == null || userId <= 0) {
+            logger.error("Invalid userId: {}", userId);
+            return null;
+        }
         
         // Validate inputs
         if (!validateServerName(serverName)) {
@@ -35,38 +39,66 @@ public class ServerService {
         }
         
         // Check if server already exists
-        if (serverDAO.serverExists(serverUrl)) {
+        if (serverDAO.serverExists(serverUrl, userId)) {
             logger.warn("Server already exists with URL: {}", serverUrl);
             return null;
         }
         
         // Insert server
-        return serverDAO.insertServer(serverName, serverUrl);
+        return serverDAO.insertServer(userId, serverName, serverUrl);
     }
 
-    public Server getServerById(Integer serverId) {
+    public Server getServerById(Integer serverId, Long userId) {
         if (serverId == null || serverId <= 0) {
             logger.error("Invalid server ID: {}", serverId);
             return null;
         }
-        return serverDAO.getServerById(serverId);
+        if (userId == null || userId <= 0) {
+            logger.error("Invalid userId: {}", userId);
+            return null;
+        }
+        return serverDAO.getServerById(serverId, userId);
     }
 
-    public Server getServerByUrl(String serverUrl) {
+    public Server getServerByIdGlobal(Integer serverId) {
+        if (serverId == null || serverId <= 0) {
+            logger.error("Invalid server ID: {}", serverId);
+            return null;
+        }
+        return serverDAO.getServerByIdGlobal(serverId);
+    }
+
+    public Server getServerByUrl(String serverUrl, Long userId) {
         if (serverUrl == null || serverUrl.trim().isEmpty()) {
             logger.error("Invalid server URL");
             return null;
         }
-        return serverDAO.getServerByUrl(serverUrl);
+        if (userId == null || userId <= 0) {
+            logger.error("Invalid userId: {}", userId);
+            return null;
+        }
+        return serverDAO.getServerByUrl(serverUrl, userId);
     }
 
-    public List<Server> getAllServers() {
-        return serverDAO.getAllServers();
+    public List<Server> getAllServers(Long userId) {
+        if (userId == null || userId <= 0) {
+            logger.error("Invalid userId: {}", userId);
+            return List.of();
+        }
+        return serverDAO.getAllServers(userId);
     }
 
-    public boolean updateServer(Integer serverId, String serverName, String serverUrl) {
+    public List<Server> getAllServersGlobal() {
+        return serverDAO.getAllServersGlobal();
+    }
+
+    public boolean updateServer(Integer serverId, Long userId, String serverName, String serverUrl) {
         if (serverId == null || serverId <= 0) {
             logger.error("Invalid server ID: {}", serverId);
+            return false;
+        }
+        if (userId == null || userId <= 0) {
+            logger.error("Invalid userId: {}", userId);
             return false;
         }
         
@@ -75,15 +107,23 @@ public class ServerService {
             return false;
         }
         
-        return serverDAO.updateServer(serverId, serverName, serverUrl);
+        return serverDAO.updateServer(serverId, userId, serverName, serverUrl);
     }
 
-    public boolean deleteServer(Integer serverId) {
+    public boolean deleteServer(Integer serverId, Long userId) {
         if (serverId == null || serverId <= 0) {
             logger.error("Invalid server ID: {}", serverId);
             return false;
         }
-        return serverDAO.deleteServer(serverId);
+        if (userId == null || userId <= 0) {
+            logger.error("Invalid userId: {}", userId);
+            return false;
+        }
+        return serverDAO.deleteServer(serverId, userId);
+    }
+
+    public boolean isServerOwnedByUser(Integer serverId, Long userId) {
+        return getServerById(serverId, userId) != null;
     }
 
     public List<ServerHistory> getServerHistory(Integer serverId, int limit) {

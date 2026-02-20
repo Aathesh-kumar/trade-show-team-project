@@ -28,13 +28,11 @@ public class HttpClientUtil {
     public static class HttpRequestException extends RuntimeException {
         private final int statusCode;
         private final String responseBody;
-        private final String errorCode;
 
-        public HttpRequestException(int statusCode, String message, String errorCode, String responseBody) {
+        public HttpRequestException(int statusCode, String message, String responseBody) {
             super(message);
             this.statusCode = statusCode;
             this.responseBody = responseBody;
-            this.errorCode = errorCode;
         }
 
         public int getStatusCode() {
@@ -43,10 +41,6 @@ public class HttpClientUtil {
 
         public String getResponseBody() {
             return responseBody;
-        }
-
-        public String getErrorCode() {
-            return errorCode;
         }
     }
 
@@ -88,7 +82,8 @@ public class HttpClientUtil {
                     return parseToJson(responseBody);
                 } else {
                     logger.error("POST failed | Status: {} | Body: {}", statusCode, responseBody);
-                    throw buildHttpRequestException(statusCode, responseBody);
+                    String errorMessage = extractErrorMessage(responseBody, statusCode);
+                    throw new HttpRequestException(statusCode, errorMessage, responseBody);
                 }
             }
 
@@ -137,7 +132,8 @@ public class HttpClientUtil {
                     return parseToJson(responseBody);
                 } else {
                     logger.error("GET failed | Status: {} | Body: {}", statusCode, responseBody);
-                    throw new RuntimeException("GET failed with status: " + statusCode);
+                    String errorMessage = extractErrorMessage(responseBody, statusCode);
+                    throw new HttpRequestException(statusCode, errorMessage, responseBody);
                 }
             }
 
@@ -182,12 +178,12 @@ public class HttpClientUtil {
                 if (statusCode >= 200 && statusCode < 300) {
                     return parseToJson(responseBody);
                 }
-                throw buildHttpRequestException(statusCode, responseBody);
+                String errorMessage = extractErrorMessage(responseBody, statusCode);
+                throw new HttpRequestException(statusCode, errorMessage, responseBody);
             }
+        } catch (HttpRequestException e) {
+            throw e;
         } catch (Exception e) {
-            if (e instanceof HttpRequestException) {
-                throw (HttpRequestException) e;
-            }
             throw new RuntimeException("FORM POST request failed for URL: " + url, e);
         }
     }
@@ -224,43 +220,34 @@ public class HttpClientUtil {
         }
     }
 
-    private static String urlEncode(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8);
-    }
-
-    private static HttpRequestException buildHttpRequestException(int statusCode, String responseBody) {
-        String errorMessage = "Unknown error";
-        String errorCode = null;
+    private static String extractErrorMessage(String responseBody, int statusCode) {
+        if (responseBody == null || responseBody.isBlank()) {
+            return "Request failed with status " + statusCode;
+        }
         try {
             JsonObject json = JsonParser.parseString(responseBody).getAsJsonObject();
+            if (json.has("message") && !json.get("message").isJsonNull()) {
+                return json.get("message").getAsString();
+            }
+            if (json.has("error") && !json.get("error").isJsonNull()) {
+                return json.get("error").getAsString();
+            }
             if (json.has("data") && json.get("data").isJsonObject()) {
                 JsonObject data = json.getAsJsonObject("data");
-                if (data.has("error_code")) {
-                    errorCode = safeGetString(data, "error_code");
+                if (data.has("message") && !data.get("message").isJsonNull()) {
+                    return data.get("message").getAsString();
                 }
-                if (data.has("message")) {
-                    errorMessage = safeGetString(data, "message");
+                if (data.has("error") && !data.get("error").isJsonNull()) {
+                    return data.get("error").getAsString();
                 }
-            } else if (json.has("message")) {
-                errorMessage = safeGetString(json, "message");
-            } else if (json.has("error")) {
-                errorMessage = safeGetString(json, "error");
             }
         } catch (Exception parseEx) {
-            logger.warn("Failed to extract error details from response body", parseEx);
+            logger.warn("Failed to extract structured error message from response body");
         }
-
-        if (errorMessage == null || errorMessage.isBlank()) {
-            errorMessage = "Request failed with status " + statusCode;
-        }
-        return new HttpRequestException(statusCode, errorMessage, errorCode, responseBody);
+        return "Request failed with status " + statusCode + ": " + responseBody;
     }
 
-    private static String safeGetString(JsonObject source, String key) {
-        try {
-            return source.get(key).getAsString();
-        } catch (Exception e) {
-            return null;
-        }
+    private static String urlEncode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

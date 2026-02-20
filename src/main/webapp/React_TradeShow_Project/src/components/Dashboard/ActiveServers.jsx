@@ -20,7 +20,7 @@ export default function ActiveServers({ servers = [], selectedServerId, onSelect
                     <button
                         key={index}
                         type="button"
-                        className={`${DashboardStyles.serverItem} ${selectedServerId === server.id ? DashboardStyles.selectedServerItem : ''}`}
+                        className={`${DashboardStyles.serverItem} ${server.status === 'online' ? DashboardStyles.serverItemOnline : DashboardStyles.serverItemOffline} ${selectedServerId === server.id ? DashboardStyles.selectedServerItem : ''}`}
                         onClick={() => onSelectServer?.(server.id)}
                     >
                         <div className={DashboardStyles.serverIcon}>
@@ -45,7 +45,7 @@ export default function ActiveServers({ servers = [], selectedServerId, onSelect
 function safeHost(url) {
     try {
         return new URL(url).hostname;
-    } catch {
+    } catch (e) {
         return url || '-';
     }
 }

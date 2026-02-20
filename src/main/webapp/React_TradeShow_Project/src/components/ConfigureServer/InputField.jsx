@@ -11,7 +11,8 @@ export default function InputField({
     icon,
     showToggle,
     onToggle,
-    tooltip
+    tooltip,
+    readOnly = false
 }) {
     return (
         <div className={ConfigureServerStyles.inputField}>
@@ -36,12 +37,13 @@ export default function InputField({
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     required={required}
-                    className={icon ? ConfigureServerStyles.withIcon : ''}
+                    readOnly={readOnly}
+                    className={`${icon ? ConfigureServerStyles.withIcon : ''} cursor-text`.trim()}
                 />
                 {showToggle && (
                     <button
                         type="button"
-                        className={ConfigureServerStyles.toggleBtn}
+                        className={`${ConfigureServerStyles.toggleBtn} cursor-pointer`}
                         onClick={onToggle}
                     >
                         {type === 'password' ? <MdVisibility /> : <MdVisibilityOff />}

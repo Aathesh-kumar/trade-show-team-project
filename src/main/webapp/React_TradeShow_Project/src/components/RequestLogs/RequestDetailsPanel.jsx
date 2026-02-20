@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import RequestLogsStyles from '../../styles/RequestLogs.module.css';
 import { MdClose, MdContentCopy, MdPlayArrow, MdFlag } from 'react-icons/md';
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { usePost } from '../Hooks/usePost';
 import { buildUrl } from '../../services/api';
-import JsonViewer from '../Common/JsonViewer';
 
-export default function RequestDetailsPanel({ request, selectedServer, onClose, onReplaySuccess }) {
+export default function RequestDetailsPanel({ request, selectedServer, onClose }) {
     const [copiedSection, setCopiedSection] = useState(null);
     const [replayMessage, setReplayMessage] = useState(null);
     const { execute: replayRequest, loading: replaying } = usePost(buildUrl('/tool/test'));
@@ -40,7 +40,6 @@ export default function RequestDetailsPanel({ request, selectedServer, onClose, 
                 inputParams: inputParams || '{}'
             });
             setReplayMessage({ type: 'success', text: 'Re-request sent successfully.' });
-            onReplaySuccess?.();
         } catch (error) {
             setReplayMessage({ type: 'error', text: error.message || 'Failed to replay request.' });
         }
@@ -85,7 +84,12 @@ export default function RequestDetailsPanel({ request, selectedServer, onClose, 
                             {copiedSection === 'request' ? 'Copied!' : 'Copy'}
                         </button>
                     </div>
-                    <JsonViewer data={request.requestPayload} className={RequestLogsStyles.jsonViewer} />
+                    <pre className={RequestLogsStyles.jsonViewer}>
+                        <code>{JSON.stringify(request.requestPayload, null, 2)}</code>
+                    </pre>
+                    <SyntaxHighlighter className={RequestLogsStyles.jsonViewer} language="json">
+                        {JSON.stringify(request.requestPayload, null, 2)}
+                    </SyntaxHighlighter>
                 </section>
 
                 {/* Response Body */}
@@ -100,7 +104,9 @@ export default function RequestDetailsPanel({ request, selectedServer, onClose, 
                             {copiedSection === 'response' ? 'Copied!' : 'Copy'}
                         </button>
                     </div>
-                    <JsonViewer data={request.responseBody} className={RequestLogsStyles.jsonViewer} />
+                    <pre className={RequestLogsStyles.jsonViewer}>
+                        <code>{JSON.stringify(request.responseBody, null, 2)}</code>
+                    </pre>
                 </section>
 
                 {/* Contextual Metadata */}

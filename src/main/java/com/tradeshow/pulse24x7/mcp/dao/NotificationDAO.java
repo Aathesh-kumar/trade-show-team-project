@@ -35,11 +35,12 @@ public class NotificationDAO {
         }
     }
 
-    public List<Notification> getRecent(int limit) {
+    public List<Notification> getRecent(int limit, int offset) {
         List<Notification> list = new ArrayList<>();
         try (Connection con = DBConnection.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(DBQueries.SELECT_NOTIFICATIONS)) {
             ps.setInt(1, Math.max(1, limit));
+            ps.setInt(2, Math.max(0, offset));
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     list.add(mapResultSet(rs));
@@ -49,6 +50,27 @@ public class NotificationDAO {
             logger.error("Failed to fetch notifications", e);
         }
         return list;
+    }
+
+    public boolean deleteById(long id) {
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.DELETE_NOTIFICATION)) {
+            ps.setLong(1, id);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            logger.error("Failed to delete notification: {}", id, e);
+            return false;
+        }
+    }
+
+    public int deleteAll() {
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.DELETE_ALL_NOTIFICATIONS)) {
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Failed to delete all notifications", e);
+            return 0;
+        }
     }
 
     public boolean markRead(long id) {

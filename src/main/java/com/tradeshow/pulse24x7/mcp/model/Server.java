@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 
 public class Server {
     private int serverId;
+    private Long userId;
     private String serverName;
     private String serverUrl;
     private Timestamp createdAt;
@@ -11,8 +12,9 @@ public class Server {
     public Server() {
     }
 
-    public Server(int serverId, String serverName, String serverUrl, Timestamp createdAt) {
+    public Server(int serverId, Long userId, String serverName, String serverUrl, Timestamp createdAt) {
         this.serverId = serverId;
+        this.userId = userId;
         this.serverName = serverName;
         this.serverUrl = serverUrl;
         this.createdAt = createdAt;
@@ -24,6 +26,14 @@ public class Server {
 
     public void setServerId(int serverId) {
         this.serverId = serverId;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     public String getServerName() {
@@ -54,6 +64,7 @@ public class Server {
     public String toString() {
         return "Server{" +
                 "serverId=" + serverId +
+                ", userId=" + userId +
                 ", serverName='" + serverName + '\'' +
                 ", serverUrl='" + serverUrl + '\'' +
                 ", createdAt=" + createdAt +

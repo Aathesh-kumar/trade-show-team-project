@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MdVisibility, MdVisibilityOff, MdMail, MdPerson } from 'react-icons/md';
+import { MdVisibility, MdVisibilityOff, MdMail, MdPerson, MdLock } from 'react-icons/md';
 import AuthStyles from '../../styles/Auth.module.css';
 import { buildUrl, parseApiResponse, unwrapData } from '../../services/api';
 import pulseLogo from '../../assets/pulse24x7-logo.png';
@@ -35,7 +35,7 @@ export default function AuthPage({ onAuthenticated }) {
       onAuthenticated?.(data.user);
     } catch (e) {
       const isNetwork = e?.message?.includes('Failed to fetch') || e?.message?.includes('NetworkError');
-      setError(isNetwork ? 'Backend is not reachable at http://localhost:8080/team-project-static. Start Tomcat and try again.' : (e.message || 'Authentication failed'));
+      setError(isNetwork ? 'Backend is not reachable. Start Tomcat/backend service and try again.' : (e.message || 'Authentication failed'));
     } finally {
       setLoading(false);
     }
@@ -109,7 +109,13 @@ export default function AuthPage({ onAuthenticated }) {
               Signup
             </button>
           </div>
-          <div className={AuthStyles.form}>
+          <form
+            className={AuthStyles.form}
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+          >
             {mode === 'signup' && (
               <div className={AuthStyles.fieldWrap}>
                 <MdPerson className={AuthStyles.fieldIcon} />
@@ -132,6 +138,7 @@ export default function AuthPage({ onAuthenticated }) {
               />
             </div>
             <div className={AuthStyles.fieldWrap}>
+              <MdLock className={AuthStyles.fieldIcon} />
               <input
                 className={AuthStyles.input}
                 placeholder="Password"
@@ -149,10 +156,10 @@ export default function AuthPage({ onAuthenticated }) {
               </button>
             </div>
             {error && <div className={AuthStyles.error}>{error}</div>}
-            <button type="button" className={AuthStyles.btn} onClick={submit} disabled={loading}>
+            <button type="submit" className={AuthStyles.btn} disabled={loading}>
               {loading ? 'Please wait...' : (mode === 'login' ? 'Login' : 'Create Account')}
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </div>
