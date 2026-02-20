@@ -32,11 +32,11 @@ export default function ToolsInventory({ selectedServer }) {
 
     const { data: tools = [], loading, error, refetch } = useGet('/tool/all', {
         immediate: !!serverId,
-        params: { serverId, includeInactive: timeRange !== 'current' },
-        dependencies: [serverId, timeRange]
+        params: { serverId, includeInactive: false },
+        dependencies: [serverId]
     });
 
-    const { data: intervalLogs } = useGet('/request-log', {
+    const { data: intervalLogs = []} = useGet('/history/tool', {
         immediate: !!serverId && timeRange !== 'current',
         params: {
             serverId,

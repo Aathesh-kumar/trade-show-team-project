@@ -1,5 +1,6 @@
 package com.tradeshow.pulse24x7.mcp.dao;
 
+import com.tradeshow.pulse24x7.mcp.model.Tool;
 import com.tradeshow.pulse24x7.mcp.model.ToolHistory;
 import com.tradeshow.pulse24x7.mcp.db.DBConnection;
 import com.tradeshow.pulse24x7.mcp.utils.DBQueries;
@@ -129,6 +130,29 @@ public class ToolHistoryDAO {
             logger.error("Failed to fetch availability percentage for tool ID: {}", toolId, e);
         }
         return 0.0;
+    }
+
+    public List<Tool> getToolHistory(Integer serverId){
+        logger.debug("get tool history for server {}", serverId);
+        if(serverId == null){
+            return null;
+        }
+        ToolDAO toolDAO = new ToolDAO();
+        List<Tool> tools =  new ArrayList<>();
+        try(Connection con = DBConnection.getInstance().getConnection();
+            PreparedStatement ps = con.prepareStatement(DBQueries.GET_PAST_TOOL)) {
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Tool tool= toolDAO.getToolById(rs.getInt("tool_id"));
+                    tool.setIsAvailability(rs.getBoolean("is_available"));
+                    tools.add(tool);
+                }
+            }
+            return tools;
+        }catch (SQLException e) {
+            logger.error("Failed to get tool history for server id: {}", serverId, e);
+        }
+        return null;
     }
 
     private ToolHistory mapResultSetToToolHistory(ResultSet rs) throws SQLException {

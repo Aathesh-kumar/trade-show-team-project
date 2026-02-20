@@ -1,7 +1,9 @@
 package com.tradeshow.pulse24x7.mcp.controller;
 
 import com.google.gson.JsonObject;
+import com.tradeshow.pulse24x7.mcp.dao.ToolHistoryDAO;
 import com.tradeshow.pulse24x7.mcp.model.ServerHistory;
+import com.tradeshow.pulse24x7.mcp.model.Tool;
 import com.tradeshow.pulse24x7.mcp.model.ToolHistory;
 import com.tradeshow.pulse24x7.mcp.service.ServerService;
 import com.tradeshow.pulse24x7.mcp.service.ToolService;
@@ -46,9 +48,12 @@ public class HistoryServlet extends HttpServlet {
         String pathInfo = req.getPathInfo();
         
         try {
+            System.out.println("HISTORY CALLED");
             if (pathInfo != null && pathInfo.equals("/server")) {
+                System.out.println("server CALLED");
                 handleGetServerHistory(req, resp);
             } else if (pathInfo != null && pathInfo.equals("/tool")) {
+                System.out.println("tool CALLED");
                 handleGetToolHistory(req, resp);
             } else {
                 sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
@@ -89,27 +94,22 @@ public class HistoryServlet extends HttpServlet {
 
     private void handleGetToolHistory(HttpServletRequest req, HttpServletResponse resp) 
             throws IOException {
-        String toolIdStr = req.getParameter("toolId");
+        String severIdStr = req.getParameter("serverId");
         String hoursStr = req.getParameter("hours");
-        
-        if (toolIdStr == null || toolIdStr.trim().isEmpty()) {
+        System.out.println(hoursStr);
+        if (severIdStr == null || severIdStr.trim().isEmpty()) {
             sendErrorResponse(resp, "Tool ID is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
         
         try {
-            Integer toolId = Integer.parseInt(toolIdStr);
-            int hours = hoursStr != null ? Integer.parseInt(hoursStr) : 24;
-            
-            List<ToolHistory> history = toolService.getToolHistoryLastHours(toolId, hours);
-            Double availabilityPercent = toolService.getToolAvailabilityPercent(toolId);
-            
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("history", history);
-            responseData.put("availabilityPercent", availabilityPercent);
-            responseData.put("hours", hours);
-            
-            sendSuccessResponse(resp, responseData);
+            Integer severId = Integer.parseInt(severIdStr);
+
+            List<Tool> tools = new ToolHistoryDAO().getToolHistory(severId);
+            for(Tool tool:tools){
+                System.out.println(tool.getToolName()+ tool.getToolId());
+            }
+            sendSuccessResponse(resp, tools);
         } catch (NumberFormatException e) {
             sendErrorResponse(resp, "Invalid parameters", HttpServletResponse.SC_BAD_REQUEST);
         }

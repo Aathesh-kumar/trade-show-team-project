@@ -38,22 +38,12 @@ public class AuthTokenService {
         );
     }
 
-    public boolean saveToken(Integer serverId, String headerType, String accessToken, String refreshToken,
-                             Timestamp expiresAt) {
-        return saveToken(serverId, headerType, accessToken, refreshToken, expiresAt, null, null, null);
-    }
-
     public AuthToken getToken(Integer serverId) {
         if (serverId == null || serverId <= 0) {
             logger.error("Invalid server ID: {}", serverId);
             return null;
         }
         return authTokenDAO.getAuthToken(serverId);
-    }
-
-    public String getAccessToken(Integer serverId) {
-        AuthToken token = getToken(serverId);
-        return token != null ? token.getAccessToken() : null;
     }
 
     public String ensureValidAccessToken(Integer serverId) {

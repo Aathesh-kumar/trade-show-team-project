@@ -109,7 +109,6 @@ public class ToolServlet extends HttpServlet {
         Double hours = parseDouble(req.getParameter("hours"));
         String start = req.getParameter("start");
         String end = req.getParameter("end");
-
         if (hours != null && hours > 0) {
             Timestamp cutoff = Timestamp.from(Instant.now().minusSeconds((long) (hours * 3600)));
             tools = tools.stream()

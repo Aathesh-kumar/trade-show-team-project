@@ -42,7 +42,6 @@ public class ToolService {
             JsonObject request = JsonUtil.createMCPRequest("tools/list", params);
 
             JsonObject response = doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request);
-
             List<Tool> oldTools = getToolsByServer(serverId);
             List<Tool> newTools = parseToolsFromResponse(response, serverId);
             List<Tool> changedOrAddedTools = getChangedOrAddedTools(oldTools, newTools);
@@ -241,13 +240,6 @@ public class ToolService {
                     tool.getOutputSchema(),
                     serverId
             );
-        }
-
-        if (!tools.isEmpty()) {
-            toolDAO.disableMissingTools(serverId, tools);
-        } else {
-            // If server responds with an empty tools/list, mark all existing tools inactive.
-            toolDAO.disableAllToolsByServer(serverId);
         }
     }
 
