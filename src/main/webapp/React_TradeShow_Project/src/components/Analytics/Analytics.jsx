@@ -25,7 +25,7 @@ export default function Analytics({ selectedServer }) {
     },
     dependencies: [serverId]
   });
-  const bufferedLoading = useBufferedLoading(loading, 2200);
+  const bufferedLoading = useBufferedLoading(loading, 1500);
 
   const usageData = useMemo(() => {
     const tools = metrics?.topTools || [];

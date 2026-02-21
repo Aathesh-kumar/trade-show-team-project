@@ -171,12 +171,12 @@ public class DBQueries {
         // Auth Token Queries
         public static final String INSERT_AUTH_TOKEN =
                 "INSERT INTO auth_token (server_id, header_type, access_token, refresh_token, expires_at, client_id, client_secret, token_endpoint) " +
-                        "VALUES (?, ?, ?, ?, COALESCE(?, DATE_ADD(NOW(), INTERVAL 1 HOUR)), ?, ?, ?) " +
+                        "VALUES (?, ?, ?, ?, COALESCE(?, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)), ?, ?, ?) " +
                         "ON DUPLICATE KEY UPDATE " +
                         "    header_type = COALESCE(NULLIF(VALUES(header_type), ''), header_type, 'Bearer')," +
                         "    access_token = VALUES(access_token), " +
                         "    refresh_token = COALESCE(NULLIF(VALUES(refresh_token), ''), refresh_token), " +
-                        "    expires_at = COALESCE(VALUES(expires_at), DATE_ADD(NOW(), INTERVAL 1 HOUR)), " +
+                        "    expires_at = COALESCE(VALUES(expires_at), DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)), " +
                         "    client_id = COALESCE(NULLIF(VALUES(client_id), ''), client_id), " +
                         "    client_secret = COALESCE(NULLIF(VALUES(client_secret), ''), client_secret), " +
                         "    token_endpoint = COALESCE(NULLIF(VALUES(token_endpoint), ''), token_endpoint), " +
@@ -215,16 +215,25 @@ public class DBQueries {
         public static final String SELECT_REQUEST_STATS =
                 "SELECT COUNT(*) total_requests, " +
                         "SUM(CASE WHEN status_code >= 200 AND status_code < 300 THEN 1 ELSE 0 END) total_success, " +
-                        "SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) total_errors " +
-                        "FROM request_logs WHERE server_id = ? AND " + TOOL_ANALYTICS_FILTER;
+                        "SUM(CASE WHEN status_code >= 400 AND status_code < 500 THEN 1 ELSE 0 END) total_warnings, " +
+                        "SUM(CASE WHEN status_code >= 500 THEN 1 ELSE 0 END) total_errors " +
+                        "FROM request_logs WHERE server_id = ?";
 
         public static final String SELECT_THROUGHPUT_BY_HOUR =
-                "SELECT DATE_FORMAT(DATE_SUB(created_at, INTERVAL (MINUTE(created_at) % ?) MINUTE), '%Y-%m-%d %H:%i:00') hour_bucket, COUNT(*) request_count " +
-                        "FROM request_logs WHERE server_id = ? AND created_at >= ? AND " + TOOL_ANALYTICS_FILTER + " " +
+                "SELECT DATE_FORMAT(DATE_SUB(created_at, INTERVAL (MINUTE(created_at) % ?) MINUTE), '%Y-%m-%d %H:%i:00') hour_bucket, " +
+                        "COUNT(*) request_count, " +
+                        "SUM(CASE WHEN status_code >= 200 AND status_code < 300 THEN 1 ELSE 0 END) success_count, " +
+                        "SUM(CASE WHEN status_code >= 400 AND status_code < 500 THEN 1 ELSE 0 END) warning_count, " +
+                        "SUM(CASE WHEN status_code >= 500 THEN 1 ELSE 0 END) error_count " +
+                        "FROM request_logs WHERE server_id = ? AND created_at >= ? " +
                         "GROUP BY hour_bucket ORDER BY hour_bucket ASC";
         public static final String SELECT_THROUGHPUT_BY_SECOND =
-                "SELECT DATE_FORMAT(FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(created_at) / ?) * ?), '%Y-%m-%d %H:%i:%s') second_bucket, COUNT(*) request_count " +
-                        "FROM request_logs WHERE server_id = ? AND created_at >= ? AND " + TOOL_ANALYTICS_FILTER + " " +
+                "SELECT DATE_FORMAT(FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(created_at) / ?) * ?), '%Y-%m-%d %H:%i:%s') second_bucket, " +
+                        "COUNT(*) request_count, " +
+                        "SUM(CASE WHEN status_code >= 200 AND status_code < 300 THEN 1 ELSE 0 END) success_count, " +
+                        "SUM(CASE WHEN status_code >= 400 AND status_code < 500 THEN 1 ELSE 0 END) warning_count, " +
+                        "SUM(CASE WHEN status_code >= 500 THEN 1 ELSE 0 END) error_count " +
+                        "FROM request_logs WHERE server_id = ? AND created_at >= ? " +
                         "GROUP BY second_bucket ORDER BY second_bucket ASC";
 
         public static final String SELECT_TOP_TOOLS =

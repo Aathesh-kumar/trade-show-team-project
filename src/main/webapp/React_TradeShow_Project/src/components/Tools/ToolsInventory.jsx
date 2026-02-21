@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import ToolsStyles from '../../styles/Tools.module.css';
 import ToolsHeader from './ToolsHeader';
 import ToolsTable from './ToolsTable';
@@ -24,11 +24,6 @@ export default function ToolsInventory({ selectedServer }) {
     const serverId = selectedServer?.serverId;
     const queryParams = useMemo(() => {
         const params = { serverId };
-        if (timeRange === 'current') {
-            params.includeInactive = false;
-            return params;
-        }
-
         params.includeInactive = true;
         if (timeRange === 'custom') {
             const safeMinutes = Math.min(24 * 60, Math.max(1, Number(customMinutes) || 10));
@@ -44,12 +39,32 @@ export default function ToolsInventory({ selectedServer }) {
         return params;
     }, [serverId, timeRange, customMinutes]);
 
-    const { data: tools = [], loading, error, refetch } = useGet('/tool/all', {
-        immediate: !!serverId,
+    const {
+        data: currentTools = [],
+        loading: loadingCurrent,
+        error: currentError,
+        refetch: refetchCurrent
+    } = useGet('/tool/all', {
+        immediate: !!serverId && timeRange === 'current',
+        params: { serverId, includeInactive: false, limit: 250 },
+        dependencies: [serverId, timeRange]
+    });
+
+    const {
+        data: historyTools = [],
+        loading: loadingHistory,
+        error: historyError,
+        refetch: refetchHistory
+    } = useGet('/tool/history-window', {
+        immediate: !!serverId && timeRange !== 'current',
         params: { ...queryParams, limit: 250 },
         dependencies: [serverId, timeRange, customMinutes]
     });
-    const bufferedLoading = useBufferedLoading(loading, 2200);
+    const tools = timeRange === 'current' ? currentTools : historyTools;
+    const loading = loadingCurrent || loadingHistory;
+    const error = currentError || historyError;
+    const refetch = timeRange === 'current' ? refetchCurrent : refetchHistory;
+    const bufferedLoading = useBufferedLoading(loading, 1500);
 
     const { execute: refreshTools, loading: refreshing } = usePost(buildUrl('/tool/refresh'));
 
@@ -81,10 +96,11 @@ export default function ToolsInventory({ selectedServer }) {
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
     const pagedTools = filteredTools.slice((page - 1) * pageSize, page * pageSize);
 
-    const stats = {
-        totalTools: mappedTools.filter((t) => t.type === 'ACTION').length,
-        totalResources: mappedTools.filter((t) => t.type !== 'ACTION').length
-    };
+    const stats = useMemo(() => {
+        const totalTools = filteredTools.filter((t) => t.type === 'ACTION').length;
+        const totalResources = filteredTools.filter((t) => t.type !== 'ACTION').length;
+        return { totalTools, totalResources };
+    }, [filteredTools]);
 
     const handleRefresh = async () => {
         if (!serverId) {
@@ -93,10 +109,29 @@ export default function ToolsInventory({ selectedServer }) {
         await refreshTools({ serverId });
         refetch();
     };
-
-    useEffect(() => {
+    const handleSearchChange = (value) => {
+        setSearchQuery(value);
         setPage(1);
-    }, [searchQuery, filterType, timeRange, customMinutes, serverId]);
+    };
+
+    const handleFilterTypeChange = (value) => {
+        setFilterType(value);
+        setPage(1);
+    };
+
+    const handleTimeRangeChange = (value) => {
+        setTimeRange(value);
+        setPage(1);
+    };
+
+    const handleCustomMinutesChange = (value) => {
+        setCustomMinutes(value);
+        setPage(1);
+    };
+
+    const resolvedSelectedTool = selectedTool && mappedTools.some((tool) => tool.id === selectedTool.id)
+        ? selectedTool
+        : null;
 
     if (!serverId) {
         return (
@@ -113,13 +148,13 @@ export default function ToolsInventory({ selectedServer }) {
             <ToolsHeader
                 stats={stats}
                 searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
+                onSearchChange={handleSearchChange}
                 filterType={filterType}
-                setFilterType={setFilterType}
+                onFilterTypeChange={handleFilterTypeChange}
                 timeRange={timeRange}
-                setTimeRange={setTimeRange}
+                onTimeRangeChange={handleTimeRangeChange}
                 customMinutes={customMinutes}
-                setCustomMinutes={setCustomMinutes}
+                onCustomMinutesChange={handleCustomMinutesChange}
                 onRefresh={handleRefresh}
                 refreshing={refreshing}
             />
@@ -132,15 +167,15 @@ export default function ToolsInventory({ selectedServer }) {
 
             <div className={ToolsStyles.toolsContent}>
                 <ToolsTable
-                    tools={pagedTools}
-                    selectedTool={selectedTool}
+                    tools={bufferedLoading ? [] : pagedTools}
+                    selectedTool={resolvedSelectedTool}
                     onSelectTool={setSelectedTool}
                     loading={bufferedLoading}
                 />
 
-                {selectedTool && (
+                {resolvedSelectedTool && (
                     <ToolDefinitionPanel
-                        tool={selectedTool}
+                        tool={resolvedSelectedTool}
                         onClose={() => setSelectedTool(null)}
                         onTest={() => setIsTestOpen(true)}
                     />
@@ -160,9 +195,9 @@ export default function ToolsInventory({ selectedServer }) {
                 updatedAt={new Date()}
             />
 
-            {isTestOpen && selectedTool && (
+            {isTestOpen && resolvedSelectedTool && (
                 <TestToolModal
-                    tool={selectedTool}
+                    tool={resolvedSelectedTool}
                     serverId={serverId}
                     onClose={() => setIsTestOpen(false)}
                     onCompleted={refetch}
@@ -175,7 +210,7 @@ export default function ToolsInventory({ selectedServer }) {
 function tryParse(raw) {
     try {
         return typeof raw === 'string' ? JSON.parse(raw) : raw;
-    } catch (e) {
+    } catch {
         return { type: 'object', raw };
     }
 }

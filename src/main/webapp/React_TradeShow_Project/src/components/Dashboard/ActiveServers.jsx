@@ -45,7 +45,7 @@ export default function ActiveServers({ servers = [], selectedServerId, onSelect
 function safeHost(url) {
     try {
         return new URL(url).hostname;
-    } catch (e) {
+    } catch {
         return url || '-';
     }
 }

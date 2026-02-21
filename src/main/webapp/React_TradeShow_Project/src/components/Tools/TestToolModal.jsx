@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import ToolsStyles from '../../styles/Tools.module.css';
 import { MdCheckCircle, MdClose, MdContentCopy, MdErrorOutline, MdPlayArrow } from 'react-icons/md';
 import { usePost } from '../Hooks/usePost';
@@ -21,11 +21,12 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
         active: false,
         requiredScope: DEFAULT_SCOPE,
         additionalScopes: '',
-        oauthBaseUrl: 'https://accounts.zoho.in',
+        oauthBaseUrl: '',
         message: '',
         oauthState: ''
     });
     const [saveMessage, setSaveMessage] = useState(null);
+    const [oauthState, setOauthState] = useState('');
 
     const { data: authData } = useGet('/auth', {
         immediate: !!serverId,
@@ -76,7 +77,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
             if (inputParams.trim()) {
                 try {
                     JSON.parse(inputParams);
-                } catch (e) {
+                } catch {
                     setErrors({ inputParams: 'Invalid JSON format' });
                     return;
                 }
@@ -91,16 +92,12 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
             payloadJson = JSON.stringify(formValues);
         }
 
-        try {
-            await testTool({
-                serverId,
-                toolId: tool.toolId && tool.toolId > 0 ? tool.toolId : null,
-                toolName: tool.toolName || tool.name,
-                inputParams: payloadJson
-            });
-        } catch (error) {
-            // handled in hook
-        }
+        await testTool({
+            serverId,
+            toolId: tool.toolId && tool.toolId > 0 ? tool.toolId : null,
+            toolName: tool.toolName || tool.name,
+            inputParams: payloadJson
+        }).catch(() => null);
     };
 
     const handleUseExample = () => {
@@ -113,17 +110,11 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
         setErrors({});
     };
 
-    useEffect(() => {
-        if (!authData) {
-            return;
-        }
-        const endpoint = String(authData.tokenEndpoint || '').trim();
+    const oauthBaseUrl = useMemo(() => {
+        const endpoint = String(authData?.tokenEndpoint || '').trim();
         const derivedBase = endpoint ? endpoint.replace(/\/oauth\/v2\/token.*$/i, '') : '';
-        setScopeRecovery((prev) => ({
-            ...prev,
-            oauthBaseUrl: derivedBase || prev.oauthBaseUrl
-        }));
-    }, [authData?.tokenEndpoint]);
+        return scopeRecovery.oauthBaseUrl || derivedBase || 'https://accounts.zoho.in';
+    }, [authData?.tokenEndpoint, scopeRecovery.oauthBaseUrl]);
 
     const finalScope = useMemo(
         () => buildScopeString(scopeRecovery.requiredScope || DEFAULT_SCOPE, scopeRecovery.additionalScopes),
@@ -131,23 +122,24 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
     );
 
     const oauthUrl = useMemo(() => {
-        const state = scopeRecovery.oauthState || `pulse_scope_${serverId}_${Date.now()}`;
+        const state = oauthState || scopeRecovery.oauthState;
         return buildOAuthUrl({
-            baseUrl: scopeRecovery.oauthBaseUrl,
+            baseUrl: oauthBaseUrl,
             scope: finalScope,
             clientId: authData?.clientId,
             serverId,
             state
         });
-    }, [finalScope, scopeRecovery.oauthBaseUrl, scopeRecovery.oauthState, authData?.clientId, serverId]);
+    }, [finalScope, scopeRecovery.oauthState, authData?.clientId, serverId, oauthState, oauthBaseUrl]);
 
     const handleStartOAuth = () => {
         setSaveMessage(null);
-        const nextState = `pulse_scope_${serverId}_${Date.now()}`;
+        const nextState = createOAuthState(serverId);
+        setOauthState(nextState);
         setScopeRecovery((prev) => ({ ...prev, oauthState: nextState }));
         const redirectUri = `${window.location.origin}/trade-show-team-project/oauth-callback.html`;
         const url = buildOAuthUrl({
-            baseUrl: scopeRecovery.oauthBaseUrl,
+            baseUrl: oauthBaseUrl,
             scope: finalScope,
             clientId: authData?.clientId,
             serverId,
@@ -211,7 +203,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                 cleanup();
                 popup.close();
                 await handleExchangeCode(code, redirectUri, state);
-            } catch (e) {
+            } catch {
                 // cross-origin until redirect lands on our app
             }
         }, 450);
@@ -232,7 +224,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
             return;
         }
         try {
-            const tokenEndpoint = `${(scopeRecovery.oauthBaseUrl || 'https://accounts.zoho.in').replace(/\/$/, '')}/oauth/v2/token`;
+            const tokenEndpoint = `${oauthBaseUrl.replace(/\/$/, '')}/oauth/v2/token`;
             await exchangeCode({
                 serverId: Number(serverId),
                 code,
@@ -408,7 +400,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                             />
                             <InputField
                                 label="OAuth Base URL"
-                                value={scopeRecovery.oauthBaseUrl}
+                                value={oauthBaseUrl}
                                 onChange={(value) => setScopeRecovery((prev) => ({ ...prev, oauthBaseUrl: value }))}
                                 placeholder="https://accounts.zoho.in"
                             />
@@ -559,7 +551,7 @@ function getSchema(tool) {
             return JSON.parse(raw);
         }
         return raw || {};
-    } catch (e) {
+    } catch {
         return {};
     }
 }
@@ -650,7 +642,7 @@ function buildOAuthUrl({ baseUrl, scope, clientId, serverId, state, redirectUri 
     }
     const base = (baseUrl || 'https://accounts.zoho.in').replace(/\/$/, '');
     const safeRedirectUri = redirectUri || `${window.location.origin}/trade-show-team-project/oauth-callback.html`;
-    const finalState = state || `pulse_scope_${serverId}_${Date.now()}`;
+    const finalState = state || createOAuthState(serverId);
     return `${base}/oauth/v2/auth?scope=${encodeURIComponent(scope)}&client_id=${encodeURIComponent(clientId)}&state=${encodeURIComponent(finalState)}&response_type=code&redirect_uri=${encodeURIComponent(safeRedirectUri)}&access_type=offline`;
 }
 
@@ -665,4 +657,11 @@ function buildScopeString(defaultScope, additionalScopes) {
         return base;
     }
     return `${base},${extras.join(',')}`;
+}
+
+function createOAuthState(serverId) {
+    const randomPart = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+        ? crypto.randomUUID()
+        : Math.random().toString(16).slice(2);
+    return `pulse_scope_${serverId}_${randomPart}`;
 }

@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS auth_token (
     header_type VARCHAR(50) DEFAULT 'Bearer',
     access_token TEXT NOT NULL,
     refresh_token TEXT NULL,
-    expires_at TIMESTAMP NULL,
+    expires_at TIMESTAMP NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL 1 HOUR),
     client_id VARCHAR(255) NULL,
     client_secret TEXT NULL,
     token_endpoint VARCHAR(500) NULL,

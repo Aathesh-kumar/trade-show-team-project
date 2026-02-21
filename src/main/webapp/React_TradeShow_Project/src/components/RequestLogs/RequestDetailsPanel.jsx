@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import RequestLogsStyles from '../../styles/RequestLogs.module.css';
 import { MdClose, MdContentCopy, MdPlayArrow, MdFlag } from 'react-icons/md';
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { usePost } from '../Hooks/usePost';
 import { buildUrl } from '../../services/api';
 
@@ -87,9 +86,6 @@ export default function RequestDetailsPanel({ request, selectedServer, onClose }
                     <pre className={RequestLogsStyles.jsonViewer}>
                         <code>{JSON.stringify(request.requestPayload, null, 2)}</code>
                     </pre>
-                    <SyntaxHighlighter className={RequestLogsStyles.jsonViewer} language="json">
-                        {JSON.stringify(request.requestPayload, null, 2)}
-                    </SyntaxHighlighter>
                 </section>
 
                 {/* Response Body */}

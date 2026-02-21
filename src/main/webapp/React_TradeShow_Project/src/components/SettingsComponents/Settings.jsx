@@ -7,7 +7,6 @@ import LoadingSkeleton from '../LoadingComponents/LoadingSkeleton';
 import { MdDelete, MdEdit, MdWarning, MdStorage } from 'react-icons/md';
 
 export default function Settings({ onNavigate }) {
-    const [editingServer, setEditingServer] = useState(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
     // Fetch all servers
@@ -28,14 +27,6 @@ export default function Settings({ onNavigate }) {
 
     const handleDelete = (serverId) => {
         deleteServer(ENDPOINTS.SERVER_DELETE(serverId));
-    };
-
-    const handleEdit = (server) => {
-        setEditingServer(server);
-    };
-
-    const handleCancelEdit = () => {
-        setEditingServer(null);
     };
 
     return (
@@ -76,7 +67,7 @@ export default function Settings({ onNavigate }) {
                                     <h3>{server.serverName}</h3>
                                     <div className={SettingsStyles.serverActions}>
                                         <button
-                                            onClick={() => handleEdit(server)}
+                                            onClick={() => onNavigate('configure-server')}
                                             className={SettingsStyles.editBtn}
                                         >
                                             {<MdEdit/>} Edit

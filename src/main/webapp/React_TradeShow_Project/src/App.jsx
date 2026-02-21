@@ -15,7 +15,7 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState('configure-server');
   const [selectedServerId, setSelectedServerId] = useState(null);
-  const [authReady, setAuthReady] = useState(false);
+  const [authReady, setAuthReady] = useState(() => !localStorage.getItem('mcp_jwt'));
   const [currentUser, setCurrentUser] = useState(null);
   const [themeMode, setThemeMode] = useState(() => localStorage.getItem('pulse24x7_theme') || 'default');
   const { data: serversData, refetch: refetchServers } = useGet('/server/all', {
@@ -30,7 +30,6 @@ function App() {
     document.title = 'Pulse24x7';
     const token = localStorage.getItem('mcp_jwt');
     if (!token) {
-      setAuthReady(true);
       return;
     }
     fetch(buildUrl('/user-auth/me'), {
@@ -101,6 +100,7 @@ function App() {
       case 'settings':
         return (
           <Settings
+            key={activeServer?.serverId || 'no-server'}
             selectedServer={activeServer}
             onServerUpdated={refetchServers}
             themeMode={themeMode}

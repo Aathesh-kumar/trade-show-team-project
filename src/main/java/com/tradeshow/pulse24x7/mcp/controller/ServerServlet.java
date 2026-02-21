@@ -9,7 +9,6 @@ import com.tradeshow.pulse24x7.mcp.service.AuthTokenService;
 import com.tradeshow.pulse24x7.mcp.service.MonitoringService;
 import com.tradeshow.pulse24x7.mcp.service.RequestLogService;
 import com.tradeshow.pulse24x7.mcp.service.ServerService;
-import com.tradeshow.pulse24x7.mcp.service.UserAuthService;
 import com.tradeshow.pulse24x7.mcp.utils.AuthHeaderUtil;
 import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
@@ -40,7 +39,6 @@ public class ServerServlet extends HttpServlet {
     private AuthTokenService authTokenService;
     private MonitoringService monitoringService;
     private RequestLogService requestLogService;
-    private UserAuthService userAuthService;
 
     @Override
     public void init() throws ServletException {
@@ -49,7 +47,6 @@ public class ServerServlet extends HttpServlet {
         authTokenService = new AuthTokenService();
         monitoringService = new MonitoringService();
         requestLogService = new RequestLogService();
-        userAuthService = new UserAuthService();
         logger.info("ServerServlet initialized");
     }
 
@@ -132,10 +129,6 @@ public class ServerServlet extends HttpServlet {
         Long userId = getUserId(req);
         if (userId == null) {
             sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
-            return;
-        }
-        if (userAuthService.findById(userId) == null) {
-            sendErrorResponse(resp, "Unauthorized user. Please login again.", HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
 

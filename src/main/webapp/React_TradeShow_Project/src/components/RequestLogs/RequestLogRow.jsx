@@ -9,6 +9,11 @@ export default function RequestLogRow({ log, isSelected, onSelect }) {
     };
 
     const statusColor = getStatusColor(log.status);
+    const statusHintClass = statusColor === 'error'
+        ? RequestLogsStyles.statusHintError
+        : statusColor === 'warning'
+            ? RequestLogsStyles.statusHintWarning
+            : RequestLogsStyles.statusHintSuccess;
 
     return (
         <tr 
@@ -32,6 +37,9 @@ export default function RequestLogRow({ log, isSelected, onSelect }) {
                 <div className={`${RequestLogsStyles.statusBadge} ${RequestLogsStyles[statusColor]}`}>
                     <span className={RequestLogsStyles.statusCode}>{log.status}</span>
                     <span className={RequestLogsStyles.statusText}>{log.statusText}</span>
+                    <span className={`${RequestLogsStyles.statusHint} ${statusHintClass}`}>
+                        {statusColor === 'error' ? 'Error response' : statusColor === 'warning' ? 'Warning response' : 'Healthy response'}
+                    </span>
                 </div>
             </td>
             <td className={RequestLogsStyles.latency}>

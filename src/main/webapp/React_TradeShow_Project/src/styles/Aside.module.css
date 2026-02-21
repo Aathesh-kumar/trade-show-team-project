@@ -169,11 +169,17 @@
                     font-size: 0.9rem;
                     font-weight: 600;
                     color: white;
+                    white-space: normal;
+                    word-break: break-word;
+                    overflow-wrap: anywhere;
                 }
 
                 .statusUptime {
                     font-size: 0.8rem;
                     color: rgba(255, 255, 255, 0.7);
+                    white-space: normal;
+                    word-break: break-word;
+                    overflow-wrap: anywhere;
                 }
             }
         }

@@ -30,7 +30,7 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
         },
         dependencies: [serverId, timeMode]
     });
-    const metricsLoading = useBufferedLoading(metricsRawLoading, 2200);
+    const metricsLoading = useBufferedLoading(metricsRawLoading, 1500);
     const { data: unread } = useGet('/notification/unread-count', {
         immediate: true,
         dependencies: [showNotifications]
@@ -162,7 +162,9 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
             </div>
 
             <TopPerformingTools tools={metrics?.topTools || []} />
-            <NotificationPanel isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+            {showNotifications ? (
+                <NotificationPanel isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+            ) : null}
         </div>
     );
 }

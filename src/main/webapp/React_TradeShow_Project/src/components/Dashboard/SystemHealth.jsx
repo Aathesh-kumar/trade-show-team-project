@@ -22,7 +22,11 @@ const MODE_META = {
 function parseTimestamp(value) {
   if (!value) return null;
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-  const parsed = new Date(String(value).replace(' ', 'T')).getTime();
+  const source = String(value).trim();
+  const normalized = /z$|[+-]\d{2}:\d{2}$/i.test(source)
+      ? source.replace(' ', 'T')
+      : `${source.replace(' ', 'T')}Z`;
+  const parsed = new Date(normalized).getTime();
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -47,12 +51,21 @@ function fmtV(v) {
   return v >= 1000 ? (v / 1000).toFixed(1) + 'k' : String(Math.round(v));
 }
 
-const CustomTooltip = ({ active, payload, label, mode }) => {
+function fmtTotal(v) {
+  if (v == null) return '0 req';
+  if (v >= 1000) return `${(v / 1000).toFixed(1)}k req`;
+  return `${Math.round(v)} req`;
+}
+
+const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
+  const point = payload[0]?.payload || {};
+  const state = getPointState(point);
+  const accent = state === 'error' ? '#ef4444' : state === 'warning' ? '#f59e0b' : '#60a5fa';
   return (
       <div style={{
         background: '#0a1628',
-        border: '1px solid rgba(59,130,246,0.45)',
+        border: `1px solid ${accent}99`,
         borderRadius: 10,
         padding: '10px 14px',
         fontFamily: 'inherit',
@@ -61,9 +74,12 @@ const CustomTooltip = ({ active, payload, label, mode }) => {
         <p style={{ margin: 0, fontSize: 11, color: '#64748b', marginBottom: 4 }}>
           {formatTooltipTime(label)}
         </p>
-        <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#60a5fa' }}>
+        <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: accent }}>
           {payload[0].value?.toLocaleString()}
           <span style={{ fontSize: 11, color: '#475569', fontWeight: 400, marginLeft: 4 }}>requests</span>
+        </p>
+        <p style={{ margin: '2px 0 0 0', fontSize: 11, color: accent, fontWeight: 600, textTransform: 'uppercase' }}>
+          {state}
         </p>
       </div>
   );
@@ -110,8 +126,11 @@ export default function SystemHealth({
         .map((point, index) => {
           const ts = parseTimestamp(point?.time);
           const value = Number(point?.value) || 0;
+          const successCount = Number(point?.successCount) || 0;
+          const warningCount = Number(point?.warningCount) || 0;
+          const errorCount = Number(point?.errorCount) || 0;
           if (!Number.isFinite(ts)) return null;
-          return { ts: ts + index, value };
+          return { ts: ts + index, value, successCount, warningCount, errorCount };
         })
         .filter(Boolean)
         .sort((a, b) => a.ts - b.ts);
@@ -135,7 +154,7 @@ export default function SystemHealth({
   // Y max with zoom
   const yMax = useMemo(() => {
     const maxVal = visibleData.reduce((m, d) => Math.max(m, d.value), 0);
-    return Math.max(10, Math.ceil((maxVal * 1.15) / yZoom));
+    return Math.max(2, Math.ceil((maxVal * 1.15) / yZoom));
   }, [visibleData, yZoom]);
 
   // Stats
@@ -292,7 +311,7 @@ export default function SystemHealth({
             <div className={S.statRow}>
               <StatPill label="Peak"  value={fmtV(stats.max)}                        colorClass={S.statPeak}  />
               <StatPill label="Avg"   value={fmtV(stats.avg)}                        colorClass={S.statAvg}   />
-              <StatPill label="Total" value={(stats.total / 1000).toFixed(0) + 'k req'} colorClass={S.statTotal} />
+              <StatPill label="Total" value={fmtTotal(stats.total)} colorClass={S.statTotal} />
             </div>
         )}
 
@@ -360,7 +379,7 @@ export default function SystemHealth({
                     />
 
                     <Tooltip
-                        content={<CustomTooltip mode={mode} />}
+                        content={<CustomTooltip />}
                         cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '4 4' }}
                     />
 
@@ -370,7 +389,7 @@ export default function SystemHealth({
                         stroke="url(#sh-strokeGrad)"
                         strokeWidth={2.5}
                         fill="url(#sh-areaFill)"
-                        dot={false}
+                        dot={{ r: 2.4, fill: '#2AAAF4', stroke: '#ffffff', strokeWidth: 1.2 }}
                         activeDot={{ r: 5, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
                         isAnimationActive={false}
                     />
@@ -440,4 +459,14 @@ export default function SystemHealth({
         </div>
       </div>
   );
+}
+
+function getPointState(point) {
+  const success = Number(point?.successCount) || 0;
+  const warning = Number(point?.warningCount) || 0;
+  const error = Number(point?.errorCount) || 0;
+  if (error > 0) return 'error';
+  if (warning > 0) return 'warning';
+  if (success > 0) return 'success';
+  return 'neutral';
 }
