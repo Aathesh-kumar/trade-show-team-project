@@ -1,18 +1,12 @@
 import DashboardStyles from '../../styles/Dashboard.module.css';
-import { useGet } from '../Hooks/useGet';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import PaginationControls from '../Common/PaginationControls';
 import LoadingSkeleton from '../Loading/LoadingSkeleton';
 import { buildUrl, getAuthHeaders, parseApiResponse } from '../../services/api';
 
-export default function NotificationPanel({ isOpen, onClose }) {
+export default function NotificationPanel({ isOpen, onClose, notificationsData = [], loading = false, onNotificationsChanged }) {
   const [page, setPage] = useState(1);
   const pageSize = 12;
-  const { data: notificationsData = [], refetch, loading } = useGet('/notification', {
-    immediate: isOpen,
-    params: { limit: 300, offset: 0 },
-    dependencies: [isOpen]
-  });
   const allNotifications = Array.isArray(notificationsData) ? notificationsData : [];
   const totalItems = allNotifications.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -23,6 +17,12 @@ export default function NotificationPanel({ isOpen, onClose }) {
     }
     return notifications;
   }, [isOpen, notifications]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   if (!isOpen) {
     return null;
@@ -36,7 +36,7 @@ export default function NotificationPanel({ isOpen, onClose }) {
         ...getAuthHeaders()
       }
     }).then(parseApiResponse).catch(() => null);
-    refetch();
+    onNotificationsChanged?.();
   };
 
   const clearAll = async () => {
@@ -48,7 +48,7 @@ export default function NotificationPanel({ isOpen, onClose }) {
       }
     }).then(parseApiResponse).catch(() => null);
     setPage(1);
-    refetch();
+    onNotificationsChanged?.();
   };
 
   const clearOne = async (id) => {
@@ -59,7 +59,7 @@ export default function NotificationPanel({ isOpen, onClose }) {
         ...getAuthHeaders()
       }
     }).then(parseApiResponse).catch(() => null);
-    refetch();
+    onNotificationsChanged?.();
   };
 
   return (

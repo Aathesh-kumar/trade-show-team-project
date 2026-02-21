@@ -56,6 +56,7 @@ export default function Settings({
     oauthTokenLink: ''
   });
   const authDirtyRef = useRef(false);
+  const savePendingChangesRef = useRef(async () => true);
 
   useEffect(() => {
     const nextName = selectedServer?.serverName || '';
@@ -305,9 +306,13 @@ export default function Settings({
   }, [authDirty, saveServer, saveToken, serverDirty]);
 
   useEffect(() => {
-    onRegisterSaveBeforeLeave?.(() => savePendingChanges);
+    savePendingChangesRef.current = savePendingChanges;
+  }, [savePendingChanges]);
+
+  useEffect(() => {
+    onRegisterSaveBeforeLeave?.(savePendingChangesRef.current);
     return () => onRegisterSaveBeforeLeave?.(null);
-  }, [onRegisterSaveBeforeLeave, savePendingChanges]);
+  }, [onRegisterSaveBeforeLeave]);
 
   if (!serverId) {
     return (

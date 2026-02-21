@@ -31,9 +31,14 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
         dependencies: [serverId, timeMode]
     });
     const metricsLoading = useBufferedLoading(metricsRawLoading, 1500);
-    const { data: unread } = useGet('/notification/unread-count', {
+    const { data: notificationsData, loading: notificationsLoading, refetch: refetchNotifications } = useGet('/notification', {
         immediate: true,
-        dependencies: [showNotifications]
+        params: { limit: 300, offset: 0 },
+        dependencies: [serverId]
+    });
+    const { data: unread, refetch: refetchUnread } = useGet('/notification/unread-count', {
+        immediate: true,
+        dependencies: [showNotifications, serverId]
     });
 
     useEffect(() => {
@@ -163,7 +168,16 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
 
             <TopPerformingTools tools={metrics?.topTools || []} />
             {showNotifications ? (
-                <NotificationPanel isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+                <NotificationPanel
+                    isOpen={showNotifications}
+                    onClose={() => setShowNotifications(false)}
+                    notificationsData={Array.isArray(notificationsData) ? notificationsData : []}
+                    loading={notificationsLoading}
+                    onNotificationsChanged={() => {
+                        refetchNotifications();
+                        refetchUnread();
+                    }}
+                />
             ) : null}
         </div>
     );

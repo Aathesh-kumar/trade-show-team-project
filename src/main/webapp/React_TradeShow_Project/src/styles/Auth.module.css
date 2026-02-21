@@ -78,13 +78,13 @@
 .fieldBlock {
   display: grid;
   gap: 0.38rem;
-}
 
-.fieldBlock > label {
-  color: #c0d7ff;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  label {
+    color: #c0d7ff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
 }
 
 .labelRow {

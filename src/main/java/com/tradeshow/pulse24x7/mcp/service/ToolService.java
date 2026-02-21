@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.tradeshow.pulse24x7.mcp.dao.ToolDAO;
 import com.tradeshow.pulse24x7.mcp.dao.ToolHistoryDAO;
+import com.tradeshow.pulse24x7.mcp.model.Server;
 import com.tradeshow.pulse24x7.mcp.model.Tool;
 import com.tradeshow.pulse24x7.mcp.model.ToolHistory;
 import com.tradeshow.pulse24x7.mcp.utils.AuthHeaderUtil;
@@ -21,6 +22,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ToolService {
     private static final Logger logger = LogManager.getLogger(ToolService.class);
@@ -28,12 +31,16 @@ public class ToolService {
     private final ToolHistoryDAO toolHistoryDAO;
     private final AuthTokenService authTokenService;
     private final RequestLogService requestLogService;
+    private final NotificationService notificationService;
+    private final ServerService serverService;
 
     public ToolService() {
         this.toolDAO = new ToolDAO();
         this.toolHistoryDAO = new ToolHistoryDAO();
         this.authTokenService = new AuthTokenService();
         this.requestLogService = new RequestLogService();
+        this.notificationService = new NotificationService();
+        this.serverService = new ServerService();
     }
 
     public List<Tool> fetchAndUpdateTools(Integer serverId, String serverUrl, String accessToken, String headerType) {
@@ -46,7 +53,16 @@ public class ToolService {
             JsonObject response = doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request, true);
 
             List<Tool> oldTools = getToolsByServer(serverId);
+            Set<String> previousActiveTools = oldTools.stream()
+                    .filter(tool -> Boolean.TRUE.equals(tool.getIsAvailability()))
+                    .map(Tool::getToolName)
+                    .filter(name -> name != null && !name.isBlank())
+                    .collect(Collectors.toSet());
             List<Tool> newTools = parseToolsFromResponse(response, serverId);
+            Set<String> currentTools = newTools.stream()
+                    .map(Tool::getToolName)
+                    .filter(name -> name != null && !name.isBlank())
+                    .collect(Collectors.toSet());
             List<Tool> changedOrAddedTools = getChangedOrAddedTools(oldTools, newTools);
             if (!changedOrAddedTools.isEmpty()) {
                 updateToolsInDatabase(serverId, changedOrAddedTools);
@@ -56,6 +72,7 @@ public class ToolService {
             } else {
                 toolDAO.disableMissingTools(serverId, newTools);
             }
+            notifyToolChanges(serverId, previousActiveTools, currentTools);
             return newTools;
         } catch (Exception e) {
             logger.error("Failed to fetch tools from server ID: {}", serverId, e);
@@ -455,5 +472,140 @@ public class ToolService {
                 || payload.contains("invalid_scope")
                 || payload.contains("insufficient scope")
                 || payload.contains("scope_invalid");
+    }
+
+    public String extractMcpErrorMessage(JsonObject responseData) {
+        if (responseData == null) {
+            return null;
+        }
+
+        if (responseData.has("error") && !responseData.get("error").isJsonNull()) {
+            String errorMessage = extractMessageFromErrorElement(responseData.get("error"));
+            if (errorMessage != null && !errorMessage.isBlank()) {
+                return errorMessage;
+            }
+            return "MCP request failed";
+        }
+
+        if (responseData.has("result") && responseData.get("result").isJsonObject()) {
+            JsonObject result = responseData.getAsJsonObject("result");
+            if (result.has("isError") && result.get("isError").getAsBoolean()) {
+                String message = extractMessageFromResult(result);
+                if (message != null && !message.isBlank()) {
+                    return message;
+                }
+                return "MCP tool execution reported an error";
+            }
+        }
+
+        return null;
+    }
+
+    private String extractMessageFromErrorElement(JsonElement errorElement) {
+        if (errorElement == null || errorElement.isJsonNull()) {
+            return null;
+        }
+        if (errorElement.isJsonPrimitive()) {
+            try {
+                return errorElement.getAsString();
+            } catch (Exception ignored) {
+                return null;
+            }
+        }
+        if (errorElement.isJsonObject()) {
+            JsonObject errorObj = errorElement.getAsJsonObject();
+            String code = getString(errorObj, "code");
+            String message = getString(errorObj, "message");
+            if (message != null && !message.isBlank()) {
+                return code == null || code.isBlank() ? message : code + ": " + message;
+            }
+            return errorObj.toString();
+        }
+        return errorElement.toString();
+    }
+
+    private String extractMessageFromResult(JsonObject result) {
+        String directMessage = getString(result, "message");
+        if (directMessage != null && !directMessage.isBlank()) {
+            return directMessage;
+        }
+
+        if (result.has("content") && result.get("content").isJsonArray()) {
+            JsonArray content = result.getAsJsonArray("content");
+            for (JsonElement item : content) {
+                if (!item.isJsonObject()) {
+                    continue;
+                }
+                JsonObject contentObj = item.getAsJsonObject();
+                String text = getString(contentObj, "text");
+                if (text == null || text.isBlank()) {
+                    continue;
+                }
+                String extracted = extractMessageFromText(text);
+                if (extracted != null && !extracted.isBlank()) {
+                    return extracted;
+                }
+                return text;
+            }
+        }
+
+        return null;
+    }
+
+    private String extractMessageFromText(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        try {
+            JsonObject nested = JsonParser.parseString(text.trim()).getAsJsonObject();
+            String code = getString(nested, "code");
+            String message = getString(nested, "message");
+            if (message != null && !message.isBlank()) {
+                return code == null || code.isBlank() ? message : code + ": " + message;
+            }
+        } catch (Exception ignored) {
+            // text content is plain string, return as-is at caller
+        }
+        return null;
+    }
+
+    private void notifyToolChanges(Integer serverId, Set<String> previousActiveTools, Set<String> currentTools) {
+        if (serverId == null) {
+            return;
+        }
+        Set<String> addedTools = currentTools.stream()
+                .filter(name -> !previousActiveTools.contains(name))
+                .collect(Collectors.toSet());
+        Set<String> removedTools = previousActiveTools.stream()
+                .filter(name -> !currentTools.contains(name))
+                .collect(Collectors.toSet());
+
+        if (addedTools.isEmpty() && removedTools.isEmpty()) {
+            return;
+        }
+
+        Server server = serverService.getServerByIdGlobal(serverId);
+        String serverName = server != null && server.getServerName() != null && !server.getServerName().isBlank()
+                ? server.getServerName()
+                : "Server " + serverId;
+
+        if (!addedTools.isEmpty()) {
+            notificationService.notify(
+                    serverId,
+                    "tools",
+                    "info",
+                    "Tools added",
+                    "New tools on " + serverName + ": " + String.join(", ", addedTools)
+            );
+        }
+        if (!removedTools.isEmpty()) {
+            notificationService.notify(
+                    serverId,
+                    "tools",
+                    "warning",
+                    "Tools removed",
+                    "Removed tools on " + serverName + ": " + String.join(", ", removedTools)
+            );
+        }
     }
 }

@@ -393,8 +393,16 @@ public class ServerServlet extends HttpServlet {
             return;
         }
 
-        monitoringService.monitorServer(serverId);
-        sendSuccessResponse(resp, Map.of("message", "Monitoring completed successfully"));
+        boolean force = Boolean.parseBoolean(req.getParameter("force"));
+        boolean executed = monitoringService.monitorServerIfDue(serverId, force);
+        if (executed) {
+            sendSuccessResponse(resp, Map.of("message", "Monitoring completed successfully", "executed", true));
+            return;
+        }
+        sendSuccessResponse(resp, Map.of(
+                "message", "Monitoring skipped because configured interval has not elapsed",
+                "executed", false
+        ));
     }
 
     private void handleTestServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {

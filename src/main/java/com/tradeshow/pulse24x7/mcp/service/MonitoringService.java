@@ -16,9 +16,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.sql.Timestamp;
-import java.util.stream.Collectors;
 
 public class MonitoringService {
     private static final Logger logger = LogManager.getLogger(MonitoringService.class);
@@ -57,10 +55,6 @@ public class MonitoringService {
             String accessToken = authTokenService.ensureValidAccessToken(serverId);
             String headerType = authToken != null ? authToken.getHeaderType() : null;
             Boolean previousStatus = serverHistoryDAO.getLastServerStatus(serverId);
-            Set<String> previousTools = toolDAO.getAvailableTools(serverId)
-                    .stream()
-                    .map(Tool::getToolName)
-                    .collect(Collectors.toSet());
 
             HttpResult pingResult = pingAndLog(
                     serverId,
@@ -99,35 +93,6 @@ public class MonitoringService {
                 );
                 toolCount = tools.size();
 
-                Set<String> currentTools = tools.stream()
-                        .map(Tool::getToolName)
-                        .collect(Collectors.toSet());
-                Set<String> addedTools = currentTools.stream()
-                        .filter(t -> !previousTools.contains(t))
-                        .collect(Collectors.toSet());
-                Set<String> removedTools = previousTools.stream()
-                        .filter(t -> !currentTools.contains(t))
-                        .collect(Collectors.toSet());
-
-                if (!addedTools.isEmpty()) {
-                    notificationService.notify(
-                            serverId,
-                            "tools",
-                            "info",
-                            "Tools added",
-                            "New tools on " + server.getServerName() + ": " + String.join(", ", addedTools)
-                    );
-                }
-                if (!removedTools.isEmpty()) {
-                    notificationService.notify(
-                            serverId,
-                            "tools",
-                            "warning",
-                            "Tools removed",
-                            "Removed tools on " + server.getServerName() + ": " + String.join(", ", removedTools)
-                    );
-                }
-                
                 // Record tool history for each tool
                 for (Tool tool : tools) {
                     Integer toolId = toolDAO.getToolIdByNameAndServer(tool.getToolName(), serverId);
@@ -157,6 +122,21 @@ public class MonitoringService {
             logger.error("Failed to monitor server ID: {}", serverId, e);
             serverHistoryDAO.insertHistory(serverId, false, 0);
         }
+    }
+
+    public boolean monitorServerIfDue(Integer serverId, boolean force) {
+        Server server = serverService.getServerByIdGlobal(serverId);
+        if (server == null) {
+            logger.warn("Skipping monitoring because server {} was not found", serverId);
+            return false;
+        }
+        if (!force && !shouldMonitorNow(server)) {
+            int intervalMinutes = Math.max(1, server.getMonitorIntervalMinutes() == null ? 30 : server.getMonitorIntervalMinutes());
+            logger.info("Skipping monitor for server {} because configured interval ({} minutes) has not elapsed", serverId, intervalMinutes);
+            return false;
+        }
+        monitorServer(serverId);
+        return true;
     }
 
     private boolean shouldAttemptTokenRefresh(Integer serverId, HttpResult pingResult) {

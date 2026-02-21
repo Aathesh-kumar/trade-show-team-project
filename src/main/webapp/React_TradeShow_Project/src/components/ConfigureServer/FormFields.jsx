@@ -1,11 +1,24 @@
 import ConfigureServerStyles from '../../styles/ConfigureServer.module.css';
 import { MdInfoOutline, MdCheck, MdClose, MdCheckCircle, MdErrorOutline } from 'react-icons/md';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import CustomDropdown from '../Common/CustomDropdown';
 
 export function SelectField({ label, value, onChange, options }) {
-    const [isCustom, setIsCustom] = useState(false);
+    const normalizedOptions = useMemo(() => (options || []).map((option) => String(option)), [options]);
+    const normalizedValue = value == null ? '' : String(value);
+    const valueInOptions = normalizedOptions.includes(normalizedValue);
+    const [isCustom, setIsCustom] = useState(!valueInOptions);
     const [customValue, setCustomValue] = useState('');
+
+    useEffect(() => {
+        if (valueInOptions) {
+            setIsCustom(false);
+            setCustomValue('');
+            return;
+        }
+        setIsCustom(true);
+        setCustomValue(normalizedValue);
+    }, [valueInOptions, normalizedValue]);
 
     const handleSelectChange = (selectedValue) => {
         if (selectedValue === '__custom__') {
@@ -30,10 +43,10 @@ export function SelectField({ label, value, onChange, options }) {
             {!isCustom ? (
                 <div className={ConfigureServerStyles.selectWrapper}>
                     <CustomDropdown
-                        value={options.includes(value) ? value : '__custom__'} 
+                        value={valueInOptions ? normalizedValue : '__custom__'} 
                         onChange={handleSelectChange}
                         options={[
-                            ...options.map((option) => ({ value: option, label: option })),
+                            ...normalizedOptions.map((option) => ({ value: option, label: option })),
                             { value: '__custom__', label: 'Custom Header Type...' }
                         ]}
                         buttonClassName={ConfigureServerStyles.selectDropdownButton}
@@ -54,7 +67,7 @@ export function SelectField({ label, value, onChange, options }) {
                         type="button"
                         onClick={() => {
                             setIsCustom(false);
-                            onChange(options[0]); // Reset to first option
+                            onChange(normalizedOptions[0] || ''); // Reset to first option
                         }}
                         className={ConfigureServerStyles.cancelCustomBtn}
                     >

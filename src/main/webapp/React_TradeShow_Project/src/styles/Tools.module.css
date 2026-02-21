@@ -270,6 +270,8 @@
   background: color-mix(in srgb, var(--bg-elev-1) 97%, transparent);
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .panelHeader {
@@ -306,10 +308,15 @@
 }
 
 .panelContent {
+  flex: 1;
+  min-height: 0;
   padding: 0.95rem;
   display: grid;
   gap: 0.9rem;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .panelSection {

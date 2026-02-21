@@ -198,6 +198,9 @@
 }
 
 .selectDropdownButton {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
     width: 100%;
     padding: 0.875rem 1rem;
     background-color: rgba(255, 255, 255, 0.05);
@@ -205,6 +208,40 @@
     border-radius: 8px;
     color: white;
     font-size: 1.06rem;
+    transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease, transform 0.08s ease;
+}
+
+.selectDropdownButton::after {
+    content: '';
+    position: absolute;
+    inset: -45%;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.16);
+    background: radial-gradient(
+        circle,
+        color-mix(in srgb, var(--primary-color) 58%, #ffffff 42%) 0%,
+        color-mix(in srgb, var(--primary-color-strong) 36%, transparent) 36%,
+        transparent 72%
+    );
+}
+
+.selectDropdownButton:hover,
+.selectDropdownButton:focus-visible {
+    border-color: color-mix(in srgb, var(--primary-color) 65%, transparent);
+    background-color: color-mix(in srgb, var(--primary-color) 16%, transparent);
+}
+
+.selectDropdownButton:active {
+    transform: translateY(1px);
+    color: #ffffff;
+    border-color: color-mix(in srgb, var(--primary-color) 78%, transparent);
+    background: linear-gradient(140deg, var(--primary-color), var(--primary-color-strong));
+}
+
+.selectDropdownButton:active::after {
+    animation: configureDropWave 280ms ease-out;
 }
 
 .selectDropdownMenu {
@@ -279,6 +316,9 @@
 }
 
 .quickBtn {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
     padding: 0.75rem 1rem;
     background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -290,10 +330,54 @@
     transition: all 0.2s;
 }
 
+.quickBtn::after {
+    content: '';
+    position: absolute;
+    inset: -45%;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.16);
+    background: radial-gradient(
+        circle,
+        color-mix(in srgb, var(--primary-color) 58%, #ffffff 42%) 0%,
+        color-mix(in srgb, var(--primary-color-strong) 36%, transparent) 36%,
+        transparent 72%
+    );
+}
+
 .quickBtn:hover {
     background-color: rgba(59, 130, 246, 0.2);
     border-color: var(--primary-color);
     color: var(--primary-color);
+}
+
+.quickBtn:active {
+    color: #ffffff;
+    border-color: color-mix(in srgb, var(--primary-color) 78%, transparent);
+    background: linear-gradient(140deg, var(--primary-color), var(--primary-color-strong));
+}
+
+.quickBtn:active::after {
+    animation: configureDropWave 280ms ease-out;
+}
+
+@keyframes configureDropWave {
+    0% {
+        opacity: 0.92;
+        transform: scale(0.16);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.25);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .selectDropdownButton::after,
+    .quickBtn::after {
+        display: none;
+    }
 }
 
 .customDateTime {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import AppStyles from './styles/App.module.css';
 import AsideBar from './components/AsideBar';
 import Dashboard from './components/Dashboard/Dashboard';
@@ -26,6 +26,11 @@ function App() {
   const [settingsSaveHandler, setSettingsSaveHandler] = useState(null);
   const [showLeaveSettingsModal, setShowLeaveSettingsModal] = useState(false);
   const [pendingPage, setPendingPage] = useState(null);
+  const [hasConfiguredServer, setHasConfiguredServer] = useState(() => {
+    const raw = Number(localStorage.getItem('pulse24x7_selected_server_id'));
+    return Number.isInteger(raw) && raw > 0;
+  });
+  const prevServersLengthRef = useRef(0);
 
   const { data: serversData, loading: loadingServers, refetch: refetchServers } = useGet('/server/all', {
     immediate: !!currentUser,
@@ -87,12 +92,14 @@ function App() {
       return;
     }
     if (servers.length > 0) {
+      setHasConfiguredServer(true);
       const hasSelectedServer = selectedServerId != null && servers.some((server) => server.serverId === selectedServerId);
       if (!hasSelectedServer) {
         setSelectedServerId(servers[0].serverId);
       }
     } else if (selectedServerId != null) {
       setSelectedServerId(null);
+      setHasConfiguredServer(false);
     }
     if (servers.length > 0) {
       return;
@@ -101,6 +108,14 @@ function App() {
       setCurrentPage('configure-server');
     }
   }, [currentUser, loadingServers, servers, currentPage, selectedServerId]);
+
+  useEffect(() => {
+    const previousLength = prevServersLengthRef.current;
+    if (previousLength === 0 && servers.length > 0 && currentPage === 'configure-server') {
+      setCurrentPage('dashboard');
+    }
+    prevServersLengthRef.current = servers.length;
+  }, [servers.length, currentPage]);
 
   const navigateTo = (nextPage) => {
     if (currentPage === 'settings' && nextPage !== 'settings' && settingsHasUnsavedChanges) {
@@ -119,6 +134,7 @@ function App() {
     const serverId = server?.serverId || server?.id;
     if (serverId) {
       setSelectedServerId(serverId);
+      setHasConfiguredServer(true);
     }
     refetchServers();
     setCurrentPage('dashboard');
@@ -148,6 +164,10 @@ function App() {
     setShowLeaveSettingsModal(false);
     setPendingPage(null);
   };
+
+  const registerSettingsSaveBeforeLeave = useCallback((handler) => {
+    setSettingsSaveHandler(() => (typeof handler === 'function' ? handler : null));
+  }, []);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -185,7 +205,7 @@ function App() {
             themeMode={themeMode}
             onThemeModeChange={setThemeMode}
             onUnsavedStateChange={setSettingsHasUnsavedChanges}
-            onRegisterSaveBeforeLeave={setSettingsSaveHandler}
+            onRegisterSaveBeforeLeave={registerSettingsSaveBeforeLeave}
           />
         );
       default:
@@ -202,7 +222,7 @@ function App() {
     }
   };
 
-  const showSidebar = servers.length > 0;
+  const showSidebar = servers.length > 0 || hasConfiguredServer;
 
   return (
     <>

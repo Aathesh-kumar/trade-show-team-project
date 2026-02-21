@@ -20,7 +20,6 @@ export default function ConfigureServer({ onClose, onSuccess }) {
         expiresAt: '',
         clientId: '',
         clientSecret: '',
-        oauthBaseUrl: 'https://accounts.zoho.in',
         oauthTokenLink: 'https://accounts.zoho.in/oauth/v2/auth',
         tokenEndpoint: 'https://accounts.zoho.in/oauth/v2/token',
         monitorIntervalMinutes: 30,
@@ -57,8 +56,8 @@ export default function ConfigureServer({ onClose, onSuccess }) {
             if (!data.clientSecret || !String(data.clientSecret).trim()) {
                 return 'Client Secret is required';
             }
-            if (!data.oauthBaseUrl || !/^https?:\/\/.+/.test(data.oauthBaseUrl)) {
-                return 'OAuth Base URL is required and must be valid';
+            if (!data.oauthTokenLink || !/^https?:\/\/.+/.test(data.oauthTokenLink)) {
+                return 'OAuth Token Link is required and must be valid';
             }
             if (!data.tokenEndpoint || !/^https?:\/\/.+/.test(data.tokenEndpoint)) {
                 return 'Token Endpoint is required and must be valid';
@@ -234,25 +233,11 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                         />
 
                         <InputField
-                            label="OAuth Base URL"
-                            placeholder="https://accounts.zoho.in"
-                            value={formData.oauthBaseUrl}
-                            onChange={(value) => {
-                                const normalized = value.replace(/\/$/, '');
-                                handleInputChange('oauthBaseUrl', normalized);
-                                handleInputChange('oauthTokenLink', `${normalized}/oauth/v2/auth`);
-                                handleInputChange('tokenEndpoint', `${normalized}/oauth/v2/token`);
-                            }}
-                            required
-                            tooltip="Base URL used to build OAuth authorize/token endpoints"
-                            icon="link"
-                        />
-
-                        <InputField
                             label="OAuth Token Link"
                             placeholder="https://accounts.zoho.in/oauth/v2/auth?scope=..."
                             value={formData.oauthTokenLink}
                             onChange={(value) => handleInputChange('oauthTokenLink', value)}
+                            required
                             tooltip="Open this URL to generate OAuth code/token"
                             icon="link"
                         />

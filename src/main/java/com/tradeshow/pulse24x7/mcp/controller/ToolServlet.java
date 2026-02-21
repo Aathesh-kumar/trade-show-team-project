@@ -337,11 +337,12 @@ public class ToolServlet extends HttpServlet {
 
         try {
             responseData = toolService.executeTool(serverId, server.getServerUrl(), headerType, accessToken, toolName, inputParams);
-            if (toolService.hasScopeErrorPayload(responseData)) {
+            String payloadErrorMessage = toolService.extractMcpErrorMessage(responseData);
+            if (payloadErrorMessage != null) {
                 statusCode = HttpServletResponse.SC_BAD_REQUEST;
                 statusText = "ERR";
-                errorMessage = "Insufficient OAuth scope for this tool execution";
-                scopeRelatedFailure = true;
+                errorMessage = payloadErrorMessage;
+                scopeRelatedFailure = toolService.hasScopeErrorPayload(responseData) || toolService.isScopeRelatedError(payloadErrorMessage);
             }
         } catch (Exception ex) {
             responseData = new JsonObject();

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildUrl, getAuthHeaders, parseApiResponse, unwrapData } from '../../services/api';
 
 export const useGet = (path, options = {}) => {
@@ -14,6 +14,16 @@ export const useGet = (path, options = {}) => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(Boolean(immediate && path));
     const [error, setError] = useState(null);
+    const onSuccessRef = useRef(onSuccess);
+    const onErrorRef = useRef(onError);
+
+    useEffect(() => {
+        onSuccessRef.current = onSuccess;
+    }, [onSuccess]);
+
+    useEffect(() => {
+        onErrorRef.current = onError;
+    }, [onError]);
 
     const paramsKey = useMemo(() => JSON.stringify(params || {}), [params]);
     const headersKey = useMemo(() => JSON.stringify(headers || {}), [headers]);
@@ -44,19 +54,19 @@ export const useGet = (path, options = {}) => {
             const body = await parseApiResponse(response);
             const result = unwrapData(body);
             setData(result);
-            onSuccess?.(result);
+            onSuccessRef.current?.(result);
             return result;
         } catch (err) {
             if (err.name === 'AbortError') {
                 return null;
             }
             setError(err.message);
-            onError?.(err);
+            onErrorRef.current?.(err);
             throw err;
         } finally {
             setLoading(false);
         }
-    }, [path, resolvedUrl, resolvedHeaders, onSuccess, onError]);
+    }, [path, resolvedUrl, resolvedHeaders]);
 
     const refetch = useCallback(() => {
         const controller = new AbortController();
