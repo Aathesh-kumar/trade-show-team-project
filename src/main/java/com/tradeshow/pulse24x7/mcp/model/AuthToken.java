@@ -11,13 +11,14 @@ public class AuthToken {
     private String clientId;
     private String clientSecret;
     private String tokenEndpoint;
+    private String oauthTokenLink;
     private Timestamp updatedAt;
 
     public AuthToken() {
     }
 
     public AuthToken(int serverId, String headerType, String accessToken, String refreshToken, Timestamp expiresAt,
-                     String clientId, String clientSecret, String tokenEndpoint, Timestamp updatedAt) {
+                     String clientId, String clientSecret, String tokenEndpoint, String oauthTokenLink, Timestamp updatedAt) {
         this.serverId = serverId;
         this.headerType = headerType;
         this.accessToken = accessToken;
@@ -26,6 +27,7 @@ public class AuthToken {
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.tokenEndpoint = tokenEndpoint;
+        this.oauthTokenLink = oauthTokenLink;
         this.updatedAt = updatedAt;
     }
 
@@ -93,6 +95,14 @@ public class AuthToken {
         this.tokenEndpoint = tokenEndpoint;
     }
 
+    public String getOauthTokenLink() {
+        return oauthTokenLink;
+    }
+
+    public void setOauthTokenLink(String oauthTokenLink) {
+        this.oauthTokenLink = oauthTokenLink;
+    }
+
     public Timestamp getUpdatedAt() {
         return updatedAt;
     }
@@ -112,6 +122,7 @@ public class AuthToken {
                 ", clientId='" + (clientId != null ? "***" : null) + '\'' +
                 ", clientSecret='" + (clientSecret != null ? "***" : null) + '\'' +
                 ", tokenEndpoint='" + tokenEndpoint + '\'' +
+                ", oauthTokenLink='" + oauthTokenLink + '\'' +
                 ", updatedAt=" + updatedAt +
                 '}';
     }

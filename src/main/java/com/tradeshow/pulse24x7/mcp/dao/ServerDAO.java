@@ -13,7 +13,7 @@ import java.util.List;
 public class ServerDAO {
     private static final Logger logger = LogManager.getLogger(ServerDAO.class);
 
-    public Integer insertServer(Long userId, String serverName, String serverUrl) {
+    public Integer insertServer(Long userId, String serverName, String serverUrl, Integer monitorIntervalMinutes) {
         logger.info("Inserting server for userId={}: {} - {}", userId, serverName, serverUrl);
 
         try (Connection con = DBConnection.getInstance().getConnection();
@@ -22,6 +22,7 @@ public class ServerDAO {
             ps.setLong(1, userId);
             ps.setString(2, serverName);
             ps.setString(3, serverUrl);
+            ps.setInt(4, normalizeMonitorInterval(monitorIntervalMinutes));
 
             int affectedRows = ps.executeUpdate();
 
@@ -133,7 +134,7 @@ public class ServerDAO {
         return servers;
     }
 
-    public boolean updateServer(Integer serverId, Long userId, String serverName, String serverUrl) {
+    public boolean updateServer(Integer serverId, Long userId, String serverName, String serverUrl, Integer monitorIntervalMinutes) {
         logger.info("Updating server ID {} for userId={}: {} - {}", serverId, userId, serverName, serverUrl);
 
         try (Connection con = DBConnection.getInstance().getConnection();
@@ -141,8 +142,9 @@ public class ServerDAO {
 
             ps.setString(1, serverName);
             ps.setString(2, serverUrl);
-            ps.setInt(3, serverId);
-            ps.setLong(4, userId);
+            ps.setInt(3, normalizeMonitorInterval(monitorIntervalMinutes));
+            ps.setInt(4, serverId);
+            ps.setLong(5, userId);
 
             int affectedRows = ps.executeUpdate();
 
@@ -187,7 +189,15 @@ public class ServerDAO {
                 rs.getLong("user_id"),
                 rs.getString("server_name"),
                 rs.getString("server_url"),
+                rs.getInt("monitor_interval_minutes"),
                 rs.getTimestamp("created_at")
         );
+    }
+
+    private int normalizeMonitorInterval(Integer monitorIntervalMinutes) {
+        if (monitorIntervalMinutes == null) {
+            return 30;
+        }
+        return Math.max(1, Math.min(1440, monitorIntervalMinutes));
     }
 }

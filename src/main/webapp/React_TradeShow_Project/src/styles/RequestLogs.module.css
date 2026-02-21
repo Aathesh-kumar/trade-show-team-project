@@ -1,10 +1,12 @@
 .requestLogs {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
   color: var(--text-primary);
   flex: 1;
   margin-left: 4rem;
+  overflow: hidden;
 }
 
 .logsHeader {
@@ -256,6 +258,12 @@
   gap: 0.46rem;
 }
 
+.endpointWrap {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
 .methodBadge {
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--primary-color) 45%, transparent);
@@ -268,6 +276,15 @@
 
 .toolName {
   font-weight: 600;
+}
+
+.endpointUrl {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  max-width: 560px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .statusBadge {

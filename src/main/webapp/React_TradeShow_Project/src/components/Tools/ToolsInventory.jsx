@@ -19,7 +19,7 @@ export default function ToolsInventory({ selectedServer }) {
     const [customMinutes, setCustomMinutes] = useState(10);
     const [isTestOpen, setIsTestOpen] = useState(false);
     const [page, setPage] = useState(1);
-    const pageSize = 20;
+    const pageSize = 12;
 
     const serverId = selectedServer?.serverId;
     const queryParams = useMemo(() => {

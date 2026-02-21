@@ -391,7 +391,9 @@ export default function SystemHealth({
                         fill="url(#sh-areaFill)"
                         dot={{ r: 2.4, fill: '#2AAAF4', stroke: '#ffffff', strokeWidth: 1.2 }}
                         activeDot={{ r: 5, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
-                        isAnimationActive={false}
+                        isAnimationActive={true}
+                        animationDuration={1300}
+                        animationEasing="ease-out"
                     />
 
                     {/* Drag-to-zoom selection box */}

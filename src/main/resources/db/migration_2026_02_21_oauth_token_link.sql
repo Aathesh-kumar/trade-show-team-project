@@ -1,0 +1,2 @@
+ALTER TABLE auth_token
+    ADD COLUMN IF NOT EXISTS oauth_token_link VARCHAR(1000) NULL;

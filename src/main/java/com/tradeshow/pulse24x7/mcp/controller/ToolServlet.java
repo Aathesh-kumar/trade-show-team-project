@@ -367,6 +367,9 @@ public class ToolServlet extends HttpServlet {
             toolService.recordToolHistory(toolId, statusCode >= 200 && statusCode < 300);
         }
 
+        JsonObject logRequestPayload = payload.deepCopy();
+        logRequestPayload.addProperty("mcpServerUrl", server.getServerUrl());
+
         requestLogService.record(
                 requestLogService.buildRequestLog(
                         serverId,
@@ -376,7 +379,7 @@ public class ToolServlet extends HttpServlet {
                         statusCode,
                         statusText,
                         latency,
-                        payload,
+                        logRequestPayload,
                         responseData,
                         errorMessage,
                         req.getHeader("User-Agent")

@@ -155,6 +155,7 @@ function isInternalToolName(name) {
   const lower = String(name || '').toLowerCase();
   return !lower
     || lower.startsWith('__')
+    || lower.includes('tools/list')
     || lower.includes('ping')
     || lower.includes('refresh')
     || lower.includes('token');

@@ -1,44 +1,9 @@
-2026-02-21 12:44:00,013 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] ERROR POST request failed for URL: http://qa-history.local 
-java.net.UnknownHostException: qa-history.local: Name or service not known
-	at java.base/java.net.Inet6AddressImpl.lookupAllHostAddr(Native Method)
-	at java.base/java.net.Inet6AddressImpl.lookupAllHostAddr(Inet6AddressImpl.java:52)
-	at java.base/java.net.InetAddress$PlatformResolver.lookupByName(InetAddress.java:1134)
-	at java.base/java.net.InetAddress.getAddressesFromNameService(InetAddress.java:1712)
-	at java.base/java.net.InetAddress$NameServiceAddresses.get(InetAddress.java:1060)
-	at java.base/java.net.InetAddress.getAllByName0(InetAddress.java:1702)
-	at java.base/java.net.InetAddress.getAllByName(InetAddress.java:1582)
-	at org.apache.hc.client5.http.SystemDefaultDnsResolver.resolve(SystemDefaultDnsResolver.java:45)
-	at org.apache.hc.client5.http.impl.io.DefaultHttpClientConnectionOperator.connect(DefaultHttpClientConnectionOperator.java:143)
-	at org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager.connect(PoolingHttpClientConnectionManager.java:447)
-	at org.apache.hc.client5.http.impl.classic.InternalExecRuntime.connectEndpoint(InternalExecRuntime.java:162)
-	at org.apache.hc.client5.http.impl.classic.InternalExecRuntime.connectEndpoint(InternalExecRuntime.java:172)
-	at org.apache.hc.client5.http.impl.classic.ConnectExec.execute(ConnectExec.java:142)
-	at org.apache.hc.client5.http.impl.classic.ExecChainElement.execute(ExecChainElement.java:51)
-	at org.apache.hc.client5.http.impl.classic.ProtocolExec.execute(ProtocolExec.java:192)
-	at org.apache.hc.client5.http.impl.classic.ExecChainElement.execute(ExecChainElement.java:51)
-	at org.apache.hc.client5.http.impl.classic.HttpRequestRetryExec.execute(HttpRequestRetryExec.java:113)
-	at org.apache.hc.client5.http.impl.classic.ExecChainElement.execute(ExecChainElement.java:51)
-	at org.apache.hc.client5.http.impl.classic.ContentCompressionExec.execute(ContentCompressionExec.java:152)
-	at org.apache.hc.client5.http.impl.classic.ExecChainElement.execute(ExecChainElement.java:51)
-	at org.apache.hc.client5.http.impl.classic.RedirectExec.execute(RedirectExec.java:116)
-	at org.apache.hc.client5.http.impl.classic.ExecChainElement.execute(ExecChainElement.java:51)
-	at org.apache.hc.client5.http.impl.classic.InternalHttpClient.doExecute(InternalHttpClient.java:170)
-	at org.apache.hc.client5.http.impl.classic.CloseableHttpClient.execute(CloseableHttpClient.java:87)
-	at org.apache.hc.client5.http.impl.classic.CloseableHttpClient.execute(CloseableHttpClient.java:55)
-	at org.apache.hc.client5.http.classic.HttpClient.executeOpen(HttpClient.java:183)
-	at com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil.doPost(HttpClientUtil.java:71)
-	at com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil.canPingServer(HttpClientUtil.java:202)
-	at com.tradeshow.pulse24x7.mcp.service.MonitoringService.monitorServer(MonitoringService.java:61)
-	at com.tradeshow.pulse24x7.mcp.service.MonitoringService.monitorAllServers(MonitoringService.java:178)
-	at com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask.execute(ServerMonitorTask.java:21)
-	at org.quartz.core.JobRunShell.run(JobRunShell.java:202)
-	at org.quartz.simpl.SimpleThreadPool$WorkerThread.run(SimpleThreadPool.java:573)
-2026-02-21 12:45:20,820 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO Initializing MCP Monitor Scheduler 
-2026-02-21 12:45:20,864 [org.quartz.impl.StdSchedulerFactory] INFO Using default implementation for ThreadExecutor 
-2026-02-21 12:45:20,877 [org.quartz.core.SchedulerSignalerImpl] INFO Initialized Scheduler Signaller of type: class org.quartz.core.SchedulerSignalerImpl 
-2026-02-21 12:45:20,877 [org.quartz.core.QuartzScheduler] INFO Quartz Scheduler v.2.3.2 created. 
-2026-02-21 12:45:20,877 [org.quartz.simpl.RAMJobStore] INFO RAMJobStore initialized. 
-2026-02-21 12:45:20,878 [org.quartz.core.QuartzScheduler] INFO Scheduler meta-data: Quartz Scheduler (v2.3.2) 'Pulse24x7Scheduler' with instanceId 'NON_CLUSTERED'
+2026-02-21 21:45:37,357 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO Initializing MCP Monitor Scheduler 
+2026-02-21 21:45:37,392 [org.quartz.impl.StdSchedulerFactory] INFO Using default implementation for ThreadExecutor 
+2026-02-21 21:45:37,400 [org.quartz.core.SchedulerSignalerImpl] INFO Initialized Scheduler Signaller of type: class org.quartz.core.SchedulerSignalerImpl 
+2026-02-21 21:45:37,400 [org.quartz.core.QuartzScheduler] INFO Quartz Scheduler v.2.3.2 created. 
+2026-02-21 21:45:37,400 [org.quartz.simpl.RAMJobStore] INFO RAMJobStore initialized. 
+2026-02-21 21:45:37,401 [org.quartz.core.QuartzScheduler] INFO Scheduler meta-data: Quartz Scheduler (v2.3.2) 'Pulse24x7Scheduler' with instanceId 'NON_CLUSTERED'
   Scheduler class: 'org.quartz.core.QuartzScheduler' - running locally.
   NOT STARTED.
   Currently in standby mode.
@@ -46,90 +11,15 @@ java.net.UnknownHostException: qa-history.local: Name or service not known
   Using thread pool 'org.quartz.simpl.SimpleThreadPool' - with 1 threads.
   Using job-store 'org.quartz.simpl.RAMJobStore' - which does not support persistence. and is not clustered.
  
-2026-02-21 12:45:20,878 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler 'Pulse24x7Scheduler' initialized from an externally provided properties instance. 
-2026-02-21 12:45:20,878 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler version: 2.3.2 
-2026-02-21 12:45:20,889 [org.quartz.core.QuartzScheduler] INFO Scheduler Pulse24x7Scheduler_$_NON_CLUSTERED started. 
-2026-02-21 12:45:20,891 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO MCP Monitor Scheduler started successfully. Monitoring interval: 30 minutes 
-2026-02-21 12:45:20,893 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Starting scheduled server monitoring ===== 
-2026-02-21 12:45:20,898 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting monitoring for all servers 
-2026-02-21 12:45:20,900 [com.tradeshow.pulse24x7.mcp.filter.CORSFilter] INFO CORSFilter initialized 
-2026-02-21 12:45:20,903 [com.tradeshow.pulse24x7.mcp.db.DBConnection] INFO MySQL JDBC driver loaded 
-2026-02-21 12:45:21,142 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Found 2 servers to monitor 
-2026-02-21 12:45:21,142 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 2 
-2026-02-21 12:45:21,164 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 9 available tools for server ID: 2 
-2026-02-21 12:45:21,212 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: http://qa-history.local 
-2026-02-21 12:45:26,403 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] ERROR POST request failed for URL: http://qa-history.local 
-java.net.UnknownHostException: qa-history.local: Name or service not known
-	at java.base/java.net.Inet6AddressImpl.lookupAllHostAddr(Native Method)
-	at java.base/java.net.Inet6AddressImpl.lookupAllHostAddr(Inet6AddressImpl.java:52)
-	at java.base/java.net.InetAddress$PlatformResolver.lookupByName(InetAddress.java:1134)
-	at java.base/java.net.InetAddress.getAddressesFromNameService(InetAddress.java:1712)
-	at java.base/java.net.InetAddress$NameServiceAddresses.get(InetAddress.java:1060)
-	at java.base/java.net.InetAddress.getAllByName0(InetAddress.java:1702)
-	at java.base/java.net.InetAddress.getAllByName(InetAddress.java:1582)
-	at org.apache.hc.client5.http.SystemDefaultDnsResolver.resolve(SystemDefaultDnsResolver.java:45)
-	at org.apache.hc.client5.http.impl.io.DefaultHttpClientConnectionOperator.connect(DefaultHttpClientConnectionOperator.java:143)
-	at org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager.connect(PoolingHttpClientConnectionManager.java:447)
-	at org.apache.hc.client5.http.impl.classic.InternalExecRuntime.connectEndpoint(InternalExecRuntime.java:162)
-	at org.apache.hc.client5.http.impl.classic.InternalExecRuntime.connectEndpoint(InternalExecRuntime.java:172)
-	at org.apache.hc.client5.http.impl.classic.ConnectExec.execute(ConnectExec.java:142)
-	at org.apache.hc.client5.http.impl.classic.ExecChainElement.execute(ExecChainElement.java:51)
-	at org.apache.hc.client5.http.impl.classic.ProtocolExec.execute(ProtocolExec.java:192)
-	at org.apache.hc.client5.http.impl.classic.ExecChainElement.execute(ExecChainElement.java:51)
-	at org.apache.hc.client5.http.impl.classic.HttpRequestRetryExec.execute(HttpRequestRetryExec.java:113)
-	at org.apache.hc.client5.http.impl.classic.ExecChainElement.execute(ExecChainElement.java:51)
-	at org.apache.hc.client5.http.impl.classic.ContentCompressionExec.execute(ContentCompressionExec.java:152)
-	at org.apache.hc.client5.http.impl.classic.ExecChainElement.execute(ExecChainElement.java:51)
-	at org.apache.hc.client5.http.impl.classic.RedirectExec.execute(RedirectExec.java:116)
-	at org.apache.hc.client5.http.impl.classic.ExecChainElement.execute(ExecChainElement.java:51)
-	at org.apache.hc.client5.http.impl.classic.InternalHttpClient.doExecute(InternalHttpClient.java:170)
-	at org.apache.hc.client5.http.impl.classic.CloseableHttpClient.execute(CloseableHttpClient.java:87)
-	at org.apache.hc.client5.http.impl.classic.CloseableHttpClient.execute(CloseableHttpClient.java:55)
-	at org.apache.hc.client5.http.classic.HttpClient.executeOpen(HttpClient.java:183)
-	at com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil.doPost(HttpClientUtil.java:71)
-	at com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil.canPingServer(HttpClientUtil.java:202)
-	at com.tradeshow.pulse24x7.mcp.service.MonitoringService.monitorServer(MonitoringService.java:61)
-	at com.tradeshow.pulse24x7.mcp.service.MonitoringService.monitorAllServers(MonitoringService.java:178)
-	at com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask.execute(ServerMonitorTask.java:21)
-	at org.quartz.core.JobRunShell.run(JobRunShell.java:202)
-	at org.quartz.simpl.SimpleThreadPool$WorkerThread.run(SimpleThreadPool.java:573)
-2026-02-21 12:45:26,404 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 2 is DOWN 
-2026-02-21 12:45:26,433 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 2 
-2026-02-21 12:45:26,434 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 1 
-2026-02-21 12:45:26,456 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 7 available tools for server ID: 1 
-2026-02-21 12:45:26,456 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
-2026-02-21 12:45:26,818 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-02-21 12:45:26,822 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 1 is UP 
-2026-02-21 12:45:26,822 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 1 
-2026-02-21 12:45:26,824 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
-2026-02-21 12:45:26,974 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-02-21 12:45:26,985 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 9 tools for server ID: 1 
-2026-02-21 12:45:26,986 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 7 tools from response 
-2026-02-21 12:45:26,989 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 1 (keeping 7 tools active) 
-2026-02-21 12:45:27,008 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO 2 tools disabled for server ID: 1 
-2026-02-21 12:45:27,144 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 7 tools from server 1 
-2026-02-21 12:45:27,162 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 1 
-2026-02-21 12:45:27,162 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Completed monitoring for all servers 
-2026-02-21 12:45:27,162 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Scheduled server monitoring completed in 6269 ms ===== 
-2026-02-21 12:47:47,969 [com.tradeshow.pulse24x7.mcp.controller.ServerServlet] INFO ServerServlet initialized 
-2026-02-21 12:47:49,499 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 1 
-2026-02-21 12:47:49,504 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
-2026-02-21 12:47:49,516 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 7 available tools for server ID: 1 
-2026-02-21 12:47:49,517 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
-2026-02-21 12:47:49,742 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-02-21 12:47:49,743 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 1 is UP 
-2026-02-21 12:47:49,743 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 1 
-2026-02-21 12:47:49,743 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
-2026-02-21 12:47:49,867 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-02-21 12:47:49,872 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 9 tools for server ID: 1 
-2026-02-21 12:47:49,872 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 7 tools from response 
-2026-02-21 12:47:49,873 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 1 (keeping 7 tools active) 
-2026-02-21 12:47:49,898 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO 2 tools disabled for server ID: 1 
-2026-02-21 12:47:50,051 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 7 tools from server 1 
-2026-02-21 12:47:50,068 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 1 
-2026-02-21 12:49:12,573 [com.tradeshow.pulse24x7.mcp.controller.RequestLogServlet] INFO RequestLogServlet initialized 
-2026-02-21 12:49:20,291 [com.tradeshow.pulse24x7.mcp.controller.AuthTokenServlet] INFO AuthTokenServlet initialized 
-2026-02-21 12:49:32,698 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Inserting/updating auth token for server ID: 1 
-2026-02-21 12:49:32,723 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Auth token inserted/updated successfully for server ID: 1 
-2026-02-21 12:49:39,684 [com.tradeshow.pulse24x7.mcp.controller.ToolServlet] INFO ToolServlet initialized 
-2026-02-21 12:49:39,688 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 7 available tools for server ID: 1 
+2026-02-21 21:45:37,401 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler 'Pulse24x7Scheduler' initialized from an externally provided properties instance. 
+2026-02-21 21:45:37,401 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler version: 2.3.2 
+2026-02-21 21:45:37,408 [org.quartz.core.QuartzScheduler] INFO Scheduler Pulse24x7Scheduler_$_NON_CLUSTERED started. 
+2026-02-21 21:45:37,410 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO MCP Monitor Scheduler started successfully. Monitoring interval: 30 minutes 
+2026-02-21 21:45:37,412 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Starting scheduled server monitoring ===== 
+2026-02-21 21:45:37,417 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting monitoring for all servers 
+2026-02-21 21:45:37,417 [com.tradeshow.pulse24x7.mcp.filter.CORSFilter] INFO CORSFilter initialized 
+2026-02-21 21:45:37,420 [com.tradeshow.pulse24x7.mcp.db.DBConnection] INFO MySQL JDBC driver loaded 
+2026-02-21 21:45:37,756 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Found 0 servers to monitor 
+2026-02-21 21:45:37,756 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Completed monitoring for all servers 
+2026-02-21 21:45:37,756 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Scheduled server monitoring completed in 344 ms ===== 
+2026-02-21 21:45:42,970 [com.tradeshow.pulse24x7.mcp.controller.ServerServlet] INFO ServerServlet initialized 

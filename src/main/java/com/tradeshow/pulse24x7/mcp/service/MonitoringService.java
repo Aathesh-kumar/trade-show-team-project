@@ -1,5 +1,6 @@
 package com.tradeshow.pulse24x7.mcp.service;
 
+import com.google.gson.JsonObject;
 import com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO;
 import com.tradeshow.pulse24x7.mcp.dao.ToolDAO;
 import com.tradeshow.pulse24x7.mcp.dao.ToolHistoryDAO;
@@ -16,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.sql.Timestamp;
 import java.util.stream.Collectors;
 
 public class MonitoringService {
@@ -28,6 +30,7 @@ public class MonitoringService {
     private final ToolDAO toolDAO;
     private final ToolHistoryDAO toolHistoryDAO;
     private final NotificationService notificationService;
+    private final RequestLogService requestLogService;
 
     public MonitoringService() {
         this.serverService = new ServerService();
@@ -37,6 +40,7 @@ public class MonitoringService {
         this.toolDAO = new ToolDAO();
         this.toolHistoryDAO = new ToolHistoryDAO();
         this.notificationService = new NotificationService();
+        this.requestLogService = new RequestLogService();
     }
 
     public void monitorServer(Integer serverId) {
@@ -58,10 +62,11 @@ public class MonitoringService {
                     .map(Tool::getToolName)
                     .collect(Collectors.toSet());
 
-            HttpResult pingResult = HttpClientUtil.canPingServer(
+            HttpResult pingResult = pingAndLog(
+                    serverId,
                     server.getServerUrl(),
                     AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, accessToken),
-                    JsonUtil.createMCPRequest("ping", Map.of()).toString()
+                    "primary"
             );
             if (!pingResult.isSuccess()
                     && accessToken != null
@@ -69,10 +74,11 @@ public class MonitoringService {
                     && shouldAttemptTokenRefresh(serverId, pingResult)) {
                 try {
                     String refreshedToken = authTokenService.refreshAccessToken(serverId);
-                    pingResult = HttpClientUtil.canPingServer(
+                    pingResult = pingAndLog(
+                            serverId,
                             server.getServerUrl(),
                             AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, refreshedToken),
-                            JsonUtil.createMCPRequest("ping", Map.of()).toString()
+                            "after_refresh"
                     );
                 } catch (Exception ignored) {
                     // keep original ping failure
@@ -175,6 +181,9 @@ public class MonitoringService {
         
         for (Server server : servers) {
             try {
+                if (!shouldMonitorNow(server)) {
+                    continue;
+                }
                 monitorServer(server.getServerId());
             } catch (Exception e) {
                 logger.error("Failed to monitor server ID: {}", server.getServerId(), e);
@@ -199,5 +208,65 @@ public class MonitoringService {
         } catch (Exception e) {
             logger.error("Failed to check tool availability for server ID: {}", serverId, e);
         }
+    }
+
+    private HttpResult pingAndLog(Integer serverId, String serverUrl, Map<String, String> headers, String stage) {
+        JsonObject requestPayload = JsonUtil.createMCPRequest("ping", Map.of());
+        requestPayload.addProperty("mcpServerUrl", serverUrl);
+        requestPayload.addProperty("source", "monitoring");
+        requestPayload.addProperty("stage", stage);
+
+        long start = System.currentTimeMillis();
+        HttpResult result = HttpClientUtil.canPingServer(serverUrl, headers, requestPayload.toString());
+        long latency = Math.max(0L, System.currentTimeMillis() - start);
+        int statusCode = result.getStatusCode() > 0 ? result.getStatusCode() : (result.isSuccess() ? 200 : 502);
+
+        requestLogService.record(
+                requestLogService.buildRequestLog(
+                        serverId,
+                        null,
+                        "__MONITOR_PING__",
+                        "POST",
+                        statusCode,
+                        result.isSuccess() ? "OK" : "ERR",
+                        latency,
+                        requestPayload,
+                        parseOrWrapJson(result.getResponseBody(), result.getErrorMessage()),
+                        result.isSuccess() ? null : result.getErrorMessage(),
+                        "Pulse24x7-Monitor"
+                )
+        );
+        return result;
+    }
+
+    private JsonObject parseOrWrapJson(String body, String errorMessage) {
+        if (body == null || body.isBlank()) {
+            JsonObject wrapped = new JsonObject();
+            if (errorMessage != null && !errorMessage.isBlank()) {
+                wrapped.addProperty("error", errorMessage);
+            }
+            return wrapped;
+        }
+        try {
+            return com.google.gson.JsonParser.parseString(body).getAsJsonObject();
+        } catch (Exception e) {
+            JsonObject wrapped = new JsonObject();
+            wrapped.addProperty("raw", body);
+            if (errorMessage != null && !errorMessage.isBlank()) {
+                wrapped.addProperty("error", errorMessage);
+            }
+            return wrapped;
+        }
+    }
+
+    private boolean shouldMonitorNow(Server server) {
+        int intervalMinutes = Math.max(1, server.getMonitorIntervalMinutes() == null ? 30 : server.getMonitorIntervalMinutes());
+        com.tradeshow.pulse24x7.mcp.model.ServerHistory lastHistory = serverHistoryDAO.getLastHistory(server.getServerId());
+        if (lastHistory == null || lastHistory.getCheckedAt() == null) {
+            return true;
+        }
+        Timestamp lastChecked = lastHistory.getCheckedAt();
+        long elapsedMillis = System.currentTimeMillis() - lastChecked.getTime();
+        return elapsedMillis >= intervalMinutes * 60_000L;
     }
 }

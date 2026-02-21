@@ -264,7 +264,12 @@ public class RequestLogDAO {
         log.setErrorMessage(rs.getString("error_message"));
         log.setResponseSizeBytes(rs.getLong("response_size_bytes"));
         log.setUserAgent(rs.getString("user_agent"));
-        log.setCreatedAt(rs.getTimestamp("created_at"));
+        String createdAtRaw = rs.getString("created_at");
+        if (createdAtRaw != null && !createdAtRaw.isBlank()) {
+            log.setCreatedAt(Timestamp.valueOf(createdAtRaw));
+        } else {
+            log.setCreatedAt(null);
+        }
         return log;
     }
 

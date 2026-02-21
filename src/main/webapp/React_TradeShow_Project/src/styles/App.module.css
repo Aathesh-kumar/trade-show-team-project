@@ -5,3 +5,66 @@
     background-color: var(--bg-app);
     position: relative;
 }
+
+.unsavedOverlay {
+    position: fixed;
+    inset: 0;
+    background: color-mix(in srgb, #020617 58%, transparent);
+    display: grid;
+    place-items: center;
+    z-index: 999;
+    padding: 1rem;
+}
+
+.unsavedModal {
+    width: min(560px, 100%);
+    border-radius: 14px;
+    border: 1px solid var(--panel-border);
+    background: var(--bg-elev-1);
+    padding: 1.1rem 1.1rem 1rem;
+    box-shadow: 0 16px 50px rgba(2, 6, 23, 0.35);
+}
+
+.unsavedModal h3 {
+    margin: 0;
+    font-size: 1.08rem;
+}
+
+.unsavedModal p {
+    margin: 0.6rem 0 0;
+    color: var(--text-muted);
+}
+
+.unsavedActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.55rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.modalPrimary,
+.modalSecondary,
+.modalGhost {
+    border-radius: 9px;
+    border: 1px solid var(--panel-border);
+    padding: 0.48rem 0.8rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.modalPrimary {
+    color: #fff;
+    border-color: color-mix(in srgb, var(--primary-color) 45%, transparent);
+    background: linear-gradient(140deg, var(--primary-color), var(--primary-color-strong));
+}
+
+.modalSecondary {
+    background: color-mix(in srgb, var(--warning-color) 10%, transparent);
+    color: var(--text-primary);
+}
+
+.modalGhost {
+    background: transparent;
+    color: var(--text-muted);
+}

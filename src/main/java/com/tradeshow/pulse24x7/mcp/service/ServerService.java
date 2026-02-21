@@ -20,7 +20,7 @@ public class ServerService {
         this.serverHistoryDAO = new ServerHistoryDAO();
     }
 
-    public Integer registerServer(Long userId, String serverName, String serverUrl) {
+    public Integer registerServer(Long userId, String serverName, String serverUrl, Integer monitorIntervalMinutes) {
         logger.info("Registering new server for userId={}: {} - {}", userId, serverName, serverUrl);
         if (userId == null || userId <= 0) {
             logger.error("Invalid userId: {}", userId);
@@ -45,7 +45,12 @@ public class ServerService {
         }
         
         // Insert server
-        return serverDAO.insertServer(userId, serverName, serverUrl);
+        if (!validateMonitorInterval(monitorIntervalMinutes)) {
+            logger.error("Invalid monitor interval: {}", monitorIntervalMinutes);
+            return null;
+        }
+
+        return serverDAO.insertServer(userId, serverName, serverUrl, monitorIntervalMinutes);
     }
 
     public Server getServerById(Integer serverId, Long userId) {
@@ -92,7 +97,7 @@ public class ServerService {
         return serverDAO.getAllServersGlobal();
     }
 
-    public boolean updateServer(Integer serverId, Long userId, String serverName, String serverUrl) {
+    public boolean updateServer(Integer serverId, Long userId, String serverName, String serverUrl, Integer monitorIntervalMinutes) {
         if (serverId == null || serverId <= 0) {
             logger.error("Invalid server ID: {}", serverId);
             return false;
@@ -102,12 +107,12 @@ public class ServerService {
             return false;
         }
         
-        if (!validateServerName(serverName) || !validateServerUrl(serverUrl)) {
+        if (!validateServerName(serverName) || !validateServerUrl(serverUrl) || !validateMonitorInterval(monitorIntervalMinutes)) {
             logger.error("Invalid server data for update");
             return false;
         }
         
-        return serverDAO.updateServer(serverId, userId, serverName, serverUrl);
+        return serverDAO.updateServer(serverId, userId, serverName, serverUrl, monitorIntervalMinutes);
     }
 
     public boolean deleteServer(Integer serverId, Long userId) {
@@ -174,5 +179,12 @@ public class ServerService {
         }
 
         return serverUrl.startsWith("http://") || serverUrl.startsWith("https://");
+    }
+
+    private boolean validateMonitorInterval(Integer monitorIntervalMinutes) {
+        if (monitorIntervalMinutes == null) {
+            return true;
+        }
+        return monitorIntervalMinutes >= 1 && monitorIntervalMinutes <= 1440;
     }
 }

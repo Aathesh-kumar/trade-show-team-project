@@ -27,11 +27,13 @@ public class ToolService {
     private final ToolDAO toolDAO;
     private final ToolHistoryDAO toolHistoryDAO;
     private final AuthTokenService authTokenService;
+    private final RequestLogService requestLogService;
 
     public ToolService() {
         this.toolDAO = new ToolDAO();
         this.toolHistoryDAO = new ToolHistoryDAO();
         this.authTokenService = new AuthTokenService();
+        this.requestLogService = new RequestLogService();
     }
 
     public List<Tool> fetchAndUpdateTools(Integer serverId, String serverUrl, String accessToken, String headerType) {
@@ -41,7 +43,7 @@ public class ToolService {
             Map<String, Object> params = new HashMap<>();
             JsonObject request = JsonUtil.createMCPRequest("tools/list", params);
 
-            JsonObject response = doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request);
+            JsonObject response = doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request, true);
 
             List<Tool> oldTools = getToolsByServer(serverId);
             List<Tool> newTools = parseToolsFromResponse(response, serverId);
@@ -68,20 +70,91 @@ public class ToolService {
         params.put("arguments", inputParams == null ? new JsonObject() : inputParams);
 
         JsonObject request = JsonUtil.createMCPRequest("tools/call", params);
-        return doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request);
+        return doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request, false);
     }
 
     private JsonObject doPostWithRefresh(Integer serverId, String serverUrl, String headerType,
-                                         String accessToken, JsonObject request) {
+                                         String accessToken, JsonObject request, boolean recordInRequestLogs) {
+        long start = System.currentTimeMillis();
+        JsonObject requestPayload = request == null ? new JsonObject() : request.deepCopy();
+        requestPayload.addProperty("mcpServerUrl", serverUrl);
+        String mcpMethod = resolveMcpMethod(requestPayload);
         try {
-            return HttpClientUtil.doPost(serverUrl, buildHeaders(accessToken, headerType), request.toString());
+            JsonObject response = HttpClientUtil.doPost(serverUrl, buildHeaders(accessToken, headerType), request.toString());
+            if (recordInRequestLogs) {
+                recordMcpRequestLog(serverId, mcpMethod, start, requestPayload, response, null, 200);
+            }
+            return response;
         } catch (RuntimeException ex) {
             if (!shouldRefreshToken(serverId, ex)) {
+                if (recordInRequestLogs) {
+                    recordMcpRequestLog(serverId, mcpMethod, start, requestPayload, wrapError(ex), ex.getMessage(), resolveStatusCode(ex));
+                }
                 throw ex;
             }
             String refreshed = authTokenService.refreshAccessToken(serverId);
-            return HttpClientUtil.doPost(serverUrl, buildHeaders(refreshed, headerType), request.toString());
+            try {
+                JsonObject response = HttpClientUtil.doPost(serverUrl, buildHeaders(refreshed, headerType), request.toString());
+                if (recordInRequestLogs) {
+                    recordMcpRequestLog(serverId, mcpMethod, start, requestPayload, response, null, 200);
+                }
+                return response;
+            } catch (RuntimeException retryEx) {
+                if (recordInRequestLogs) {
+                    recordMcpRequestLog(serverId, mcpMethod, start, requestPayload, wrapError(retryEx), retryEx.getMessage(), resolveStatusCode(retryEx));
+                }
+                throw retryEx;
+            }
         }
+    }
+
+    private void recordMcpRequestLog(Integer serverId, String mcpMethod, long startMillis,
+                                     JsonObject requestPayload, JsonObject responseBody, String errorMessage, int statusCode) {
+        long latency = Math.max(0L, System.currentTimeMillis() - startMillis);
+        requestLogService.record(
+                requestLogService.buildRequestLog(
+                        serverId,
+                        null,
+                        mcpMethod,
+                        "POST",
+                        statusCode,
+                        statusCode >= 200 && statusCode < 300 ? "OK" : "ERR",
+                        latency,
+                        requestPayload,
+                        responseBody == null ? new JsonObject() : responseBody,
+                        errorMessage,
+                        "Pulse24x7-Backend"
+                )
+        );
+    }
+
+    private int resolveStatusCode(RuntimeException ex) {
+        if (ex instanceof HttpClientUtil.HttpRequestException httpEx) {
+            int code = httpEx.getStatusCode();
+            return code > 0 ? code : 502;
+        }
+        return 502;
+    }
+
+    private String resolveMcpMethod(JsonObject requestPayload) {
+        if (requestPayload != null && requestPayload.has("method") && !requestPayload.get("method").isJsonNull()) {
+            try {
+                return requestPayload.get("method").getAsString();
+            } catch (Exception ignored) {
+                // ignore and fallback
+            }
+        }
+        return "__MCP_CALL__";
+    }
+
+    private JsonObject wrapError(RuntimeException ex) {
+        JsonObject error = new JsonObject();
+        if (ex instanceof HttpClientUtil.HttpRequestException httpEx) {
+            error.addProperty("statusCode", httpEx.getStatusCode());
+            error.addProperty("responseBody", httpEx.getResponseBody());
+        }
+        error.addProperty("error", ex.getMessage() == null ? "MCP request failed" : ex.getMessage());
+        return error;
     }
 
     private boolean shouldRefreshToken(Integer serverId, RuntimeException ex) {

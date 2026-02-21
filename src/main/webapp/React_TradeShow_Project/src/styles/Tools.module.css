@@ -1,11 +1,13 @@
 .toolsInventory {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
   background: transparent;
   color: var(--text-primary);
   margin-left: 4rem;
   flex: 1;
+  overflow: hidden;
 }
 
 .toolsHeader {

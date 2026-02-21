@@ -21,7 +21,9 @@ export default function ConfigureServer({ onClose, onSuccess }) {
         clientId: '',
         clientSecret: '',
         oauthBaseUrl: 'https://accounts.zoho.in',
+        oauthTokenLink: 'https://accounts.zoho.in/oauth/v2/auth',
         tokenEndpoint: 'https://accounts.zoho.in/oauth/v2/token',
+        monitorIntervalMinutes: 30,
         connectionTimeout: 5000,
         autoReconnect: true
     });
@@ -61,6 +63,10 @@ export default function ConfigureServer({ onClose, onSuccess }) {
             if (!data.tokenEndpoint || !/^https?:\/\/.+/.test(data.tokenEndpoint)) {
                 return 'Token Endpoint is required and must be valid';
             }
+            const interval = Number(data.monitorIntervalMinutes);
+            if (!Number.isFinite(interval) || interval < 1 || interval > 1440) {
+                return 'Monitor interval must be between 1 and 1440 minutes';
+            }
             return true;
         },
         onSuccess: (response) => {
@@ -82,6 +88,8 @@ export default function ConfigureServer({ onClose, onSuccess }) {
             [field]: value
         }));
     };
+
+    const quickIntervals = [5, 10, 15, 30, 60];
 
     const handleTestConnection = async () => {
         setTestingConnection(true);
@@ -113,6 +121,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
         try {
             const payload = {
                 ...formData,
+                oauthTokenLink: formData.oauthTokenLink || '',
                 expiresAt: formData.expiresAt || getDefaultExpiryIso()
             };
             await execute(payload);
@@ -231,10 +240,20 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                             onChange={(value) => {
                                 const normalized = value.replace(/\/$/, '');
                                 handleInputChange('oauthBaseUrl', normalized);
+                                handleInputChange('oauthTokenLink', `${normalized}/oauth/v2/auth`);
                                 handleInputChange('tokenEndpoint', `${normalized}/oauth/v2/token`);
                             }}
                             required
                             tooltip="Base URL used to build OAuth authorize/token endpoints"
+                            icon="link"
+                        />
+
+                        <InputField
+                            label="OAuth Token Link"
+                            placeholder="https://accounts.zoho.in/oauth/v2/auth?scope=..."
+                            value={formData.oauthTokenLink}
+                            onChange={(value) => handleInputChange('oauthTokenLink', value)}
+                            tooltip="Open this URL to generate OAuth code/token"
                             icon="link"
                         />
 
@@ -259,6 +278,29 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                         icon="settings"
                         title="CONNECTION SETTINGS"
                     >
+                        <SelectField
+                            label="Server Monitor Interval (minutes)"
+                            value={String(formData.monitorIntervalMinutes)}
+                            onChange={(value) => handleInputChange('monitorIntervalMinutes', Number(value) || 30)}
+                            options={['5', '10', '15', '30', '60', '120']}
+                        />
+
+                        <div className={ConfigureServerStyles.dateTimeField}>
+                            <label>Quick Interval Choices</label>
+                            <div className={ConfigureServerStyles.quickSelectButtons}>
+                                {quickIntervals.map((mins) => (
+                                    <button
+                                        key={mins}
+                                        type="button"
+                                        className={ConfigureServerStyles.quickBtn}
+                                        onClick={() => handleInputChange('monitorIntervalMinutes', mins)}
+                                    >
+                                        Every {mins}m
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
                         <SliderField
                             label="Connection Timeout"
                             value={formData.connectionTimeout}

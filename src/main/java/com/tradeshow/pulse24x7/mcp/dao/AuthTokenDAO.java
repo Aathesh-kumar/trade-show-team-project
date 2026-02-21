@@ -15,7 +15,7 @@ public class AuthTokenDAO {
 
     public boolean insertOrUpdateToken(int serverId, String headerType, String accessToken,
                                        String refreshToken, Timestamp expiresAt,
-                                       String clientId, String clientSecret, String tokenEndpoint) {
+                                       String clientId, String clientSecret, String tokenEndpoint, String oauthTokenLink) {
         logger.info("Inserting/updating auth token for server ID: {}", serverId);
 
         try (Connection con = DBConnection.getInstance().getConnection();
@@ -29,6 +29,7 @@ public class AuthTokenDAO {
             ps.setString(6, clientId);
             ps.setString(7, clientSecret);
             ps.setString(8, tokenEndpoint);
+            ps.setString(9, oauthTokenLink);
 
             int affectedRows = ps.executeUpdate();
 
@@ -124,8 +125,11 @@ public class AuthTokenDAO {
 
     public boolean isTokenExpired(int serverId, int bufferMinutes) {
         AuthToken token = getAuthToken(serverId);
-        if (token == null || token.getExpiresAt() == null) {
+        if (token == null) {
             return true;
+        }
+        if (token.getExpiresAt() == null) {
+            return false;
         }
 
         Timestamp now = new Timestamp(System.currentTimeMillis());
@@ -144,6 +148,7 @@ public class AuthTokenDAO {
                 rs.getString("client_id"),
                 rs.getString("client_secret"),
                 rs.getString("token_endpoint"),
+                rs.getString("oauth_token_link"),
                 rs.getTimestamp("updated_at")
         );
     }

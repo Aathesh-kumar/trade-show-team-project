@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { MdVisibility, MdVisibilityOff, MdMail, MdPerson, MdLock } from 'react-icons/md';
+import {
+  MdVisibility,
+  MdVisibilityOff,
+  MdMail,
+  MdPerson,
+  MdLock,
+  MdSecurity,
+  MdArrowForward
+} from 'react-icons/md';
 import AuthStyles from '../../styles/Auth.module.css';
 import { buildUrl, parseApiResponse, unwrapData } from '../../services/api';
 import pulseLogo from '../../assets/pulse24x7-logo.png';
@@ -9,12 +17,46 @@ export default function AuthPage({ onAuthenticated }) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const passwordStrength = getPasswordStrength(password);
+
+  const switchMode = (nextMode) => {
+    setMode(nextMode);
+    setError('');
+    setPassword('');
+    setConfirmPassword('');
+    setAcceptedTerms(false);
+  };
 
   const submit = async () => {
     setError('');
+    if (!email.trim() || !password) {
+      setError('Email and password are required.');
+      return;
+    }
+    if (mode === 'signup') {
+      if (!fullName.trim()) {
+        setError('Full name is required.');
+        return;
+      }
+      if (password.length < 8) {
+        setError('Password must be at least 8 characters.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError('Password and confirm password do not match.');
+        return;
+      }
+      if (!acceptedTerms) {
+        setError('Please agree to Terms and Privacy Policy.');
+        return;
+      }
+    }
     setLoading(true);
     try {
       const endpoint = mode === 'login' ? '/user-auth/login' : '/user-auth/signup';
@@ -43,125 +85,201 @@ export default function AuthPage({ onAuthenticated }) {
 
   return (
     <div className={AuthStyles.authPage}>
-      <div className={AuthStyles.bgOrbA}></div>
-      <div className={AuthStyles.bgOrbB}></div>
-
-      <div className={AuthStyles.authLayout}>
-        <aside className={AuthStyles.brandPanel}>
-          <div className={AuthStyles.brandHeader}>
+      <div className={AuthStyles.topBrand}>
+        <>
+          <div className={AuthStyles.logoBadge}>
             <img src={pulseLogo} alt="Pulse24x7 logo" className={AuthStyles.brandLogo} />
-            <h2>Pulse24x7</h2>
           </div>
-          <h1>Live Monitoring That Feels Instant</h1>
-          <p>Securely manage Pulse24x7 servers, test tools, and replay requests with a single workspace.</p>
-          <div className={AuthStyles.highlightRow}>
-            <span>Unified Logs</span>
-            <span>Dynamic Tool Testing</span>
-            <span>Smart Server Control</span>
-          </div>
-          <svg className={AuthStyles.vectorGraph} viewBox="0 0 500 240" role="img" aria-label="Pulse timeline">
-            <defs>
-              <linearGradient id="lineA" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#36c2ff" />
-                <stop offset="100%" stopColor="#7dd3fc" />
-              </linearGradient>
-            </defs>
-            <path d="M20 130 H100 L140 90 L180 160 L220 70 L260 170 L300 110 L340 145 L380 120 H470" fill="none" stroke="url(#lineA)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="220" cy="70" r="8" fill="#67e8f9" />
-            <circle cx="300" cy="110" r="8" fill="#67e8f9" />
-            <circle cx="380" cy="120" r="8" fill="#67e8f9" />
-          </svg>
-          <svg className={AuthStyles.vectorNodes} viewBox="0 0 560 160" role="img" aria-label="Connected services">
-            <defs>
-              <linearGradient id="nodesLine" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#34d399" />
-                <stop offset="100%" stopColor="#38bdf8" />
-              </linearGradient>
-            </defs>
-            <path d="M30 80 H160 L220 40 L300 120 L390 50 L530 50" stroke="url(#nodesLine)" strokeWidth="4" fill="none" />
-            <circle cx="30" cy="80" r="9" fill="#34d399" />
-            <circle cx="160" cy="80" r="9" fill="#38bdf8" />
-            <circle cx="220" cy="40" r="9" fill="#34d399" />
-            <circle cx="300" cy="120" r="9" fill="#38bdf8" />
-            <circle cx="390" cy="50" r="9" fill="#34d399" />
-            <circle cx="530" cy="50" r="9" fill="#38bdf8" />
-          </svg>
-        </aside>
+          <h1>Pulse24x7</h1>
+          <p>Secure access to your agentic infrastructure.</p>
+        </>
+      </div>
 
-        <div className={AuthStyles.card}>
-          <div className={AuthStyles.header}>
-            <h1>{mode === 'login' ? 'Welcome Back' : 'Create Your Account'}</h1>
-            <p>Sign in to continue with Pulse24x7 platform.</p>
-          </div>
-          <div className={AuthStyles.tabs}>
-            <button
-              type="button"
-              className={`${AuthStyles.tab} ${mode === 'login' ? AuthStyles.tabActive : ''}`}
-              onClick={() => setMode('login')}
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              className={`${AuthStyles.tab} ${mode === 'signup' ? AuthStyles.tabActive : ''}`}
-              onClick={() => setMode('signup')}
-            >
-              Signup
-            </button>
-          </div>
-          <form
-            className={AuthStyles.form}
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit();
-            }}
-          >
-            {mode === 'signup' && (
+      <div className={AuthStyles.card}>
+        <div className={AuthStyles.header}>
+          <h2>{mode === 'login' ? 'Welcome Back' : 'Create Your Account'}</h2>
+          <p>{mode === 'login' ? 'Sign in to continue with Pulse24x7 platform.' : 'Experience the next generation of cloud management.'}</p>
+        </div>
+
+        <form
+          className={AuthStyles.form}
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          {mode === 'signup' ? (
+            <div className={AuthStyles.fieldBlock}>
+              <label>FULL NAME</label>
               <div className={AuthStyles.fieldWrap}>
                 <MdPerson className={AuthStyles.fieldIcon} />
                 <input
                   className={AuthStyles.input}
-                  placeholder="Full name"
+                  placeholder="John Doe"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                 />
               </div>
-            )}
+            </div>
+          ) : null}
+
+          <div className={AuthStyles.fieldBlock}>
+            <label>EMAIL ADDRESS</label>
             <div className={AuthStyles.fieldWrap}>
               <MdMail className={AuthStyles.fieldIcon} />
               <input
                 className={AuthStyles.input}
-                placeholder="Email"
+                placeholder="name@company.com"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <div className={AuthStyles.fieldWrap}>
-              <MdLock className={AuthStyles.fieldIcon} />
-              <input
-                className={AuthStyles.input}
-                placeholder="Password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                className={AuthStyles.eyeBtn}
-                onClick={() => setShowPassword((prev) => !prev)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <MdVisibilityOff /> : <MdVisibility />}
-              </button>
+          </div>
+
+          {mode === 'login' ? (
+            <div className={AuthStyles.fieldBlock}>
+              <div className={AuthStyles.labelRow}>
+                <label>PASSWORD</label>
+                <button type="button" className={AuthStyles.ghostLink}>Forgot Password?</button>
+              </div>
+              <div className={AuthStyles.fieldWrap}>
+                <MdLock className={AuthStyles.fieldIcon} />
+                <input
+                  className={AuthStyles.input}
+                  placeholder="••••••••"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className={AuthStyles.eyeBtn}
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                </button>
+              </div>
             </div>
-            {error && <div className={AuthStyles.error}>{error}</div>}
-            <button type="submit" className={AuthStyles.btn} disabled={loading}>
-              {loading ? 'Please wait...' : (mode === 'login' ? 'Login' : 'Create Account')}
-            </button>
-          </form>
-        </div>
+          ) : (
+            <div className={AuthStyles.passwordGrid}>
+              <div className={AuthStyles.fieldBlock}>
+                <label>PASSWORD</label>
+                <div className={AuthStyles.fieldWrap}>
+                  <MdLock className={AuthStyles.fieldIcon} />
+                  <input
+                    className={AuthStyles.input}
+                    placeholder="••••••••"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className={AuthStyles.eyeBtn}
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                  </button>
+                </div>
+              </div>
+
+              <div className={AuthStyles.fieldBlock}>
+                <label>CONFIRM</label>
+                <div className={AuthStyles.fieldWrap}>
+                  <MdSecurity className={AuthStyles.fieldIcon} />
+                  <input
+                    className={AuthStyles.input}
+                    placeholder="••••••••"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className={AuthStyles.eyeBtn}
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                  >
+                    {showConfirmPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {mode === 'signup' ? (
+            <>
+              <div className={AuthStyles.strengthRow}>
+                {[0, 1, 2, 3].map((barIndex) => (
+                  <span
+                    key={barIndex}
+                    className={`${AuthStyles.strengthBar} ${barIndex < passwordStrength.level ? AuthStyles.strengthBarActive : ''}`}
+                    style={barIndex < passwordStrength.level ? { background: passwordStrength.color } : undefined}
+                  ></span>
+                ))}
+                <span className={AuthStyles.strengthText} style={{ color: passwordStrength.color }}>
+                  {passwordStrength.label}
+                </span>
+              </div>
+              <label className={AuthStyles.termsRow}>
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                />
+                <span>I agree to the <button type="button" className={AuthStyles.inlineLink}>Terms and Conditions</button> and <button type="button" className={AuthStyles.inlineLink}>Privacy Policy</button>.</span>
+              </label>
+            </>
+          ) : null}
+
+          {error ? <div className={AuthStyles.error}>{error}</div> : null}
+
+          <button type="submit" className={AuthStyles.btn} disabled={loading}>
+            {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : <>Create Account <MdArrowForward /></>}
+          </button>
+        </form>
+
+        <p className={AuthStyles.switchRow}>
+          {mode === 'login' ? 'Don\'t have an account?' : 'Already have an account?'}
+          <button type="button" className={AuthStyles.switchLink} onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}>
+            {mode === 'login' ? 'Sign Up' : 'Sign In'}
+          </button>
+        </p>
+      </div>
+
+      <div className={AuthStyles.footerBadges}>
+        <span><MdSecurity /> API FIRST</span>
+        <span><MdSecurity /> ENCRYPTED</span>
+        <span><MdSecurity /> GLOBAL EDGE</span>
       </div>
     </div>
   );
+}
+
+function getPasswordStrength(password) {
+  const input = String(password || '');
+  if (!input) {
+    return { level: 0, label: 'EMPTY', color: '#7388b0' };
+  }
+
+  let score = 0;
+  if (input.length >= 8) score += 1;
+  if (input.length >= 12) score += 1;
+  if (/[A-Z]/.test(input) && /[a-z]/.test(input)) score += 1;
+  if (/\d/.test(input)) score += 1;
+  if (/[^A-Za-z0-9]/.test(input)) score += 1;
+
+  if (score <= 1) {
+    return { level: 1, label: 'WEAK', color: '#f97316' };
+  }
+  if (score <= 3) {
+    return { level: 2, label: 'MEDIUM', color: '#f59e0b' };
+  }
+  if (score === 4) {
+    return { level: 3, label: 'STRONG', color: '#3b82f6' };
+  }
+  return { level: 4, label: 'SECURE', color: '#22c55e' };
 }

@@ -2,7 +2,7 @@ import RequestLogsStyles from '../../styles/RequestLogs.module.css';
 import { MdSearch, MdFileDownload } from 'react-icons/md';
 import CustomDropdown from '../Common/CustomDropdown';
 
-export default function RequestLogsHeader({ filters, onFilterChange, stats, toolOptions = [] }) {
+export default function RequestLogsHeader({ filters, onFilterChange, stats, toolOptions = [], onExport }) {
     const safeTotal = Number(stats?.totalRequests || 0);
     const safeSuccess = Number(stats?.totalSuccess || 0);
     const safeWarnings = Number(stats?.totalWarnings || 0);
@@ -63,7 +63,7 @@ export default function RequestLogsHeader({ filters, onFilterChange, stats, tool
                 </div>
 
                 <div className={RequestLogsStyles.headerActions}>
-                    <button className={RequestLogsStyles.exportBtn}>
+                    <button className={RequestLogsStyles.exportBtn} onClick={onExport}>
                         <MdFileDownload />
                         Export
                     </button>
@@ -112,7 +112,8 @@ export default function RequestLogsHeader({ filters, onFilterChange, stats, tool
                             { value: 'last-15-minutes', label: 'Last 15 minutes' },
                             { value: 'last-hour', label: 'Last hour' },
                             { value: 'last-24-hours', label: 'Last 24 hours' },
-                            { value: 'last-7-days', label: 'Last 7 days' }
+                            { value: 'last-7-days', label: 'Last 7 days' },
+                            { value: 'all-time', label: 'All Time' }
                         ]}
                         buttonClassName={RequestLogsStyles.filterSelect}
                     />

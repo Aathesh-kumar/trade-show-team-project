@@ -28,9 +28,14 @@ export default function RequestLogRow({ log, isSelected, onSelect }) {
                     <span className={RequestLogsStyles.methodBadge}>
                         {log.method}
                     </span>
-                    <span className={RequestLogsStyles.toolName}>
-                        {log.tool}
-                    </span>
+                    <div className={RequestLogsStyles.endpointWrap}>
+                        <span className={RequestLogsStyles.toolName}>
+                            {log.tool}
+                        </span>
+                        <span className={RequestLogsStyles.endpointUrl} title={log.endpoint}>
+                            {log.endpoint}
+                        </span>
+                    </div>
                 </div>
             </td>
             <td>
