@@ -24,13 +24,11 @@ public class MonitorScheduler implements ServletContextListener {
             quartzProps.setProperty("org.quartz.threadPool.threadCount", "1");
             quartzProps.setProperty("org.quartz.threadPool.threadPriority", "5");
             scheduler = new StdSchedulerFactory(quartzProps).getScheduler();
-            
-            // Create server monitoring job
+
             JobDetail serverMonitorJob = JobBuilder.newJob(ServerMonitorTask.class)
                     .withIdentity("ServerMonitorJob", "MCP_MONITOR_GROUP")
                     .build();
-            
-            // Create trigger for server monitoring (runs every hour)
+
             Trigger serverMonitorTrigger = TriggerBuilder.newTrigger()
                     .withIdentity("ServerMonitorTrigger", "MCP_MONITOR_GROUP")
                     .startNow()
@@ -38,12 +36,11 @@ public class MonitorScheduler implements ServletContextListener {
                             .withIntervalInMinutes(30)
                             .repeatForever())
                     .build();
-            
-            // Schedule the job
+
             scheduler.scheduleJob(serverMonitorJob, serverMonitorTrigger);
-            
-            // Start scheduler
+
             scheduler.start();
+
             
             logger.info("MCP Monitor Scheduler started successfully. " +
                     "Monitoring interval: {} minutes", 30);

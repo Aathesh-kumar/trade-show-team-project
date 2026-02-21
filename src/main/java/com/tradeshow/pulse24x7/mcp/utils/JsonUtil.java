@@ -5,7 +5,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -22,15 +21,6 @@ public class JsonUtil {
         } catch (Exception e) {
             logger.error("Failed to convert object to JSON", e);
             return "{}";
-        }
-    }
-
-    public static <T> T fromJson(String json, Class<T> classOfT) {
-        try {
-            return gson.fromJson(json, classOfT);
-        } catch (JsonSyntaxException e) {
-            logger.error("Failed to parse JSON string", e);
-            return null;
         }
     }
 

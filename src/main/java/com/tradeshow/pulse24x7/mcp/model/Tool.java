@@ -171,4 +171,16 @@ public class Tool {
                 ", serverId=" + serverId +
                 '}';
     }
+
+    @Override
+    public boolean equals(Object o){
+        if(o.getClass() != this.getClass()){
+            return false;
+        }
+        Tool t = (Tool) o;
+        if(!this.toolName.equals(t.toolName)){
+            return false;
+        }
+        return true;
+    }
 }

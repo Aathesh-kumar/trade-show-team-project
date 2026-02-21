@@ -244,6 +244,7 @@ public class RequestLogDAO {
         log.setResponseSizeBytes(rs.getLong("response_size_bytes"));
         log.setUserAgent(rs.getString("user_agent"));
         log.setCreatedAt(rs.getTimestamp("created_at"));
+        System.out.println(log.getCreatedAt());
         return log;
     }
 

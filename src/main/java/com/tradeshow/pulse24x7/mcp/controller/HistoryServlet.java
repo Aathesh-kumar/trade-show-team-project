@@ -36,15 +36,15 @@ public class HistoryServlet extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) 
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         logger.info("GET request to HistoryServlet: {}", req.getPathInfo());
-        
+
         resp.setContentType(String.valueOf(ContentType.APPLICATION_JSON));
         resp.setCharacterEncoding(String.valueOf(StandardCharsets.UTF_8));
-        
+
         String pathInfo = req.getPathInfo();
-        
+
         try {
             if (pathInfo != null && pathInfo.equals("/server")) {
                 handleGetServerHistory(req, resp);
@@ -59,7 +59,7 @@ public class HistoryServlet extends HttpServlet {
         }
     }
 
-    private void handleGetServerHistory(HttpServletRequest req, HttpServletResponse resp) 
+    private void handleGetServerHistory(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
         Long userId = getUserId(req);
         if (userId == null) {
@@ -68,12 +68,12 @@ public class HistoryServlet extends HttpServlet {
         }
         String serverIdStr = req.getParameter("serverId");
         String hoursStr = req.getParameter("hours");
-        
+
         if (serverIdStr == null || serverIdStr.trim().isEmpty()) {
             sendErrorResponse(resp,"Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-        
+
         try {
             Integer serverId = Integer.parseInt(serverIdStr);
             if (!serverService.isServerOwnedByUser(serverId, userId)) {
@@ -81,22 +81,22 @@ public class HistoryServlet extends HttpServlet {
                 return;
             }
             int hours = hoursStr != null ? Integer.parseInt(hoursStr) : 24;
-            
+
             List<ServerHistory> history = serverService.getServerHistoryLastHours(serverId, hours);
             Double uptimePercent = serverService.getUptimePercent(serverId);
-            
+
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("history", history);
             responseData.put("uptimePercent", uptimePercent);
             responseData.put("hours", hours);
-            
+
             sendSuccessResponse(resp, responseData);
         } catch (NumberFormatException e) {
             sendErrorResponse(resp, "Invalid parameters", HttpServletResponse.SC_BAD_REQUEST);
         }
     }
 
-    private void handleGetToolHistory(HttpServletRequest req, HttpServletResponse resp) 
+    private void handleGetToolHistory(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
         Long userId = getUserId(req);
         if (userId == null) {
@@ -105,12 +105,12 @@ public class HistoryServlet extends HttpServlet {
         }
         String toolIdStr = req.getParameter("toolId");
         String hoursStr = req.getParameter("hours");
-        
+
         if (toolIdStr == null || toolIdStr.trim().isEmpty()) {
             sendErrorResponse(resp, "Tool ID is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-        
+
         try {
             Integer toolId = Integer.parseInt(toolIdStr);
             var tool = toolService.getToolById(toolId);
@@ -119,15 +119,15 @@ public class HistoryServlet extends HttpServlet {
                 return;
             }
             int hours = hoursStr != null ? Integer.parseInt(hoursStr) : 24;
-            
+
             List<ToolHistory> history = toolService.getToolHistoryLastHours(toolId, hours);
             Double availabilityPercent = toolService.getToolAvailabilityPercent(toolId);
-            
+
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("history", history);
             responseData.put("availabilityPercent", availabilityPercent);
             responseData.put("hours", hours);
-            
+
             sendSuccessResponse(resp, responseData);
         } catch (NumberFormatException e) {
             sendErrorResponse(resp, "Invalid parameters", HttpServletResponse.SC_BAD_REQUEST);
@@ -140,7 +140,7 @@ public class HistoryServlet extends HttpServlet {
         resp.getWriter().write(response.toString());
     }
 
-    private void sendErrorResponse(HttpServletResponse resp, String message, int statusCode) 
+    private void sendErrorResponse(HttpServletResponse resp, String message, int statusCode)
             throws IOException {
         JsonObject response = JsonUtil.createErrorResponse(message);
         resp.setStatus(statusCode);

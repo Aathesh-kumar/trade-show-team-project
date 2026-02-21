@@ -47,4 +47,15 @@ public final class ServletUtil {
             return defaultValue;
         }
     }
+
+    public static Double getDouble(JsonObject json, String key, Double defaultValue){
+        if (json == null || !json.has(key) || json.get(key).isJsonNull()) {
+            return defaultValue;
+        }
+        try {
+            return json.get(key).getAsDouble();
+        } catch (Exception ex) {
+            return defaultValue;
+        }
+    }
 }
