@@ -52,6 +52,7 @@
 
 .successDot,
 .errorDot,
+.warningDot,
 .liveDot {
   width: 8px;
   height: 8px;
@@ -65,6 +66,25 @@
 
 .errorDot {
   background: var(--error-color);
+}
+
+.warningDot {
+  background: var(--warning-color);
+}
+
+.warningStatBadge {
+  border-color: color-mix(in srgb, var(--warning-color) 48%, var(--panel-border));
+  background: color-mix(in srgb, var(--warning-color) 10%, transparent);
+}
+
+.successStatBadge {
+  border-color: color-mix(in srgb, var(--success-color) 48%, var(--panel-border));
+  background: color-mix(in srgb, var(--success-color) 10%, transparent);
+}
+
+.errorStatBadge {
+  border-color: color-mix(in srgb, var(--error-color) 48%, var(--panel-border));
+  background: color-mix(in srgb, var(--error-color) 10%, transparent);
 }
 
 .headerActions {
@@ -182,7 +202,8 @@
 
 .tableContainer {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
+  min-height: 420px;
 }
 
 .logsTable {
@@ -257,6 +278,7 @@
   border: 1px solid var(--panel-border);
   padding: 0.22rem 0.58rem;
   font-size: 0.77rem;
+  position: relative;
 }
 
 .statusBadge.success {
@@ -283,6 +305,41 @@
 
 .statusText {
   color: var(--text-muted);
+}
+
+.statusHint {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  transform: translateX(-50%) translateY(-2px);
+  opacity: 0;
+  pointer-events: none;
+  padding: 0.28rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--bg-elev-1) 92%, #020617);
+  border: 1px solid color-mix(in srgb, var(--panel-border) 82%, transparent);
+  white-space: nowrap;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 6;
+}
+
+.statusBadge:hover .statusHint {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.statusHintSuccess {
+  color: var(--success-color);
+}
+
+.statusHintWarning {
+  color: var(--warning-color);
+}
+
+.statusHintError {
+  color: var(--error-color);
 }
 
 .latency,

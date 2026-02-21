@@ -255,13 +255,6 @@ public class ToolService {
                     serverId
             );
         }
-
-        if (!tools.isEmpty()) {
-            toolDAO.disableMissingTools(serverId, tools);
-        } else {
-            // If server responds with an empty tools/list, mark all existing tools inactive.
-            toolDAO.disableAllToolsByServer(serverId);
-        }
     }
 
     public List<Tool> getToolsByServer(Integer serverId) {

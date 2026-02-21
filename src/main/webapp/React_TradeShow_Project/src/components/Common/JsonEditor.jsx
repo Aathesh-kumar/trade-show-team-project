@@ -43,7 +43,7 @@ export default function JsonEditor({ value, onChange, className = '', ...props }
       const prevLine = before.split('\n').pop() || '';
       const indentMatch = prevLine.match(/^\s*/);
       const baseIndent = indentMatch ? indentMatch[0] : '';
-      const extraIndent = /[\[{]\s*$/.test(prevLine) ? '  ' : '';
+      const extraIndent = /[[{]\s*$/.test(prevLine) ? '  ' : '';
       const next = `${before}\n${baseIndent}${extraIndent}${after}`;
       const cursor = selectionStart + 1 + baseIndent.length + extraIndent.length;
       onChange(next);

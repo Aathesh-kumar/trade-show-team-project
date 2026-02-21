@@ -1,6 +1,6 @@
 import DashboardStyles from '../../styles/Dashboard.module.css';
 import { useGet } from '../Hooks/useGet';
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import PaginationControls from '../Common/PaginationControls';
 import LoadingSkeleton from '../Loading/LoadingSkeleton';
 import { buildUrl, getAuthHeaders, parseApiResponse } from '../../services/api';
@@ -17,14 +17,12 @@ export default function NotificationPanel({ isOpen, onClose }) {
   const totalItems = allNotifications.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const notifications = allNotifications.slice((page - 1) * pageSize, page * pageSize);
-
-  useEffect(() => {
+  const openNotifications = useMemo(() => {
     if (!isOpen) {
-      return undefined;
+      return [];
     }
-    setPage(1);
-    return undefined;
-  }, [isOpen, refetch]);
+    return notifications;
+  }, [isOpen, notifications]);
 
   if (!isOpen) {
     return null;
@@ -76,10 +74,10 @@ export default function NotificationPanel({ isOpen, onClose }) {
         </div>
         <div className={DashboardStyles.notificationList}>
           {loading && <LoadingSkeleton type="text" lines={6} />}
-          {notifications.length === 0 && (
+          {openNotifications.length === 0 && (
             <p className={DashboardStyles.emptyState}>No notifications yet.</p>
           )}
-          {notifications.map((n) => (
+          {openNotifications.map((n) => (
             <div
               key={n.id}
               className={`${DashboardStyles.notificationItem} ${DashboardStyles[`severity${String(n.severity || 'info').toLowerCase()}`] || ''}`}
@@ -91,7 +89,7 @@ export default function NotificationPanel({ isOpen, onClose }) {
               <p className={DashboardStyles.notificationInfo}>{n.message}</p>
               <div className={DashboardStyles.notificationFooter}>
                 <small className={DashboardStyles.notificationTime} title={String(n.createdAt || '-')}>
-                  {String(n.createdAt || '-')}
+                  {formatTime(n.createdAt)}
                 </small>
                 <button className={DashboardStyles.notificationClearBtn} onClick={() => clearOne(n.id)}>
                   Clear
@@ -110,4 +108,22 @@ export default function NotificationPanel({ isOpen, onClose }) {
       </div>
     </div>
   );
+}
+
+function formatTime(raw) {
+  if (!raw) {
+    return '-';
+  }
+  const ts = new Date(String(raw).replace(' ', 'T'));
+  if (Number.isNaN(ts.getTime())) {
+    return String(raw);
+  }
+  return ts.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
 }

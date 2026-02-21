@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +59,8 @@ public class ToolServlet extends HttpServlet {
         try {
             if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("/all")) {
                 handleGetToolsByServer(req, resp);
+            } else if (pathInfo.equals("/history-window")) {
+                handleGetHistoricalToolsByServer(req, resp);
             } else if (pathInfo.equals("/active")) {
                 handleGetActiveTools(req, resp);
             } else if (pathInfo.equals("/history")) {
@@ -115,24 +116,31 @@ public class ToolServlet extends HttpServlet {
         List<Tool> tools = includeInactive
                 ? toolService.getToolsByServer(serverId)
                 : toolService.getAvailableTools(serverId);
+        boolean historicalWindowRequested = false;
         Double hours = parseDouble(req.getParameter("hours"));
         Integer minutes = parseInt(req.getParameter("minutes"));
         String start = req.getParameter("start");
         String end = req.getParameter("end");
 
         if (minutes != null && minutes > 0) {
-            Timestamp cutoff = Timestamp.valueOf(LocalDateTime.now().minusMinutes(minutes));
-            tools = toolService.getToolsByServerSnapshot(serverId, cutoff);
+            Timestamp cutoff = Timestamp.from(Instant.now().minusSeconds(minutes * 60L));
+            List<Tool> snapshot = toolService.getToolsByServerSnapshot(serverId, cutoff);
+            tools = snapshot;
+            historicalWindowRequested = true;
         } else if (hours != null && hours > 0) {
             Timestamp cutoff = Timestamp.from(Instant.now().minusSeconds((long) (hours * 3600)));
-            tools = toolService.getToolsByServerSnapshot(serverId, cutoff);
+            List<Tool> snapshot = toolService.getToolsByServerSnapshot(serverId, cutoff);
+            tools = snapshot;
+            historicalWindowRequested = true;
         } else if (start != null && end != null) {
             Timestamp startTs = parseTimestamp(start);
             if (startTs != null) {
-                tools = toolService.getToolsByServerSnapshot(serverId, startTs);
+                List<Tool> snapshot = toolService.getToolsByServerSnapshot(serverId, startTs);
+                tools = snapshot;
+                historicalWindowRequested = true;
             }
         }
-        if (!includeInactive) {
+        if (!includeInactive && !historicalWindowRequested) {
             tools = tools.stream()
                     .filter(t -> Boolean.TRUE.equals(t.getIsAvailability()))
                     .toList();
@@ -157,6 +165,50 @@ public class ToolServlet extends HttpServlet {
         }
 
         List<Tool> tools = toolService.getAvailableTools(serverId);
+        sendSuccessResponse(resp, tools);
+    }
+
+    private void handleGetHistoricalToolsByServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+        Integer serverId = parseInt(req.getParameter("serverId"));
+        if (serverId == null) {
+            sendErrorResponse(resp, "Invalid server ID", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        if (serverService.getServerById(serverId, userId) == null) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        Double hours = parseDouble(req.getParameter("hours"));
+        Integer minutes = parseInt(req.getParameter("minutes"));
+        String start = req.getParameter("start");
+        Timestamp cutoff;
+
+        if (minutes != null && minutes > 0) {
+            cutoff = Timestamp.from(Instant.now().minusSeconds(minutes * 60L));
+        } else if (hours != null && hours > 0) {
+            cutoff = Timestamp.from(Instant.now().minusSeconds((long) (hours * 3600)));
+        } else if (start != null) {
+            cutoff = parseTimestamp(start);
+            if (cutoff == null) {
+                cutoff = Timestamp.from(Instant.now().minusSeconds(24 * 3600L));
+            }
+        } else {
+            cutoff = Timestamp.from(Instant.now().minusSeconds(24 * 3600L));
+        }
+
+        boolean includeInactive = "true".equalsIgnoreCase(req.getParameter("includeInactive"));
+        List<Tool> tools = toolService.getToolsByServerSnapshot(serverId, cutoff);
+        if (!includeInactive) {
+            tools = tools.stream()
+                    .filter(t -> Boolean.TRUE.equals(t.getIsAvailability()))
+                    .toList();
+        }
         sendSuccessResponse(resp, tools);
     }
 

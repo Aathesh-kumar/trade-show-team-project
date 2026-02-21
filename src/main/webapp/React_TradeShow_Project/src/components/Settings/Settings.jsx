@@ -15,8 +15,8 @@ const themeChoices = [
 
 export default function Settings({ selectedServer, onServerUpdated, themeMode = 'default', onThemeModeChange }) {
   const serverId = selectedServer?.serverId;
-  const [serverName, setServerName] = useState(selectedServer?.serverName || '');
-  const [serverUrl, setServerUrl] = useState(selectedServer?.serverUrl || '');
+  const [serverName, setServerName] = useState(() => selectedServer?.serverName || '');
+  const [serverUrl, setServerUrl] = useState(() => selectedServer?.serverUrl || '');
   const [headerType, setHeaderType] = useState('Bearer');
   const [accessToken, setAccessToken] = useState('');
   const [refreshToken, setRefreshToken] = useState('');
@@ -25,33 +25,26 @@ export default function Settings({ selectedServer, onServerUpdated, themeMode = 
   const [clientSecret, setClientSecret] = useState('');
   const [tokenEndpoint, setTokenEndpoint] = useState('https://accounts.zoho.in/oauth/v2/token');
   const [message, setMessage] = useState(null);
+  const [showAccessToken, setShowAccessToken] = useState(false);
+  const [showRefreshToken, setShowRefreshToken] = useState(false);
   const [showClientSecret, setShowClientSecret] = useState(false);
 
-  const { data: tokenData, refetch: refetchToken } = useGet('/auth', {
+  const { refetch: refetchToken } = useGet('/auth', {
     immediate: !!serverId,
     params: { serverId },
-    dependencies: [serverId]
+    dependencies: [serverId],
+    onSuccess: (tokenData) => {
+      setHeaderType(tokenData?.headerType || 'Bearer');
+      setAccessToken(tokenData?.accessToken || '');
+      setRefreshToken(tokenData?.refreshToken || '');
+      setExpiresAt(tokenData?.expiresAt || '');
+      setClientId(tokenData?.clientId || '');
+      setClientSecret(tokenData?.clientSecret || '');
+      setTokenEndpoint(tokenData?.tokenEndpoint || 'https://accounts.zoho.in/oauth/v2/token');
+    }
   });
   const { execute: saveAuth, loading: savingAuth } = usePost(buildUrl('/auth'));
   const { execute: refreshAuth, loading: refreshingAuth } = usePost(buildUrl('/auth/refresh'));
-
-  useEffect(() => {
-    setServerName(selectedServer?.serverName || '');
-    setServerUrl(selectedServer?.serverUrl || '');
-  }, [selectedServer?.serverId, selectedServer?.serverName, selectedServer?.serverUrl]);
-
-  useEffect(() => {
-    if (!tokenData) {
-      return;
-    }
-    setHeaderType(tokenData.headerType || 'Bearer');
-    setAccessToken(tokenData.accessToken || '');
-    setRefreshToken(tokenData.refreshToken || '');
-    setExpiresAt(tokenData.expiresAt || '');
-    setClientId(tokenData.clientId || '');
-    setClientSecret(tokenData.clientSecret || '');
-    setTokenEndpoint(tokenData.tokenEndpoint || 'https://accounts.zoho.in/oauth/v2/token');
-  }, [tokenData?.updatedAt, tokenData?.serverId]);
 
   useEffect(() => {
     if (!serverId) {
@@ -103,12 +96,20 @@ export default function Settings({ selectedServer, onServerUpdated, themeMode = 
   const saveToken = async () => {
     setMessage(null);
     try {
+      let expiresAtSql = null;
+      if (expiresAt) {
+        const parsed = new Date(expiresAt);
+        if (!Number.isNaN(parsed.getTime())) {
+          const pad = (n) => String(n).padStart(2, '0');
+          expiresAtSql = `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:00`;
+        }
+      }
       await saveAuth({
         serverId,
         headerType,
         accessToken,
         refreshToken,
-        expiresAt: expiresAt || null,
+        expiresAt: expiresAtSql,
         clientId,
         clientSecret,
         tokenEndpoint
@@ -229,24 +230,24 @@ export default function Settings({ selectedServer, onServerUpdated, themeMode = 
         </div>
 
         <div className={SettingsStyles.tokenAreaGrid}>
-          <div className={SettingsStyles.textBlock}>
-            <label>Access Token</label>
-            <textarea
-              rows="4"
-              value={accessToken}
-              onChange={(e) => setAccessToken(e.target.value)}
-              className={SettingsStyles.textarea}
-            />
-          </div>
-          <div className={SettingsStyles.textBlock}>
-            <label>Refresh Token</label>
-            <textarea
-              rows="4"
-              value={refreshToken}
-              onChange={(e) => setRefreshToken(e.target.value)}
-              className={SettingsStyles.textarea}
-            />
-          </div>
+          <InputField
+            label="Access Token"
+            type={showAccessToken ? 'text' : 'password'}
+            placeholder="Enter access token"
+            value={accessToken}
+            onChange={setAccessToken}
+            showToggle={true}
+            onToggle={() => setShowAccessToken((prev) => !prev)}
+          />
+          <InputField
+            label="Refresh Token"
+            type={showRefreshToken ? 'text' : 'password'}
+            placeholder="Enter refresh token"
+            value={refreshToken}
+            onChange={setRefreshToken}
+            showToggle={true}
+            onToggle={() => setShowRefreshToken((prev) => !prev)}
+          />
         </div>
 
         <DateTimeField

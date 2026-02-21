@@ -12,10 +12,20 @@ export const useGet = (path, options = {}) => {
     } = options;
 
     const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(immediate);
+    const [loading, setLoading] = useState(Boolean(immediate && path));
     const [error, setError] = useState(null);
 
-    const resolvedUrl = useMemo(() => buildUrl(path, params), [path, JSON.stringify(params)]);
+    const paramsKey = useMemo(() => JSON.stringify(params || {}), [params]);
+    const headersKey = useMemo(() => JSON.stringify(headers || {}), [headers]);
+    const dependenciesKey = useMemo(() => JSON.stringify(dependencies || []), [dependencies]);
+    const resolvedUrl = useMemo(() => buildUrl(path, JSON.parse(paramsKey)), [path, paramsKey]);
+    const resolvedHeaders = useMemo(() => {
+        return {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+            ...JSON.parse(headersKey)
+        };
+    }, [headersKey]);
 
     const fetchData = useCallback(async (signal) => {
         try {
@@ -27,11 +37,7 @@ export const useGet = (path, options = {}) => {
 
             const response = await fetch(resolvedUrl, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeaders(),
-                    ...headers
-                },
+                headers: resolvedHeaders,
                 signal
             });
 
@@ -50,7 +56,7 @@ export const useGet = (path, options = {}) => {
         } finally {
             setLoading(false);
         }
-    }, [path, resolvedUrl, JSON.stringify(headers), onSuccess, onError]);
+    }, [path, resolvedUrl, resolvedHeaders, onSuccess, onError]);
 
     const refetch = useCallback(() => {
         const controller = new AbortController();
@@ -65,7 +71,7 @@ export const useGet = (path, options = {}) => {
         const controller = new AbortController();
         fetchData(controller.signal).catch(() => null);
         return () => controller.abort();
-    }, [immediate, path, resolvedUrl, ...dependencies]);
+    }, [immediate, path, resolvedUrl, fetchData, dependenciesKey]);
 
     return {
         data,

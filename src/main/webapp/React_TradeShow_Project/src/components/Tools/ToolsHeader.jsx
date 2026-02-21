@@ -5,13 +5,13 @@ import CustomDropdown from '../Common/CustomDropdown';
 export default function ToolsHeader({
     stats,
     searchQuery,
-    setSearchQuery,
+    onSearchChange,
     filterType,
-    setFilterType,
+    onFilterTypeChange,
     timeRange,
-    setTimeRange,
+    onTimeRangeChange,
     customMinutes,
-    setCustomMinutes,
+    onCustomMinutesChange,
     onRefresh,
     refreshing
 }) {
@@ -44,7 +44,7 @@ export default function ToolsHeader({
                         type="text"
                         placeholder="Search by tool name or description..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => onSearchChange(e.target.value)}
                         className={ToolsStyles.searchInput}
                     />
                 </div>
@@ -52,25 +52,25 @@ export default function ToolsHeader({
                 <div className={ToolsStyles.filterGroup}>
                     <button 
                         className={`${ToolsStyles.filterBtn} ${filterType === 'all' ? ToolsStyles.active : ''}`}
-                        onClick={() => setFilterType('all')}
+                        onClick={() => onFilterTypeChange('all')}
                     >
                         All Types
                     </button>
                     <button 
                         className={`${ToolsStyles.filterBtn} ${filterType === 'action' ? ToolsStyles.active : ''}`}
-                        onClick={() => setFilterType('action')}
+                        onClick={() => onFilterTypeChange('action')}
                     >
                         Actions
                     </button>
                     <button
                         className={`${ToolsStyles.filterBtn} ${filterType === 'resource' ? ToolsStyles.active : ''}`}
-                        onClick={() => setFilterType('resource')}
+                        onClick={() => onFilterTypeChange('resource')}
                     >
                         Resources
                     </button>
                     <CustomDropdown
                         value={timeRange}
-                        onChange={setTimeRange}
+                        onChange={onTimeRangeChange}
                         options={[
                             { value: 'current', label: 'Current tools' },
                             { value: '1m', label: 'Past 1min' },
@@ -92,7 +92,7 @@ export default function ToolsHeader({
                             min="1"
                             max="1440"
                             value={customMinutes}
-                            onChange={(e) => setCustomMinutes(e.target.value)}
+                            onChange={(e) => onCustomMinutesChange(e.target.value)}
                             className={ToolsStyles.filterSelect}
                         />
                     </div>

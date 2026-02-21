@@ -32,7 +32,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
     const [toast, setToast] = useState(null);
     const [testingConnection, setTestingConnection] = useState(false);
 
-    const { loading, error, execute } = usePost(buildUrl('/server'), {
+    const { loading, execute } = usePost(buildUrl('/server'), {
         validateData: (data) => {
             if (!data.serverName || data.serverName.trim().length < 3) {
                 return 'Server name must be at least 3 characters';
@@ -116,7 +116,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                 expiresAt: formData.expiresAt || getDefaultExpiryIso()
             };
             await execute(payload);
-        } catch (err) {
+        } catch {
             // handled in hook
         }
     };

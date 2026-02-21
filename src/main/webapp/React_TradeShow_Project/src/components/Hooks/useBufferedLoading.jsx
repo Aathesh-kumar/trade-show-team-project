@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-export function useBufferedLoading(loading, minimumMs = 2200) {
+export function useBufferedLoading(loading, minimumMs = 1500) {
   const [visibleLoading, setVisibleLoading] = useState(Boolean(loading));
   const startedAtRef = useRef(0);
   const timerRef = useRef(null);
@@ -13,7 +13,14 @@ export function useBufferedLoading(loading, minimumMs = 2200) {
 
     if (loading) {
       startedAtRef.current = Date.now();
-      setVisibleLoading(true);
+      timerRef.current = setTimeout(() => {
+        setVisibleLoading(true);
+      }, 0);
+      return undefined;
+    }
+
+    if (!startedAtRef.current) {
+      timerRef.current = setTimeout(() => setVisibleLoading(false), 0);
       return undefined;
     }
 
@@ -21,6 +28,7 @@ export function useBufferedLoading(loading, minimumMs = 2200) {
     const remaining = Math.max(0, minimumMs - elapsed);
     timerRef.current = setTimeout(() => {
       setVisibleLoading(false);
+      startedAtRef.current = 0;
     }, remaining);
 
     return () => {

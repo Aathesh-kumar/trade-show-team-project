@@ -46,6 +46,7 @@
                 align-items: center;
                 justify-content: center;
                 position: relative;
+                overflow: visible;
                 width: 40px;
                 height: 40px;
                 background-color: color-mix(in srgb, var(--text-primary) 5%, transparent);
@@ -67,18 +68,22 @@
 
             .notificationCount {
                 position: absolute;
-                top: -6px;
-                right: -6px;
-                min-width: 18px;
-                height: 18px;
+                top: -8px;
+                right: -8px;
+                min-width: 20px;
+                height: 20px;
                 border-radius: 999px;
                 background: #ef4444;
                 color: #fff;
-                font-size: 0.7rem;
+                font-size: 0.68rem;
+                font-weight: 700;
+                line-height: 1;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
                 padding: 0 4px;
+                z-index: 3;
+                box-shadow: 0 0 0 2px var(--bg-app);
             }
         }
     }
@@ -680,11 +685,12 @@
 }
 
 .notificationItem {
-    background: color-mix(in srgb, var(--text-primary) 4%, transparent);
-    border: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent);
+    background: linear-gradient(120deg, color-mix(in srgb, var(--text-primary) 6%, transparent), color-mix(in srgb, var(--text-primary) 2%, transparent));
+    border: none;
     border-radius: 10px;
     padding: 10px;
     color: #e7ebff;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-primary) 5%, transparent);
 }
 
 /* Responsive Adjustments */
@@ -834,22 +840,22 @@
 }
 
 .severityinfo {
-  border-left: 3px solid var(--info-color);
+  box-shadow: inset 3px 0 0 var(--info-color), inset 0 0 0 1px color-mix(in srgb, var(--info-color) 16%, transparent);
   background: color-mix(in srgb, var(--info-color) 10%, transparent);
 }
 
 .severitywarning {
-  border-left: 3px solid var(--warning-color);
+  box-shadow: inset 3px 0 0 var(--warning-color), inset 0 0 0 1px color-mix(in srgb, var(--warning-color) 16%, transparent);
   background: color-mix(in srgb, var(--warning-color) 10%, transparent);
 }
 
 .severityerror {
-  border-left: 3px solid var(--error-color);
+  box-shadow: inset 3px 0 0 var(--error-color), inset 0 0 0 1px color-mix(in srgb, var(--error-color) 16%, transparent);
   background: color-mix(in srgb, var(--error-color) 10%, transparent);
 }
 
 .severitysuccess {
-  border-left: 3px solid var(--success-color);
+  box-shadow: inset 3px 0 0 var(--success-color), inset 0 0 0 1px color-mix(in srgb, var(--success-color) 16%, transparent);
   background: color-mix(in srgb, var(--success-color) 10%, transparent);
 }
 

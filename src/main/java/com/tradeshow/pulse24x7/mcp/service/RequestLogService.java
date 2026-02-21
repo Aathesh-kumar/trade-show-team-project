@@ -61,6 +61,22 @@ public class RequestLogService {
         return requestLogDAO.getStats(serverId);
     }
 
+    public Map<String, Object> getStats(Integer serverId, String search, String status, String tool, int hours) {
+        Integer statusMin = null;
+        Integer statusMax = null;
+        if ("success".equalsIgnoreCase(status)) {
+            statusMin = 200;
+            statusMax = 299;
+        } else if ("warning".equalsIgnoreCase(status)) {
+            statusMin = 400;
+            statusMax = 499;
+        } else if ("error".equalsIgnoreCase(status)) {
+            statusMin = 500;
+            statusMax = 599;
+        }
+        return requestLogDAO.getStats(serverId, search, statusMin, statusMax, tool, hours);
+    }
+
     public Map<String, Object> getDashboardMetrics(Integer serverId, int activeServerCount, Double uptimePercent,
                                                    int hours, int bucketMinutes, int bucketSeconds) {
         Map<String, Object> response = new HashMap<>();

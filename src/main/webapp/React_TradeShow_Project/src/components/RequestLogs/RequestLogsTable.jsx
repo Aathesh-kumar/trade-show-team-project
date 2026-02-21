@@ -3,7 +3,31 @@ import RequestLogRow from './RequestLogRow';
 import LoadingSkeleton from '../Loading/LoadingSkeleton';
 
 export default function RequestLogsTable({ logs, selectedLog, onSelectLog, loading }) {
-    const showSkeleton = Boolean(loading);
+    if (loading) {
+        return (
+            <div className={RequestLogsStyles.tableContainer}>
+                <table className={RequestLogsStyles.logsTable}>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Tool / Endpoint</th>
+                            <th>Status</th>
+                            <th>Latency</th>
+                            <th>Size</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colSpan="5" className={RequestLogsStyles.loadingRow}>
+                                <LoadingSkeleton type="table" lines={7} />
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        );
+    }
+
     return (
         <div className={RequestLogsStyles.tableContainer}>
             <table className={RequestLogsStyles.logsTable}>
@@ -17,15 +41,7 @@ export default function RequestLogsTable({ logs, selectedLog, onSelectLog, loadi
                     </tr>
                 </thead>
                 <tbody>
-                    {showSkeleton && (
-                        <tr>
-                            <td colSpan="5" className={RequestLogsStyles.loadingRow}>
-                                <LoadingSkeleton type="table" lines={6} />
-                            </td>
-                        </tr>
-                    )}
-
-                    {!showSkeleton && logs.map((log) => (
+                    {logs.map((log) => (
                         <RequestLogRow
                             key={log.id}
                             log={log}
@@ -36,7 +52,7 @@ export default function RequestLogsTable({ logs, selectedLog, onSelectLog, loadi
                 </tbody>
             </table>
 
-            {!showSkeleton && logs.length === 0 && (
+            {logs.length === 0 && (
                 <div className={RequestLogsStyles.emptyState}>
                     <p>No request logs found</p>
                     <span>Requests will appear here in real-time</span>

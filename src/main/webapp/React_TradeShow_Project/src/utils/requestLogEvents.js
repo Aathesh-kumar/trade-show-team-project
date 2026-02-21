@@ -4,7 +4,7 @@ function readStore() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch (_error) {
+  } catch {
     return {};
   }
 }

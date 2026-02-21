@@ -4,9 +4,7 @@ import RequestLogsStyles from '../../styles/RequestLogs.module.css';
 import RequestLogsHeader from './RequestLogsHeader';
 import RequestLogsTable from './RequestLogsTable';
 import RequestDetailsPanel from './RequestDetailsPanel';
-import RequestLogsFooter from './RequestLogsFooter';
 import PaginationControls from '../Common/PaginationControls';
-import { getUiRequestLogs } from '../../utils/requestLogEvents';
 import useDebouncedValue from '../Hooks/useDebouncedValue';
 import useBufferedLoading from '../Hooks/useBufferedLoading';
 
@@ -50,33 +48,27 @@ export default function RequestLogs({ selectedServer }) {
         },
         dependencies: [serverId, debouncedSearch, filters.status, filters.tool, filters.timeRange, page]
     });
-    const bufferedLoading = useBufferedLoading(loading, 2200);
+    const bufferedLoading = useBufferedLoading(loading, 1500);
 
     const logs = useMemo(() => {
         const rows = data?.logs || [];
-        const uiRows = getUiRequestLogs(serverId) || [];
-        const merged = page === 1 ? [...uiRows, ...rows] : rows;
-        return merged.map((row) => ({
+        return rows.map((row) => ({
             id: row.id,
             serverId: row.serverId || row.server_id,
             toolId: row.toolId || row.tool_id,
-            timestamp: String(row.createdAt || row.created_at || '-'),
+            timestamp: formatTimestamp(row.createdAt || row.created_at),
             tool: row.toolName,
             endpoint: row.toolName,
             method: row.method || 'POST',
             status: row.statusCode,
-            statusText: row.statusText || (row.statusCode >= 200 && row.statusCode < 300 ? 'OK' : 'ERR'),
+            statusText: row.statusText || getStatusText(row.statusCode),
             latency: `${row.latencyMs}ms`,
             size: `${Math.max(0, Math.round((row.responseSizeBytes || 0) / 1024 * 10) / 10)}kb`,
             requestPayload: parseJson(row.requestPayload),
             responseBody: parseJson(row.responseBody),
             userAgent: row.userAgent
         }));
-    }, [data, serverId, page]);
-
-    useEffect(() => {
-        setPage(1);
-    }, [serverId, filters.search, filters.status, filters.tool, filters.timeRange]);
+    }, [data]);
 
     useEffect(() => {
         if (!serverId) {
@@ -93,8 +85,12 @@ export default function RequestLogs({ selectedServer }) {
         return () => window.removeEventListener('pulse24x7-request-log-refresh', onRefresh);
     }, [serverId, refetch]);
 
-    const totalItems = (data?.pagination?.totalItems || 0) + (page === 1 ? (getUiRequestLogs(serverId)?.length || 0) : 0);
+    const totalItems = data?.pagination?.totalItems || 0;
     const totalPages = Math.max(1, data?.pagination?.totalPages || 1);
+    const handleFilterChange = (next) => {
+        setFilters(next);
+        setPage(1);
+    };
 
     const toolOptions = useMemo(() => {
         const set = new Set(logs.map((log) => log.tool).filter(Boolean));
@@ -115,9 +111,11 @@ export default function RequestLogs({ selectedServer }) {
         <div className={RequestLogsStyles.requestLogs}>
             <RequestLogsHeader
                 filters={filters}
-                onFilterChange={setFilters}
+                onFilterChange={handleFilterChange}
                 stats={{
+                    totalRequests: data?.stats?.totalRequests || 0,
                     totalSuccess: data?.stats?.totalSuccess || 0,
+                    totalWarnings: data?.stats?.totalWarnings || 0,
                     totalErrors: data?.stats?.totalErrors || 0
                 }}
                 toolOptions={toolOptions}
@@ -131,7 +129,7 @@ export default function RequestLogs({ selectedServer }) {
 
             <div className={RequestLogsStyles.logsContent}>
                 <RequestLogsTable
-                    logs={logs}
+                    logs={bufferedLoading ? [] : logs}
                     selectedLog={selectedRequest}
                     onSelectLog={setSelectedRequest}
                     loading={bufferedLoading}
@@ -153,8 +151,6 @@ export default function RequestLogs({ selectedServer }) {
                 totalPages={totalPages}
                 onPageChange={setPage}
             />
-
-            <RequestLogsFooter />
         </div>
     );
 }
@@ -165,7 +161,35 @@ function parseJson(raw) {
     }
     try {
         return typeof raw === 'string' ? JSON.parse(raw) : raw;
-    } catch (e) {
+    } catch {
         return { raw };
     }
+}
+
+function getStatusText(statusCode) {
+    const code = Number(statusCode) || 0;
+    if (code >= 200 && code < 300) return 'SUCCESS';
+    if (code >= 400 && code < 500) return 'WARNING';
+    if (code >= 500) return 'ERROR';
+    return 'UNKNOWN';
+}
+
+function formatTimestamp(raw) {
+    if (!raw) {
+        return '-';
+    }
+    const source = String(raw).trim();
+    const normalized = source.replace(' ', 'T');
+    const date = new Date(normalized);
+    if (Number.isNaN(date.getTime())) {
+        return String(raw);
+    }
+    return date.toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
 }

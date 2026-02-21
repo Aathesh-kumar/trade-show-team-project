@@ -3,6 +3,12 @@ import { MdSearch, MdFileDownload } from 'react-icons/md';
 import CustomDropdown from '../Common/CustomDropdown';
 
 export default function RequestLogsHeader({ filters, onFilterChange, stats, toolOptions = [] }) {
+    const safeTotal = Number(stats?.totalRequests || 0);
+    const safeSuccess = Number(stats?.totalSuccess || 0);
+    const safeWarnings = Number(stats?.totalWarnings || 0);
+    const safeErrors = Number(stats?.totalErrors || 0);
+    const successRate = safeTotal > 0 ? ((safeSuccess / safeTotal) * 100).toFixed(1) : '0.0';
+
     const handleSearchChange = (e) => {
         onFilterChange({
             ...filters,
@@ -37,13 +43,21 @@ export default function RequestLogsHeader({ filters, onFilterChange, stats, tool
                 <div className={RequestLogsStyles.headerTitle}>
                     <h1>Request Logs</h1>
                     <div className={RequestLogsStyles.statsGroup}>
-                        <div className={RequestLogsStyles.statBadge}>
+                        <div className={`${RequestLogsStyles.statBadge} ${RequestLogsStyles.successStatBadge}`}>
                             <span className={RequestLogsStyles.successDot}></span>
-                            {stats.totalSuccess.toLocaleString()} Success
+                            {safeSuccess.toLocaleString()} Success
+                        </div>
+                        <div className={`${RequestLogsStyles.statBadge} ${RequestLogsStyles.warningStatBadge}`}>
+                            <span className={RequestLogsStyles.warningDot}></span>
+                            {safeWarnings.toLocaleString()} Warnings
+                        </div>
+                        <div className={`${RequestLogsStyles.statBadge} ${RequestLogsStyles.errorStatBadge}`}>
+                            <span className={RequestLogsStyles.errorDot}></span>
+                            {safeErrors.toLocaleString()} Errors
                         </div>
                         <div className={RequestLogsStyles.statBadge}>
-                            <span className={RequestLogsStyles.errorDot}></span>
-                            {stats.totalErrors} Errors
+                            <span className={RequestLogsStyles.liveDot}></span>
+                            {successRate}% Success Rate
                         </div>
                     </div>
                 </div>

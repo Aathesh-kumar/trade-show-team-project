@@ -148,18 +148,36 @@ public class RequestLogDAO {
     }
 
     public Map<String, Object> getStats(Integer serverId) {
+        return getStats(serverId, null, null, null, null, 24 * 365);
+    }
+
+    public Map<String, Object> getStats(Integer serverId, String search, Integer statusMin, Integer statusMax,
+                                        String toolName, int hours) {
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalRequests", 0L);
         stats.put("totalSuccess", 0L);
+        stats.put("totalWarnings", 0L);
         stats.put("totalErrors", 0L);
 
+        StringBuilder query = new StringBuilder(
+                "SELECT COUNT(*) total_requests, " +
+                        "SUM(CASE WHEN rl.status_code >= 200 AND rl.status_code < 300 THEN 1 ELSE 0 END) total_success, " +
+                        "SUM(CASE WHEN rl.status_code >= 400 AND rl.status_code < 500 THEN 1 ELSE 0 END) total_warnings, " +
+                        "SUM(CASE WHEN rl.status_code >= 500 THEN 1 ELSE 0 END) total_errors " +
+                        "FROM request_logs rl WHERE rl.server_id = ?"
+        );
+        List<Object> params = new ArrayList<>();
+        params.add(serverId);
+        appendLogFilters(query, params, search, statusMin, statusMax, toolName, hours);
+
         try (Connection con = DBConnection.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(DBQueries.SELECT_REQUEST_STATS)) {
-            ps.setInt(1, serverId);
+             PreparedStatement ps = con.prepareStatement(query.toString())) {
+            bindParams(ps, params);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     stats.put("totalRequests", rs.getLong("total_requests"));
                     stats.put("totalSuccess", rs.getLong("total_success"));
+                    stats.put("totalWarnings", rs.getLong("total_warnings"));
                     stats.put("totalErrors", rs.getLong("total_errors"));
                 }
             }
@@ -195,6 +213,9 @@ public class RequestLogDAO {
                     Map<String, Object> row = new LinkedHashMap<>();
                     row.put("time", safeSecondBucket > 0 ? rs.getString("second_bucket") : rs.getString("hour_bucket"));
                     row.put("value", rs.getLong("request_count"));
+                    row.put("successCount", rs.getLong("success_count"));
+                    row.put("warningCount", rs.getLong("warning_count"));
+                    row.put("errorCount", rs.getLong("error_count"));
                     points.add(row);
                 }
             }
@@ -250,8 +271,9 @@ public class RequestLogDAO {
     private void appendLogFilters(StringBuilder query, List<Object> params, String search,
                                   Integer statusMin, Integer statusMax, String toolName, int hours) {
         if (search != null && !search.isBlank()) {
-            query.append(" AND (rl.tool_name LIKE ? OR CAST(rl.id AS CHAR) LIKE ? OR rl.error_message LIKE ?)");
+            query.append(" AND (rl.tool_name LIKE ? OR CAST(rl.id AS CHAR) LIKE ? OR rl.error_message LIKE ? OR rl.status_text LIKE ?)");
             String pattern = "%" + search + "%";
+            params.add(pattern);
             params.add(pattern);
             params.add(pattern);
             params.add(pattern);

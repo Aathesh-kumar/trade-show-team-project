@@ -81,7 +81,7 @@ public class RequestLogServlet extends HttpServlet {
 
         Map<String, Object> response = new HashMap<>();
         response.put("logs", logs);
-        response.put("stats", requestLogService.getStats(serverId));
+        response.put("stats", requestLogService.getStats(serverId, search, status, tool, hours));
         response.put("pagination", Map.of(
                 "page", page,
                 "pageSize", pageSize,
