@@ -288,14 +288,6 @@ public class ToolService {
         return toolDAO.getToolById(toolId);
     }
 
-    public List<ToolHistory> getToolHistory(Integer toolId, int limit) {
-        if (toolId == null || toolId <= 0) {
-            logger.error("Invalid tool ID: {}", toolId);
-            return List.of();
-        }
-        return toolHistoryDAO.getToolHistory(toolId, limit);
-    }
-
     public List<ToolHistory> getToolHistoryLastHours(Integer toolId, int hours) {
         if (toolId == null || toolId <= 0 || hours <= 0) {
             logger.error("Invalid parameters: toolId={}, hours={}", toolId, hours);
@@ -304,34 +296,11 @@ public class ToolService {
         return toolHistoryDAO.getToolHistoryLastHours(toolId, hours);
     }
 
-    public List<ToolHistory> getToolHistoryRange(Integer toolId, Timestamp startTime,
-                                                  Timestamp endTime) {
-        if (toolId == null || toolId <= 0 || startTime == null || endTime == null) {
-            logger.error("Invalid parameters for history range query");
-            return List.of();
-        }
-        return toolHistoryDAO.getToolHistoryRange(toolId, startTime, endTime);
-    }
-
     public Double getToolAvailabilityPercent(Integer toolId) {
         if (toolId == null || toolId <= 0) {
             return 0.0;
         }
         return toolHistoryDAO.getToolAvailabilityPercent(toolId);
-    }
-
-    public boolean hasHistorySince(Integer toolId, Timestamp since) {
-        if (toolId == null || toolId <= 0 || since == null) {
-            return false;
-        }
-        return toolHistoryDAO.existsSince(toolId, since);
-    }
-
-    public boolean hasAvailableHistorySince(Integer toolId, Timestamp since) {
-        if (toolId == null || toolId <= 0 || since == null) {
-            return false;
-        }
-        return toolHistoryDAO.existsAvailableSince(toolId, since);
     }
 
     public boolean recordToolHistory(Integer toolId, Boolean isAvailable) {

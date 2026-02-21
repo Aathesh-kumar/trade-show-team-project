@@ -237,7 +237,7 @@ public class DBQueries {
                         "ORDER BY total_calls DESC " +
                         "LIMIT ?";
 
-        // Notification Queries
+
         public static final String INSERT_NOTIFICATION =
                 "INSERT INTO notifications (server_id, category, severity, title, message) VALUES (?, ?, ?, ?, ?)";
 
