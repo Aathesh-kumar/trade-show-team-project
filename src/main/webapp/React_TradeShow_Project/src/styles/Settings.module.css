@@ -255,35 +255,6 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.textBlock {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.textBlock label {
-  font-size: 1.03rem;
-  color: var(--text-muted);
-}
-
-.textarea {
-  min-height: 118px;
-  resize: vertical;
-  border-radius: 11px;
-  border: 1px solid var(--panel-border);
-  background: color-mix(in srgb, var(--bg-elev-2) 78%, transparent);
-  color: var(--text-primary);
-  padding: 0.65rem;
-  font-size: 1.02rem;
-  line-height: 1.45;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-.textarea:focus {
-  outline: none;
-  border-color: color-mix(in srgb, var(--primary-color) 70%, transparent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 22%, transparent);
-}
-
 .actions {
   margin-top: 1rem;
   display: flex;

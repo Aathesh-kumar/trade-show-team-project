@@ -112,7 +112,6 @@
 .closeBtn {
   border-radius: 8px;
   border: 1px solid var(--panel-border);
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -229,7 +228,11 @@
 
 .logRow {
   border-bottom: 1px solid color-mix(in srgb, var(--panel-border) 70%, transparent);
-  cursor: pointer;
+}
+
+
+tbody tr {
+  cursor: var(--cursor-pointer);
 }
 
 .logRow:hover {

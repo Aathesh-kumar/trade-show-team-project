@@ -34,12 +34,6 @@
         padding: 0 0.7rem;
 
         .logo {
-            cursor: var(--cursor-pointer);
-
-            & * {
-                cursor: inherit;
-            }
-
             display: flex;
             align-items: center;
             gap: 0.75rem;
@@ -85,12 +79,15 @@
             align-items: center;
             padding: 0.875rem;
             gap: 1rem;
-            cursor: pointer;
             border-radius: 32px;
             transition: all 0.2s ease;
             white-space: nowrap;
             position: relative;
+            cursor: var(--cursor-pointer);
 
+            & * {
+                cursor: inherit;
+            }
 
             .asideIcon {
                 display: flex;
@@ -212,12 +209,9 @@
 }
 
 @keyframes pulse {
-
-    0%,
-    100% {
+    0%, 100% {
         opacity: 1;
     }
-
     50% {
         opacity: 0.5;
     }
@@ -288,7 +282,7 @@
         z-index: 999;
     }
 
-    .asideBar.open~.overlay,
+    .asideBar.open ~ .overlay,
     .overlay {
         display: block;
     }
