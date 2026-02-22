@@ -23,7 +23,7 @@ public class AuthTokenService {
     }
 
     public boolean saveToken(Integer serverId, String headerType, String accessToken, String refreshToken,
-                            Timestamp expiresAt, String clientId, String clientSecret, String tokenEndpoint) {
+                            Timestamp expiresAt, String clientId, String clientSecret, String tokenEndpoint, String oauthTokenLink) {
         if (serverId == null || serverId <= 0) {
             logger.error("Invalid server ID: {}", serverId);
             return false;
@@ -34,14 +34,14 @@ public class AuthTokenService {
             return false;
         }
 
-        Timestamp normalizedExpiry = expiresAt;
-        if (normalizedExpiry == null) {
-            normalizedExpiry = Timestamp.from(Instant.now().plusSeconds(3600));
-        }
-        
         return authTokenDAO.insertOrUpdateToken(
-                serverId, headerType, accessToken, refreshToken, normalizedExpiry, clientId, clientSecret, tokenEndpoint
+                serverId, headerType, accessToken, refreshToken, expiresAt, clientId, clientSecret, tokenEndpoint, oauthTokenLink
         );
+    }
+
+    public boolean saveToken(Integer serverId, String headerType, String accessToken, String refreshToken,
+                             Timestamp expiresAt) {
+        return saveToken(serverId, headerType, accessToken, refreshToken, expiresAt, null, null, null, null);
     }
 
     public AuthToken getToken(Integer serverId) {
@@ -50,6 +50,11 @@ public class AuthTokenService {
             return null;
         }
         return authTokenDAO.getAuthToken(serverId);
+    }
+
+    public String getAccessToken(Integer serverId) {
+        AuthToken token = getToken(serverId);
+        return token != null ? token.getAccessToken() : null;
     }
 
     public String ensureValidAccessToken(Integer serverId) {
@@ -126,11 +131,8 @@ public class AuthTokenService {
             }
 
             String newAccessToken = response.get("access_token").getAsString();
-            Timestamp expiresAt = null;
-            if (response.has("expires_in_sec")) {
-                long seconds = response.get("expires_in_sec").getAsLong();
-                expiresAt = Timestamp.from(Instant.now().plusSeconds(seconds));
-            }
+            long configuredSeconds = resolveConfiguredExpirySeconds(token);
+            Timestamp expiresAt = Timestamp.from(Instant.now().plusSeconds(Math.max(60L, configuredSeconds)));
 
             boolean updated = updateAccessToken(serverId, newAccessToken, expiresAt);
             if (!updated) {
@@ -144,6 +146,18 @@ public class AuthTokenService {
             recordTokenRefreshLog(serverId, tokenEndpoint, false, errorBody, e.getMessage());
             throw e;
         }
+    }
+
+    private long resolveConfiguredExpirySeconds(AuthToken token) {
+        if (token == null || token.getExpiresAt() == null || token.getUpdatedAt() == null) {
+            return 3600L;
+        }
+        long diffMillis = token.getExpiresAt().getTime() - token.getUpdatedAt().getTime();
+        if (diffMillis <= 0) {
+            return 3600L;
+        }
+        long seconds = diffMillis / 1000L;
+        return seconds > 0 ? seconds : 3600L;
     }
 
     public Map<String, Object> exchangeAuthorizationCode(Integer serverId, String code, String redirectUri, String tokenEndpointOverride) {
@@ -206,7 +220,8 @@ public class AuthTokenService {
                 expiresAt,
                 token.getClientId(),
                 token.getClientSecret(),
-                tokenEndpoint
+                tokenEndpoint,
+                token.getOauthTokenLink()
         );
         if (!saved) {
             throw new IllegalStateException("Failed to persist exchanged tokens");

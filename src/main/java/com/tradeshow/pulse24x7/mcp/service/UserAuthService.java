@@ -2,7 +2,7 @@ package com.tradeshow.pulse24x7.mcp.service;
 
 import com.tradeshow.pulse24x7.mcp.dao.UserDAO;
 import com.tradeshow.pulse24x7.mcp.model.User;
-import com.tradeshow.pulse24x7.mcp.utils.PasswordUtil;
+import org.mindrot.jbcrypt.BCrypt;
 
 public class UserAuthService {
     private final UserDAO userDAO;
@@ -18,7 +18,7 @@ public class UserAuthService {
         if (userDAO.findByEmail(email) != null) {
             return null;
         }
-        String hash = PasswordUtil.hash(password);
+        String hash = BCrypt.hashpw(password, BCrypt.gensalt(12));
         return userDAO.createUser(fullName.trim(), email.trim().toLowerCase(), hash);
     }
 
@@ -30,7 +30,7 @@ public class UserAuthService {
         if (user == null) {
             return null;
         }
-        return PasswordUtil.verify(password, user.getPasswordHash()) ? user : null;
+        return BCrypt.checkpw(password, user.getPasswordHash()) ? user : null;
     }
 
     public User findById(long userId) {

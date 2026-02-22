@@ -81,6 +81,104 @@
   gap: 0.72rem;
 }
 
+.monitorPicker {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.monitorPicker label {
+  font-size: 1.03rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.quickSelectButtons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.5rem;
+}
+
+.quickBtn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 18%, transparent);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.2s;
+}
+
+.quickBtn::after {
+  content: '';
+  position: absolute;
+  inset: -45%;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.16);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--primary-color) 58%, #ffffff 42%) 0%,
+    color-mix(in srgb, var(--primary-color-strong) 36%, transparent) 36%,
+    transparent 72%
+  );
+}
+
+.quickBtn:hover {
+  background: color-mix(in srgb, var(--primary-color) 20%, transparent);
+  border-color: color-mix(in srgb, var(--primary-color) 70%, transparent);
+  color: var(--primary-color);
+}
+
+.quickBtn:active {
+  transform: translateY(1px);
+  color: #ffffff;
+  border-color: color-mix(in srgb, var(--primary-color) 76%, transparent);
+  background: linear-gradient(140deg, var(--primary-color), var(--primary-color-strong));
+}
+
+.quickBtn:active::after {
+  animation: settingsDropWave 300ms ease-out;
+}
+
+.quickBtn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 20%, transparent);
+}
+
+.quickBtnActive {
+  background: color-mix(in srgb, var(--primary-color) 20%, transparent);
+  border-color: color-mix(in srgb, var(--primary-color) 70%, transparent);
+  color: var(--primary-color);
+}
+
+.customDateTime {
+  display: flex;
+}
+
+.dateTimeInput {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background-color: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 18%, transparent);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 1.06rem;
+  transition: all 0.2s;
+}
+
+.dateTimeInput:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--primary-color) 70%, transparent);
+  background-color: color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+
 .themeGroup {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -89,6 +187,9 @@
 }
 
 .themeBtn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   min-height: 42px;
   border-radius: 11px;
   border: 1px solid var(--panel-border);
@@ -99,9 +200,36 @@
   transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
 
+.themeBtn::after {
+  content: '';
+  position: absolute;
+  inset: -45%;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.16);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--primary-color) 58%, #ffffff 42%) 0%,
+    color-mix(in srgb, var(--primary-color-strong) 36%, transparent) 36%,
+    transparent 72%
+  );
+}
+
 .themeBtn:hover {
   transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--primary-color) 55%, transparent);
+}
+
+.themeBtn:active {
+  transform: translateY(0);
+  color: #ffffff;
+  background: linear-gradient(140deg, var(--primary-color), var(--primary-color-strong));
+  border-color: color-mix(in srgb, var(--primary-color) 75%, transparent);
+}
+
+.themeBtn:active::after {
+  animation: settingsDropWave 300ms ease-out;
 }
 
 .themeActive {
@@ -165,6 +293,9 @@
 
 .btnPrimary,
 .btnSecondary {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   min-height: 40px;
   border-radius: 11px;
   padding: 0.45rem 0.95rem;
@@ -172,6 +303,23 @@
   cursor: pointer;
   font-weight: 600;
   transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.btnPrimary::after,
+.btnSecondary::after {
+  content: '';
+  position: absolute;
+  inset: -45%;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.16);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--primary-color) 58%, #ffffff 42%) 0%,
+    color-mix(in srgb, var(--primary-color-strong) 36%, transparent) 36%,
+    transparent 72%
+  );
 }
 
 .btnPrimary {
@@ -189,6 +337,19 @@
   transform: translateY(-1px);
 }
 
+.btnPrimary:active,
+.btnSecondary:active {
+  transform: translateY(0);
+  background: linear-gradient(140deg, var(--primary-color), var(--primary-color-strong));
+  color: #ffffff;
+  border-color: color-mix(in srgb, var(--primary-color) 76%, transparent);
+}
+
+.btnPrimary:active::after,
+.btnSecondary:active::after {
+  animation: settingsDropWave 300ms ease-out;
+}
+
 .btnPrimary:disabled,
 .btnSecondary:disabled {
   opacity: 0.6;
@@ -203,6 +364,26 @@
 .emptyCard p {
   margin-top: 0.5rem;
   color: var(--text-muted);
+}
+
+@keyframes settingsDropWave {
+  0% {
+    opacity: 0.92;
+    transform: scale(0.16);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quickBtn::after,
+  .themeBtn::after,
+  .btnPrimary::after,
+  .btnSecondary::after {
+    display: none;
+  }
 }
 
 @media (max-width: 1024px) {

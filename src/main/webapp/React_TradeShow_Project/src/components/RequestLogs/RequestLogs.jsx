@@ -17,7 +17,7 @@ export default function RequestLogs({ selectedServer }) {
         timeRange: 'last-24-hours'
     });
     const [page, setPage] = useState(1);
-    const pageSize = 40;
+    const pageSize = 12;
     const debouncedSearch = useDebouncedValue(filters.search, 450);
 
     const hours = useMemo(() => {
@@ -31,6 +31,8 @@ export default function RequestLogs({ selectedServer }) {
             case 'last-24-hours':
             default:
                 return 24;
+            case 'all-time':
+                return 24 * 365 * 20;
         }
     }, [filters.timeRange]);
 
@@ -52,22 +54,26 @@ export default function RequestLogs({ selectedServer }) {
 
     const logs = useMemo(() => {
         const rows = data?.logs || [];
-        return rows.map((row) => ({
+        return rows.map((row) => {
+            const requestPayload = parseJson(row.requestPayload);
+            const responseBody = parseJson(row.responseBody);
+            return {
             id: row.id,
             serverId: row.serverId || row.server_id,
             toolId: row.toolId || row.tool_id,
             timestamp: formatTimestamp(row.createdAt || row.created_at),
             tool: row.toolName,
-            endpoint: row.toolName,
+            endpoint: resolveEndpoint(row, requestPayload, responseBody),
             method: row.method || 'POST',
             status: row.statusCode,
             statusText: row.statusText || getStatusText(row.statusCode),
             latency: `${row.latencyMs}ms`,
             size: `${Math.max(0, Math.round((row.responseSizeBytes || 0) / 1024 * 10) / 10)}kb`,
-            requestPayload: parseJson(row.requestPayload),
-            responseBody: parseJson(row.responseBody),
+            requestPayload,
+            responseBody,
             userAgent: row.userAgent
-        }));
+            };
+        });
     }, [data]);
 
     useEffect(() => {
@@ -84,12 +90,58 @@ export default function RequestLogs({ selectedServer }) {
         window.addEventListener('pulse24x7-request-log-refresh', onRefresh);
         return () => window.removeEventListener('pulse24x7-request-log-refresh', onRefresh);
     }, [serverId, refetch]);
-
     const totalItems = data?.pagination?.totalItems || 0;
     const totalPages = Math.max(1, data?.pagination?.totalPages || 1);
     const handleFilterChange = (next) => {
         setFilters(next);
         setPage(1);
+    };
+
+    const handleExportPdf = async () => {
+        const jsPdfModule = await import('jspdf');
+        const { jsPDF } = jsPdfModule;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+        const marginX = 24;
+        const marginY = 30;
+        const lineHeight = 16;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+
+        doc.setFontSize(14);
+        doc.text('Request Logs', marginX, marginY);
+        doc.setFontSize(10);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, marginX, marginY + 16);
+
+        let y = marginY + 38;
+        doc.setFontSize(9);
+        doc.text('Timestamp', marginX, y);
+        doc.text('Tool', marginX + 130, y);
+        doc.text('Endpoint', marginX + 300, y);
+        doc.text('Status', pageWidth - 170, y);
+        doc.text('Latency', pageWidth - 110, y);
+        doc.text('Size', pageWidth - 55, y);
+        y += 10;
+        doc.line(marginX, y, pageWidth - marginX, y);
+        y += 12;
+
+        for (const log of logs) {
+            const endpoint = String(log.endpoint || '-');
+            const endpointChunks = doc.splitTextToSize(endpoint, 280);
+            const endpointText = endpointChunks[0] || '-';
+            if (y > pageHeight - 24) {
+                doc.addPage();
+                y = marginY;
+            }
+            doc.text(String(log.timestamp || '-'), marginX, y);
+            doc.text(String(log.tool || '-'), marginX + 130, y);
+            doc.text(endpointText, marginX + 300, y);
+            doc.text(String(log.status || '-'), pageWidth - 170, y);
+            doc.text(String(log.latency || '-'), pageWidth - 110, y);
+            doc.text(String(log.size || '-'), pageWidth - 55, y);
+            y += lineHeight;
+        }
+
+        doc.save(`request-logs-${Date.now()}.pdf`);
     };
 
     const toolOptions = useMemo(() => {
@@ -112,6 +164,7 @@ export default function RequestLogs({ selectedServer }) {
             <RequestLogsHeader
                 filters={filters}
                 onFilterChange={handleFilterChange}
+                onExport={handleExportPdf}
                 stats={{
                     totalRequests: data?.stats?.totalRequests || 0,
                     totalSuccess: data?.stats?.totalSuccess || 0,
@@ -151,6 +204,7 @@ export default function RequestLogs({ selectedServer }) {
                 totalPages={totalPages}
                 onPageChange={setPage}
             />
+
         </div>
     );
 }
@@ -179,17 +233,36 @@ function formatTimestamp(raw) {
         return '-';
     }
     const source = String(raw).trim();
-    const normalized = source.replace(' ', 'T');
-    const date = new Date(normalized);
+    const sqlMatch = source.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+    const date = sqlMatch
+        ? new Date(
+            Number(sqlMatch[1]),
+            Number(sqlMatch[2]) - 1,
+            Number(sqlMatch[3]),
+            Number(sqlMatch[4]),
+            Number(sqlMatch[5]),
+            Number(sqlMatch[6] || 0)
+        )
+        : new Date(source.replace(' ', 'T'));
     if (Number.isNaN(date.getTime())) {
         return String(raw);
     }
-    return date.toLocaleString([], {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-    });
+    return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+}
+
+function resolveEndpoint(row, requestPayload, responseBody) {
+    const candidates = [
+        requestPayload?.mcpServerUrl,
+        requestPayload?.serverUrl,
+        requestPayload?.endpoint,
+        responseBody?.mcpServerUrl,
+        responseBody?.endpoint,
+        row?.serverUrl
+    ];
+    for (const candidate of candidates) {
+        if (typeof candidate === 'string' && candidate.trim()) {
+            return candidate.trim();
+        }
+    }
+    return '-';
 }

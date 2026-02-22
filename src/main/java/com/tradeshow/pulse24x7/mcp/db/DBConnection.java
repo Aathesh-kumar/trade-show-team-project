@@ -11,7 +11,7 @@ public class DBConnection {
     private static final Logger logger = LogManager.getLogger(DBConnection.class);
     private static DBConnection instance;
 
-    private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/Pulse24x7?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+    private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/Pulse24x7";
     private static final String DEFAULT_USER = "root";
     private static final String DEFAULT_PASSWORD = "aathesh";
 

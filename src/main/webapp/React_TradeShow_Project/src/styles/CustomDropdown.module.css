@@ -11,6 +11,9 @@
 }
 
 .trigger {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   width: 100%;
   min-height: 40px;
   border-radius: 10px;
@@ -24,10 +27,44 @@
   padding: 0.48rem 0.68rem;
   cursor: pointer;
   font-size: 0.9rem;
+  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, transform 0.08s ease;
+}
+
+.trigger::after {
+  content: '';
+  position: absolute;
+  inset: -45%;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.16);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--primary-color) 58%, #ffffff 42%) 0%,
+    color-mix(in srgb, var(--primary-color-strong) 36%, transparent) 36%,
+    transparent 72%
+  );
 }
 
 .trigger:disabled {
   opacity: 0.6;
+}
+
+.trigger:hover:not(:disabled),
+.trigger:focus-visible {
+  border-color: color-mix(in srgb, var(--primary-color) 60%, transparent);
+  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+}
+
+.trigger:active:not(:disabled) {
+  transform: translateY(1px);
+  color: #ffffff;
+  border-color: color-mix(in srgb, var(--primary-color) 76%, transparent);
+  background: linear-gradient(140deg, var(--primary-color), var(--primary-color-strong));
+}
+
+.trigger:active:not(:disabled)::after {
+  animation: dropdownDropWave 280ms ease-out;
 }
 
 .icon {
@@ -56,6 +93,8 @@
 }
 
 .option {
+  position: relative;
+  overflow: hidden;
   min-height: 34px;
   border-radius: 8px;
   border: 1px solid transparent;
@@ -65,14 +104,59 @@
   padding: 0.35rem 0.52rem;
   cursor: pointer;
   font-size: 0.88rem;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.option::after {
+  content: '';
+  position: absolute;
+  inset: -55%;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.15);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--primary-color) 56%, #ffffff 44%) 0%,
+    color-mix(in srgb, var(--primary-color-strong) 34%, transparent) 34%,
+    transparent 70%
+  );
 }
 
 .option:hover {
   background: color-mix(in srgb, var(--text-primary) 7%, transparent);
 }
 
+.option:active {
+  color: #ffffff;
+  background: linear-gradient(140deg, var(--primary-color), var(--primary-color-strong));
+  border-color: color-mix(in srgb, var(--primary-color) 70%, transparent);
+}
+
+.option:active::after {
+  animation: dropdownDropWave 280ms ease-out;
+}
+
 .optionActive {
   background: color-mix(in srgb, var(--primary-color) 20%, transparent);
   border-color: color-mix(in srgb, var(--primary-color) 55%, transparent);
   color: var(--primary-color);
+}
+
+@keyframes dropdownDropWave {
+  0% {
+    opacity: 0.92;
+    transform: scale(0.16);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trigger::after,
+  .option::after {
+    display: none;
+  }
 }

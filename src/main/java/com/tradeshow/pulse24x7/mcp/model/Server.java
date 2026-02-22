@@ -7,16 +7,18 @@ public class Server {
     private Long userId;
     private String serverName;
     private String serverUrl;
+    private Integer monitorIntervalMinutes;
     private Timestamp createdAt;
 
     public Server() {
     }
 
-    public Server(int serverId, Long userId, String serverName, String serverUrl, Timestamp createdAt) {
+    public Server(int serverId, Long userId, String serverName, String serverUrl, Integer monitorIntervalMinutes, Timestamp createdAt) {
         this.serverId = serverId;
         this.userId = userId;
         this.serverName = serverName;
         this.serverUrl = serverUrl;
+        this.monitorIntervalMinutes = monitorIntervalMinutes;
         this.createdAt = createdAt;
     }
 
@@ -52,6 +54,14 @@ public class Server {
         this.serverUrl = serverUrl;
     }
 
+    public Integer getMonitorIntervalMinutes() {
+        return monitorIntervalMinutes;
+    }
+
+    public void setMonitorIntervalMinutes(Integer monitorIntervalMinutes) {
+        this.monitorIntervalMinutes = monitorIntervalMinutes;
+    }
+
     public Timestamp getCreatedAt() {
         return createdAt;
     }
@@ -67,6 +77,7 @@ public class Server {
                 ", userId=" + userId +
                 ", serverName='" + serverName + '\'' +
                 ", serverUrl='" + serverUrl + '\'' +
+                ", monitorIntervalMinutes=" + monitorIntervalMinutes +
                 ", createdAt=" + createdAt +
                 '}';
     }

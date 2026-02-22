@@ -17,6 +17,7 @@ CREATE TABLE servers (
     user_id BIGINT NOT NULL,
     server_name VARCHAR(100) NOT NULL,
     server_url VARCHAR(255) NOT NULL,
+    monitor_interval_minutes INT NOT NULL DEFAULT 30,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_servers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT uk_servers_user_url UNIQUE (user_id, server_url),
@@ -32,6 +33,7 @@ CREATE TABLE auth_token (
     client_id VARCHAR(255) NULL,
     client_secret TEXT NULL,
     token_endpoint VARCHAR(500) NULL,
+    oauth_token_link VARCHAR(1000) NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_auth_server FOREIGN KEY (server_id) REFERENCES servers(server_id) ON DELETE CASCADE
 );

@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.tradeshow.pulse24x7.mcp.dao.ToolDAO;
 import com.tradeshow.pulse24x7.mcp.dao.ToolHistoryDAO;
+import com.tradeshow.pulse24x7.mcp.model.Server;
 import com.tradeshow.pulse24x7.mcp.model.Tool;
 import com.tradeshow.pulse24x7.mcp.model.ToolHistory;
 import com.tradeshow.pulse24x7.mcp.utils.AuthHeaderUtil;
@@ -21,17 +22,25 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ToolService {
     private static final Logger logger = LogManager.getLogger(ToolService.class);
     private final ToolDAO toolDAO;
     private final ToolHistoryDAO toolHistoryDAO;
     private final AuthTokenService authTokenService;
+    private final RequestLogService requestLogService;
+    private final NotificationService notificationService;
+    private final ServerService serverService;
 
     public ToolService() {
         this.toolDAO = new ToolDAO();
         this.toolHistoryDAO = new ToolHistoryDAO();
         this.authTokenService = new AuthTokenService();
+        this.requestLogService = new RequestLogService();
+        this.notificationService = new NotificationService();
+        this.serverService = new ServerService();
     }
 
     public List<Tool> fetchAndUpdateTools(Integer serverId, String serverUrl, String accessToken, String headerType) {
@@ -41,9 +50,19 @@ public class ToolService {
             Map<String, Object> params = new HashMap<>();
             JsonObject request = JsonUtil.createMCPRequest("tools/list", params);
 
-            JsonObject response = doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request);
+            JsonObject response = doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request, true);
+
             List<Tool> oldTools = getToolsByServer(serverId);
+            Set<String> previousActiveTools = oldTools.stream()
+                    .filter(tool -> Boolean.TRUE.equals(tool.getIsAvailability()))
+                    .map(Tool::getToolName)
+                    .filter(name -> name != null && !name.isBlank())
+                    .collect(Collectors.toSet());
             List<Tool> newTools = parseToolsFromResponse(response, serverId);
+            Set<String> currentTools = newTools.stream()
+                    .map(Tool::getToolName)
+                    .filter(name -> name != null && !name.isBlank())
+                    .collect(Collectors.toSet());
             List<Tool> changedOrAddedTools = getChangedOrAddedTools(oldTools, newTools);
             if (!changedOrAddedTools.isEmpty()) {
                 updateToolsInDatabase(serverId, changedOrAddedTools);
@@ -53,6 +72,7 @@ public class ToolService {
             } else {
                 toolDAO.disableMissingTools(serverId, newTools);
             }
+            notifyToolChanges(serverId, previousActiveTools, currentTools);
             return newTools;
         } catch (Exception e) {
             logger.error("Failed to fetch tools from server ID: {}", serverId, e);
@@ -67,20 +87,91 @@ public class ToolService {
         params.put("arguments", inputParams == null ? new JsonObject() : inputParams);
 
         JsonObject request = JsonUtil.createMCPRequest("tools/call", params);
-        return doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request);
+        return doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request, false);
     }
 
     private JsonObject doPostWithRefresh(Integer serverId, String serverUrl, String headerType,
-                                         String accessToken, JsonObject request) {
+                                         String accessToken, JsonObject request, boolean recordInRequestLogs) {
+        long start = System.currentTimeMillis();
+        JsonObject requestPayload = request == null ? new JsonObject() : request.deepCopy();
+        requestPayload.addProperty("mcpServerUrl", serverUrl);
+        String mcpMethod = resolveMcpMethod(requestPayload);
         try {
-            return HttpClientUtil.doPost(serverUrl, buildHeaders(accessToken, headerType), request.toString());
+            JsonObject response = HttpClientUtil.doPost(serverUrl, buildHeaders(accessToken, headerType), request.toString());
+            if (recordInRequestLogs) {
+                recordMcpRequestLog(serverId, mcpMethod, start, requestPayload, response, null, 200);
+            }
+            return response;
         } catch (RuntimeException ex) {
             if (!shouldRefreshToken(serverId, ex)) {
+                if (recordInRequestLogs) {
+                    recordMcpRequestLog(serverId, mcpMethod, start, requestPayload, wrapError(ex), ex.getMessage(), resolveStatusCode(ex));
+                }
                 throw ex;
             }
             String refreshed = authTokenService.refreshAccessToken(serverId);
-            return HttpClientUtil.doPost(serverUrl, buildHeaders(refreshed, headerType), request.toString());
+            try {
+                JsonObject response = HttpClientUtil.doPost(serverUrl, buildHeaders(refreshed, headerType), request.toString());
+                if (recordInRequestLogs) {
+                    recordMcpRequestLog(serverId, mcpMethod, start, requestPayload, response, null, 200);
+                }
+                return response;
+            } catch (RuntimeException retryEx) {
+                if (recordInRequestLogs) {
+                    recordMcpRequestLog(serverId, mcpMethod, start, requestPayload, wrapError(retryEx), retryEx.getMessage(), resolveStatusCode(retryEx));
+                }
+                throw retryEx;
+            }
         }
+    }
+
+    private void recordMcpRequestLog(Integer serverId, String mcpMethod, long startMillis,
+                                     JsonObject requestPayload, JsonObject responseBody, String errorMessage, int statusCode) {
+        long latency = Math.max(0L, System.currentTimeMillis() - startMillis);
+        requestLogService.record(
+                requestLogService.buildRequestLog(
+                        serverId,
+                        null,
+                        mcpMethod,
+                        "POST",
+                        statusCode,
+                        statusCode >= 200 && statusCode < 300 ? "OK" : "ERR",
+                        latency,
+                        requestPayload,
+                        responseBody == null ? new JsonObject() : responseBody,
+                        errorMessage,
+                        "Pulse24x7-Backend"
+                )
+        );
+    }
+
+    private int resolveStatusCode(RuntimeException ex) {
+        if (ex instanceof HttpClientUtil.HttpRequestException httpEx) {
+            int code = httpEx.getStatusCode();
+            return code > 0 ? code : 502;
+        }
+        return 502;
+    }
+
+    private String resolveMcpMethod(JsonObject requestPayload) {
+        if (requestPayload != null && requestPayload.has("method") && !requestPayload.get("method").isJsonNull()) {
+            try {
+                return requestPayload.get("method").getAsString();
+            } catch (Exception ignored) {
+                // ignore and fallback
+            }
+        }
+        return "__MCP_CALL__";
+    }
+
+    private JsonObject wrapError(RuntimeException ex) {
+        JsonObject error = new JsonObject();
+        if (ex instanceof HttpClientUtil.HttpRequestException httpEx) {
+            error.addProperty("statusCode", httpEx.getStatusCode());
+            error.addProperty("responseBody", httpEx.getResponseBody());
+        }
+        error.addProperty("error", ex.getMessage() == null ? "MCP request failed" : ex.getMessage());
+        return error;
     }
 
     private boolean shouldRefreshToken(Integer serverId, RuntimeException ex) {
@@ -288,6 +379,14 @@ public class ToolService {
         return toolDAO.getToolById(toolId);
     }
 
+    public List<ToolHistory> getToolHistory(Integer toolId, int limit) {
+        if (toolId == null || toolId <= 0) {
+            logger.error("Invalid tool ID: {}", toolId);
+            return List.of();
+        }
+        return toolHistoryDAO.getToolHistory(toolId, limit);
+    }
+
     public List<ToolHistory> getToolHistoryLastHours(Integer toolId, int hours) {
         if (toolId == null || toolId <= 0 || hours <= 0) {
             logger.error("Invalid parameters: toolId={}, hours={}", toolId, hours);
@@ -296,11 +395,34 @@ public class ToolService {
         return toolHistoryDAO.getToolHistoryLastHours(toolId, hours);
     }
 
+    public List<ToolHistory> getToolHistoryRange(Integer toolId, Timestamp startTime,
+                                                  Timestamp endTime) {
+        if (toolId == null || toolId <= 0 || startTime == null || endTime == null) {
+            logger.error("Invalid parameters for history range query");
+            return List.of();
+        }
+        return toolHistoryDAO.getToolHistoryRange(toolId, startTime, endTime);
+    }
+
     public Double getToolAvailabilityPercent(Integer toolId) {
         if (toolId == null || toolId <= 0) {
             return 0.0;
         }
         return toolHistoryDAO.getToolAvailabilityPercent(toolId);
+    }
+
+    public boolean hasHistorySince(Integer toolId, Timestamp since) {
+        if (toolId == null || toolId <= 0 || since == null) {
+            return false;
+        }
+        return toolHistoryDAO.existsSince(toolId, since);
+    }
+
+    public boolean hasAvailableHistorySince(Integer toolId, Timestamp since) {
+        if (toolId == null || toolId <= 0 || since == null) {
+            return false;
+        }
+        return toolHistoryDAO.existsAvailableSince(toolId, since);
     }
 
     public boolean recordToolHistory(Integer toolId, Boolean isAvailable) {
@@ -350,5 +472,140 @@ public class ToolService {
                 || payload.contains("invalid_scope")
                 || payload.contains("insufficient scope")
                 || payload.contains("scope_invalid");
+    }
+
+    public String extractMcpErrorMessage(JsonObject responseData) {
+        if (responseData == null) {
+            return null;
+        }
+
+        if (responseData.has("error") && !responseData.get("error").isJsonNull()) {
+            String errorMessage = extractMessageFromErrorElement(responseData.get("error"));
+            if (errorMessage != null && !errorMessage.isBlank()) {
+                return errorMessage;
+            }
+            return "MCP request failed";
+        }
+
+        if (responseData.has("result") && responseData.get("result").isJsonObject()) {
+            JsonObject result = responseData.getAsJsonObject("result");
+            if (result.has("isError") && result.get("isError").getAsBoolean()) {
+                String message = extractMessageFromResult(result);
+                if (message != null && !message.isBlank()) {
+                    return message;
+                }
+                return "MCP tool execution reported an error";
+            }
+        }
+
+        return null;
+    }
+
+    private String extractMessageFromErrorElement(JsonElement errorElement) {
+        if (errorElement == null || errorElement.isJsonNull()) {
+            return null;
+        }
+        if (errorElement.isJsonPrimitive()) {
+            try {
+                return errorElement.getAsString();
+            } catch (Exception ignored) {
+                return null;
+            }
+        }
+        if (errorElement.isJsonObject()) {
+            JsonObject errorObj = errorElement.getAsJsonObject();
+            String code = getString(errorObj, "code");
+            String message = getString(errorObj, "message");
+            if (message != null && !message.isBlank()) {
+                return code == null || code.isBlank() ? message : code + ": " + message;
+            }
+            return errorObj.toString();
+        }
+        return errorElement.toString();
+    }
+
+    private String extractMessageFromResult(JsonObject result) {
+        String directMessage = getString(result, "message");
+        if (directMessage != null && !directMessage.isBlank()) {
+            return directMessage;
+        }
+
+        if (result.has("content") && result.get("content").isJsonArray()) {
+            JsonArray content = result.getAsJsonArray("content");
+            for (JsonElement item : content) {
+                if (!item.isJsonObject()) {
+                    continue;
+                }
+                JsonObject contentObj = item.getAsJsonObject();
+                String text = getString(contentObj, "text");
+                if (text == null || text.isBlank()) {
+                    continue;
+                }
+                String extracted = extractMessageFromText(text);
+                if (extracted != null && !extracted.isBlank()) {
+                    return extracted;
+                }
+                return text;
+            }
+        }
+
+        return null;
+    }
+
+    private String extractMessageFromText(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        try {
+            JsonObject nested = JsonParser.parseString(text.trim()).getAsJsonObject();
+            String code = getString(nested, "code");
+            String message = getString(nested, "message");
+            if (message != null && !message.isBlank()) {
+                return code == null || code.isBlank() ? message : code + ": " + message;
+            }
+        } catch (Exception ignored) {
+            // text content is plain string, return as-is at caller
+        }
+        return null;
+    }
+
+    private void notifyToolChanges(Integer serverId, Set<String> previousActiveTools, Set<String> currentTools) {
+        if (serverId == null) {
+            return;
+        }
+        Set<String> addedTools = currentTools.stream()
+                .filter(name -> !previousActiveTools.contains(name))
+                .collect(Collectors.toSet());
+        Set<String> removedTools = previousActiveTools.stream()
+                .filter(name -> !currentTools.contains(name))
+                .collect(Collectors.toSet());
+
+        if (addedTools.isEmpty() && removedTools.isEmpty()) {
+            return;
+        }
+
+        Server server = serverService.getServerByIdGlobal(serverId);
+        String serverName = server != null && server.getServerName() != null && !server.getServerName().isBlank()
+                ? server.getServerName()
+                : "Server " + serverId;
+
+        if (!addedTools.isEmpty()) {
+            notificationService.notify(
+                    serverId,
+                    "tools",
+                    "info",
+                    "Tools added",
+                    "New tools on " + serverName + ": " + String.join(", ", addedTools)
+            );
+        }
+        if (!removedTools.isEmpty()) {
+            notificationService.notify(
+                    serverId,
+                    "tools",
+                    "warning",
+                    "Tools removed",
+                    "Removed tools on " + serverName + ": " + String.join(", ", removedTools)
+            );
+        }
     }
 }

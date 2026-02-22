@@ -146,6 +146,7 @@ public class AuthTokenServlet extends HttpServlet {
         String clientId = ServletUtil.getString(payload, "clientId", null);
         String clientSecret = ServletUtil.getString(payload, "clientSecret", null);
         String tokenEndpoint = ServletUtil.getString(payload, "tokenEndpoint", null);
+        String oauthTokenLink = ServletUtil.getString(payload, "oauthTokenLink", null);
 
         if (serverId == null || accessToken == null || accessToken.isBlank()) {
             sendErrorResponse(resp, "serverId and accessToken are required", HttpServletResponse.SC_BAD_REQUEST);
@@ -158,7 +159,7 @@ public class AuthTokenServlet extends HttpServlet {
 
         Timestamp expiresAt = parseTimestamp(expiresAtStr);
         boolean saved = authTokenService.saveToken(
-                serverId, headerType, accessToken, refreshToken, expiresAt, clientId, clientSecret, tokenEndpoint
+                serverId, headerType, accessToken, refreshToken, expiresAt, clientId, clientSecret, tokenEndpoint, oauthTokenLink
         );
         if (!saved) {
             sendErrorResponse(resp, "Failed to save token", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -189,7 +190,12 @@ public class AuthTokenServlet extends HttpServlet {
 
         try {
             String newToken = authTokenService.refreshAccessToken(serverId);
-            sendSuccessResponse(resp, Map.of("message", "Access token refreshed", "accessToken", newToken));
+            AuthToken current = authTokenService.getToken(serverId);
+            sendSuccessResponse(resp, Map.of(
+                    "message", "Access token refreshed",
+                    "accessToken", newToken,
+                    "expiresAt", current != null ? current.getExpiresAt() : null
+            ));
         } catch (Exception e) {
             sendErrorResponse(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
         }

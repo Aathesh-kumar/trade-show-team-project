@@ -4,13 +4,14 @@ public class DBQueries {
         private static final String TOOL_ANALYTICS_FILTER =
                 "tool_name IS NOT NULL AND TRIM(tool_name) <> '' " +
                 "AND tool_name NOT LIKE '\\\\_\\\\_%' ESCAPE '\\\\' " +
+                "AND LOWER(tool_name) NOT LIKE '%tools/list%' " +
                 "AND LOWER(tool_name) NOT LIKE '%ping%' " +
                 "AND LOWER(tool_name) NOT LIKE '%refresh%' " +
                 "AND LOWER(tool_name) NOT LIKE '%token%'";
 
         // Server Queries
         public static final String INSERT_SERVER =
-                "INSERT INTO servers (user_id, server_name, server_url) VALUES (?, ?, ?)";
+                "INSERT INTO servers (user_id, server_name, server_url, monitor_interval_minutes) VALUES (?, ?, ?, ?)";
 
         public static final String GET_SERVER_BY_ID =
                 "SELECT * FROM servers WHERE server_id = ? AND user_id = ?";
@@ -28,7 +29,7 @@ public class DBQueries {
                 "SELECT * FROM servers ORDER BY created_at DESC";
 
         public static final String UPDATE_SERVER =
-                "UPDATE servers SET server_name = ?, server_url = ? WHERE server_id = ? AND user_id = ?";
+                "UPDATE servers SET server_name = ?, server_url = ?, monitor_interval_minutes = ? WHERE server_id = ? AND user_id = ?";
 
         public static final String DELETE_SERVER =
                 "DELETE FROM servers WHERE server_id = ? AND user_id = ?";
@@ -170,16 +171,17 @@ public class DBQueries {
 
         // Auth Token Queries
         public static final String INSERT_AUTH_TOKEN =
-                "INSERT INTO auth_token (server_id, header_type, access_token, refresh_token, expires_at, client_id, client_secret, token_endpoint) " +
-                        "VALUES (?, ?, ?, ?, COALESCE(?, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)), ?, ?, ?) " +
+                "INSERT INTO auth_token (server_id, header_type, access_token, refresh_token, expires_at, client_id, client_secret, token_endpoint, oauth_token_link) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) " +
                         "ON DUPLICATE KEY UPDATE " +
                         "    header_type = COALESCE(NULLIF(VALUES(header_type), ''), header_type, 'Bearer')," +
                         "    access_token = VALUES(access_token), " +
                         "    refresh_token = COALESCE(NULLIF(VALUES(refresh_token), ''), refresh_token), " +
-                        "    expires_at = COALESCE(VALUES(expires_at), DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)), " +
+                        "    expires_at = VALUES(expires_at), " +
                         "    client_id = COALESCE(NULLIF(VALUES(client_id), ''), client_id), " +
                         "    client_secret = COALESCE(NULLIF(VALUES(client_secret), ''), client_secret), " +
                         "    token_endpoint = COALESCE(NULLIF(VALUES(token_endpoint), ''), token_endpoint), " +
+                        "    oauth_token_link = COALESCE(NULLIF(VALUES(oauth_token_link), ''), oauth_token_link), " +
                         "    updated_at = CURRENT_TIMESTAMP";
 
         public static final String GET_AUTH_TOKEN =

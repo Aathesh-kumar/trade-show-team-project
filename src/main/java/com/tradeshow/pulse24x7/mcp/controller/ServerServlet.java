@@ -142,6 +142,8 @@ public class ServerServlet extends HttpServlet {
         String clientId = ServletUtil.getString(payload, "clientId", null);
         String clientSecret = ServletUtil.getString(payload, "clientSecret", null);
         String tokenEndpoint = ServletUtil.getString(payload, "tokenEndpoint", "https://accounts.zoho.in/oauth/v2/token");
+        String oauthTokenLink = ServletUtil.getString(payload, "oauthTokenLink", null);
+        Integer monitorIntervalMinutes = ServletUtil.getInteger(payload, "monitorIntervalMinutes", 30);
 
         if (serverName == null || serverName.isBlank()) {
             sendErrorResponse(resp, "Server name is required", HttpServletResponse.SC_BAD_REQUEST);
@@ -186,7 +188,7 @@ public class ServerServlet extends HttpServlet {
             return;
         }
 
-        Integer serverId = serverService.registerServer(userId, serverName, serverUrl);
+        Integer serverId = serverService.registerServer(userId, serverName, serverUrl, monitorIntervalMinutes);
         if (serverId == null) {
             Server existing = serverService.getServerByUrl(serverUrl, userId);
             if (existing == null) {
@@ -197,7 +199,7 @@ public class ServerServlet extends HttpServlet {
         }
 
         Timestamp expiresAt = parseTimestamp(expiresAtStr);
-        authTokenService.saveToken(serverId, headerType, accessToken, refreshToken, expiresAt, clientId, clientSecret, tokenEndpoint);
+        authTokenService.saveToken(serverId, headerType, accessToken, refreshToken, expiresAt, clientId, clientSecret, tokenEndpoint, oauthTokenLink);
 
         monitoringService.monitorServer(serverId);
         Server server = serverService.getServerById(serverId, userId);
@@ -322,13 +324,22 @@ public class ServerServlet extends HttpServlet {
         }
         String serverName = ServletUtil.getString(payload, "serverName", null);
         String serverUrl = ServletUtil.getString(payload, "serverUrl", null);
+        Integer monitorIntervalMinutes = ServletUtil.getInteger(payload, "monitorIntervalMinutes", null);
 
         if (serverId == null || serverName == null || serverUrl == null) {
             sendErrorResponse(resp, "Missing required parameters", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
+        if (monitorIntervalMinutes == null) {
+            Server existingServer = serverService.getServerById(serverId, userId);
+            if (existingServer != null && existingServer.getMonitorIntervalMinutes() != null) {
+                monitorIntervalMinutes = existingServer.getMonitorIntervalMinutes();
+            } else {
+                monitorIntervalMinutes = 30;
+            }
+        }
 
-        boolean updated = serverService.updateServer(serverId, userId, serverName, serverUrl);
+        boolean updated = serverService.updateServer(serverId, userId, serverName, serverUrl, monitorIntervalMinutes);
         if (!updated) {
             sendErrorResponse(resp, "Failed to update server", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return;
@@ -382,8 +393,16 @@ public class ServerServlet extends HttpServlet {
             return;
         }
 
-        monitoringService.monitorServer(serverId);
-        sendSuccessResponse(resp, Map.of("message", "Monitoring completed successfully"));
+        boolean force = Boolean.parseBoolean(req.getParameter("force"));
+        boolean executed = monitoringService.monitorServerIfDue(serverId, force);
+        if (executed) {
+            sendSuccessResponse(resp, Map.of("message", "Monitoring completed successfully", "executed", true));
+            return;
+        }
+        sendSuccessResponse(resp, Map.of(
+                "message", "Monitoring skipped because configured interval has not elapsed",
+                "executed", false
+        ));
     }
 
     private void handleTestServer(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -443,6 +462,7 @@ public class ServerServlet extends HttpServlet {
         String accessToken = authTokenService.ensureValidAccessToken(serverId);
         String headerType = token != null ? token.getHeaderType() : "Bearer";
         JsonObject pingBody = JsonUtil.createMCPRequest("ping", Map.of());
+        pingBody.addProperty("mcpServerUrl", server.getServerUrl());
         long start = System.currentTimeMillis();
         HttpResult result = HttpClientUtil.canPingServer(
                 server.getServerUrl(),
@@ -506,6 +526,7 @@ public class ServerServlet extends HttpServlet {
         JsonObject requestPayload = new JsonObject();
         requestPayload.addProperty("serverId", serverId);
         requestPayload.addProperty("event", "refresh_server_data");
+        requestPayload.addProperty("mcpServerUrl", server.getServerUrl());
         long start = System.currentTimeMillis();
         monitoringService.monitorServer(serverId);
         long latency = System.currentTimeMillis() - start;
