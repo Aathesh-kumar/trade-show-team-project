@@ -12,6 +12,7 @@ import NotificationPanel from './NotificationPanel';
 import { buildUrl, getAuthHeaders } from '../../services/api';
 import useBufferedLoading from '../Hooks/useBufferedLoading';
 import LoadingSkeleton from '../Loading/LoadingSkeleton';
+import CursorStyle from "../../styles/cursor.module.css";
 
 export default function Dashboard({ selectedServer, onNavigate, onSelectServer }) {
     const [showNotifications, setShowNotifications] = useState(false);
@@ -85,7 +86,7 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
     }
 
     return (
-        <div className={DashboardStyles.dashboard}>
+        <div className={`${DashboardStyles.dashboard} ${CursorStyle.cursorDefault}`}>
             <header className={DashboardStyles.header}>
                 <h1>Dashboard Overview</h1>
                 <div className={DashboardStyles.headerRight}>

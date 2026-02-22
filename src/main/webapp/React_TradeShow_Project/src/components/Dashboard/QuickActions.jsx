@@ -3,6 +3,7 @@ import { MdRefresh, MdAdd, MdDownload, MdNetworkPing } from 'react-icons/md';
 import { buildUrl, getAuthHeaders, parseApiResponse } from '../../services/api';
 import { appendUiRequestLog } from '../../utils/requestLogEvents';
 import { useState } from 'react';
+import CursorStyle from "../../styles/cursor.module.css";
 
 export default function QuickActions({ onNavigate, selectedServer }) {
     const [busyAction, setBusyAction] = useState('');
@@ -59,10 +60,10 @@ export default function QuickActions({ onNavigate, selectedServer }) {
 
     return (
         <div className={DashboardStyles.quickActions}>
-            <h2>Quick Actions</h2>
+            <h2><span className={CursorStyle.cursorText}>Quick Actions</span></h2>
             <div className={DashboardStyles.actionsGrid}>
                 {actions.map((action, index) => (
-                    <button key={index} className={DashboardStyles.actionBtn} onClick={action.action} disabled={!!action.disabled}>
+                    <button key={index} className={`${DashboardStyles.actionBtn} ${CursorStyle.cursorPointer}`} onClick={action.action} disabled={!!action.disabled}>
                         <div className={DashboardStyles.actionIcon} style={{ color: action.color }}>
                             {action.icon}
                         </div>
