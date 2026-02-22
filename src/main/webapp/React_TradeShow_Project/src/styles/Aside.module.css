@@ -79,12 +79,15 @@
             align-items: center;
             padding: 0.875rem;
             gap: 1rem;
-            cursor: pointer;
             border-radius: 32px;
             transition: all 0.2s ease;
             white-space: nowrap;
             position: relative;
+            cursor: var(--cursor-pointer);
 
+            & * {
+                cursor: inherit;
+            }
 
             .asideIcon {
                 display: flex;
@@ -298,14 +301,14 @@
 }
 
 :root[data-theme='light'] .asideBar {
-  box-shadow: 2px 0 10px rgba(15, 23, 42, 0.12);
+    box-shadow: 2px 0 10px rgba(15, 23, 42, 0.12);
 }
 
 :root[data-theme='light'] .asideBar :is(h2, p, span, button) {
-  color: var(--text-primary);
+    color: var(--text-primary);
 }
 
 :root[data-theme='light'] .asideBar .statusLabel,
 :root[data-theme='light'] .asideBar .statusUptime {
-  color: var(--text-muted);
+    color: var(--text-muted);
 }

@@ -1,5 +1,4 @@
 
-
 .card {
     background: linear-gradient(160deg, #060c1b 0%, #0a1628 60%, #070f1e 100%);
     border-radius: 16px;
@@ -160,11 +159,8 @@
     height: 100%;
     min-height: 280px;
     user-select: none;
+    cursor: crosshair !important;
 }
-
-.grab      { cursor: grab; }
-.grabbing  { cursor: grabbing; }
-.crosshair { cursor: crosshair; }
 
 .emptyState {
     display: flex;
