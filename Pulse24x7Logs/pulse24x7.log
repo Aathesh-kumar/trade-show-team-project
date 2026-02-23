@@ -138,3 +138,22 @@
 2026-02-24 00:49:33,217 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Found 1 servers to monitor 
 2026-02-24 00:49:33,223 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Completed monitoring for all servers 
 2026-02-24 00:49:33,223 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Scheduled server monitoring completed in 13 ms ===== 
+2026-02-24 01:05:20,393 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-02-24 01:05:20,399 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 1 
+2026-02-24 01:05:20,429 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
+2026-02-24 01:05:20,858 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-02-24 01:05:20,886 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 1 is UP 
+2026-02-24 01:05:20,887 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 1 
+2026-02-24 01:05:20,887 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
+2026-02-24 01:05:21,125 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-02-24 01:05:21,157 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 15 tools for server ID: 1 
+2026-02-24 01:05:21,158 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 10 tools from response 
+2026-02-24 01:05:21,159 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 1 (keeping 10 tools active) 
+2026-02-24 01:05:21,178 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO 5 tools disabled for server ID: 1 
+2026-02-24 01:05:21,420 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 10 tools from server 1 
+2026-02-24 01:05:21,438 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 1 
+2026-02-24 01:06:30,956 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-02-24 01:06:30,962 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 1 because configured interval (30 minutes) has not elapsed 
+2026-02-24 01:06:34,907 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 10 available tools for server ID: 1 
+2026-02-24 01:07:40,927 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-02-24 01:07:40,934 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 1 because configured interval (30 minutes) has not elapsed 
