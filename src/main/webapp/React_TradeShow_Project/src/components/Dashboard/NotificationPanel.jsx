@@ -1,11 +1,15 @@
 import DashboardStyles from '../../styles/Dashboard.module.css';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PaginationControls from '../Common/PaginationControls';
 import LoadingSkeleton from '../Loading/LoadingSkeleton';
 import { buildUrl, getAuthHeaders, parseApiResponse } from '../../services/api';
 
-export default function NotificationPanel({ isOpen, onClose, notificationsData = [], loading = false, onNotificationsChanged }) {
+export default function NotificationPanel({ isOpen, onClose, notificationsData = [], loading = false, onNotificationsChanged, openCycle = 0 }) {
   const [page, setPage] = useState(1);
+  const [panelLoading, setPanelLoading] = useState(true);
+  const [displayNotifications, setDisplayNotifications] = useState([]);
+  const openStartedAtRef = useRef(0);
+  const loadingTimerRef = useRef(null);
   const pageSize = 12;
   const allNotifications = Array.isArray(notificationsData) ? notificationsData : [];
   const totalItems = allNotifications.length;
@@ -17,6 +21,7 @@ export default function NotificationPanel({ isOpen, onClose, notificationsData =
     }
     return notifications;
   }, [isOpen, notifications]);
+  const hasMarkedReadRef = useRef(false);
 
   useEffect(() => {
     if (page > totalPages) {
@@ -24,9 +29,17 @@ export default function NotificationPanel({ isOpen, onClose, notificationsData =
     }
   }, [page, totalPages]);
 
-  if (!isOpen) {
-    return null;
-  }
+  useEffect(() => {
+    if (isOpen) {
+      setPanelLoading(true);
+      setDisplayNotifications([]);
+      openStartedAtRef.current = Date.now();
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+        loadingTimerRef.current = null;
+      }
+    }
+  }, [isOpen, openCycle]);
 
   const markAllRead = async () => {
     await fetch(buildUrl('/notification/read-all'), {
@@ -38,6 +51,39 @@ export default function NotificationPanel({ isOpen, onClose, notificationsData =
     }).then(parseApiResponse).catch(() => null);
     onNotificationsChanged?.();
   };
+
+  useEffect(() => {
+    if (isOpen && !hasMarkedReadRef.current) {
+      hasMarkedReadRef.current = true;
+      markAllRead();
+    }
+    if (!isOpen) {
+      hasMarkedReadRef.current = false;
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    if (!loading) {
+      const elapsed = Date.now() - (openStartedAtRef.current || Date.now());
+      const remaining = Math.max(0, 250 - elapsed);
+      if (loadingTimerRef.current) {
+        clearTimeout(loadingTimerRef.current);
+      }
+      loadingTimerRef.current = setTimeout(() => {
+        setPanelLoading(false);
+        setDisplayNotifications(openNotifications);
+      }, remaining);
+    }
+  }, [isOpen, loading, openNotifications]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  const showLoading = panelLoading || loading;
 
   const clearAll = async () => {
     await fetch(buildUrl('/notification/all'), {
@@ -68,35 +114,39 @@ export default function NotificationPanel({ isOpen, onClose, notificationsData =
         <div className={DashboardStyles.notificationHeader}>
           <h3>Notifications</h3>
           <div className={DashboardStyles.notificationHeaderActions}>
-            <button className={DashboardStyles.notificationActionBtn} onClick={markAllRead}>Mark all read</button>
             <button className={DashboardStyles.notificationClearBtn} onClick={clearAll}>Clear all</button>
           </div>
         </div>
         <div className={DashboardStyles.notificationList}>
-          {loading && <LoadingSkeleton type="text" lines={6} />}
-          {openNotifications.length === 0 && (
-            <p className={DashboardStyles.emptyState}>No notifications yet.</p>
+          {showLoading ? (
+            <LoadingSkeleton type="text" lines={6} />
+          ) : (
+            <>
+              {displayNotifications.length === 0 && (
+                <p className={DashboardStyles.emptyState}>No notifications yet.</p>
+              )}
+              {displayNotifications.map((n) => (
+                <div
+                  key={n.id}
+                  className={`${DashboardStyles.notificationItem} ${DashboardStyles[`severity${String(n.severity || 'info').toLowerCase()}`] || ''}`}
+                >
+                  <div className={DashboardStyles.notificationMeta}>
+                    <strong>{n.title}</strong>
+                    <span className={DashboardStyles.notificationSeverity}>{n.severity || 'info'}</span>
+                  </div>
+                  <p className={DashboardStyles.notificationInfo}>{n.message}</p>
+                  <div className={DashboardStyles.notificationFooter}>
+                    <small className={DashboardStyles.notificationTime} title={String(n.createdAt || '-')}>
+                      {formatTime(n.createdAt)}
+                    </small>
+                    <button className={DashboardStyles.notificationClearBtn} onClick={() => clearOne(n.id)}>
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </>
           )}
-          {openNotifications.map((n) => (
-            <div
-              key={n.id}
-              className={`${DashboardStyles.notificationItem} ${DashboardStyles[`severity${String(n.severity || 'info').toLowerCase()}`] || ''}`}
-            >
-              <div className={DashboardStyles.notificationMeta}>
-                <strong>{n.title}</strong>
-                <span className={DashboardStyles.notificationSeverity}>{n.severity || 'info'}</span>
-              </div>
-              <p className={DashboardStyles.notificationInfo}>{n.message}</p>
-              <div className={DashboardStyles.notificationFooter}>
-                <small className={DashboardStyles.notificationTime} title={String(n.createdAt || '-')}>
-                  {formatTime(n.createdAt)}
-                </small>
-                <button className={DashboardStyles.notificationClearBtn} onClick={() => clearOne(n.id)}>
-                  Clear
-                </button>
-              </div>
-            </div>
-          ))}
         </div>
         <PaginationControls
           page={page}

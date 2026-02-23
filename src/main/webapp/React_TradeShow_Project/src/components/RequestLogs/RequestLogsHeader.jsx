@@ -1,8 +1,8 @@
 import RequestLogsStyles from '../../styles/RequestLogs.module.css';
 import { MdSearch, MdFileDownload } from 'react-icons/md';
-import CustomDropdown from '../Common/CustomDropdown';
+import RequestLogsFilters from './RequestLogsFilters';
 
-export default function RequestLogsHeader({ filters, onFilterChange, stats, toolOptions = [], onExport }) {
+export default function RequestLogsHeader({ filters, onFilterChange, stats, toolOptions = [], onExportRequest }) {
     const safeTotal = Number(stats?.totalRequests || 0);
     const safeSuccess = Number(stats?.totalSuccess || 0);
     const safeWarnings = Number(stats?.totalWarnings || 0);
@@ -13,27 +13,6 @@ export default function RequestLogsHeader({ filters, onFilterChange, stats, tool
         onFilterChange({
             ...filters,
             search: e.target.value
-        });
-    };
-
-    const handleStatusChange = (status) => {
-        onFilterChange({
-            ...filters,
-            status: status
-        });
-    };
-
-    const handleToolChange = (tool) => {
-        onFilterChange({
-            ...filters,
-            tool: tool
-        });
-    };
-
-    const handleTimeRangeChange = (timeRange) => {
-        onFilterChange({
-            ...filters,
-            timeRange: timeRange
         });
     };
 
@@ -63,7 +42,7 @@ export default function RequestLogsHeader({ filters, onFilterChange, stats, tool
                 </div>
 
                 <div className={RequestLogsStyles.headerActions}>
-                    <button className={RequestLogsStyles.exportBtn} onClick={onExport}>
+                    <button className={RequestLogsStyles.exportBtn} onClick={onExportRequest} type="button">
                         <MdFileDownload />
                         Export
                     </button>
@@ -82,42 +61,11 @@ export default function RequestLogsHeader({ filters, onFilterChange, stats, tool
                     />
                 </div>
 
-                <div className={RequestLogsStyles.filterGroup}>
-                    <CustomDropdown
-                        value={filters.status}
-                        onChange={handleStatusChange}
-                        options={[
-                            { value: 'all', label: 'All Status' },
-                            { value: 'success', label: 'Success' },
-                            { value: 'error', label: 'Error' },
-                            { value: 'warning', label: 'Warning' }
-                        ]}
-                        buttonClassName={RequestLogsStyles.filterSelect}
-                    />
-
-                    <CustomDropdown
-                        value={filters.tool}
-                        onChange={handleToolChange}
-                        options={[
-                            { value: 'all', label: 'All Tools' },
-                            ...toolOptions.map((toolName) => ({ value: toolName, label: toolName }))
-                        ]}
-                        buttonClassName={RequestLogsStyles.filterSelect}
-                    />
-
-                    <CustomDropdown
-                        value={filters.timeRange}
-                        onChange={handleTimeRangeChange}
-                        options={[
-                            { value: 'last-15-minutes', label: 'Last 15 minutes' },
-                            { value: 'last-hour', label: 'Last hour' },
-                            { value: 'last-24-hours', label: 'Last 24 hours' },
-                            { value: 'last-7-days', label: 'Last 7 days' },
-                            { value: 'all-time', label: 'All Time' }
-                        ]}
-                        buttonClassName={RequestLogsStyles.filterSelect}
-                    />
-                </div>
+                <RequestLogsFilters
+                    filters={filters}
+                    onFilterChange={onFilterChange}
+                    toolOptions={toolOptions}
+                />
             </div>
         </header>
     );

@@ -580,6 +580,93 @@ tbody tr {
   border: 1px solid color-mix(in srgb, var(--error-color) 45%, transparent);
 }
 
+.exportOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(1, 6, 20, 0.6);
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.exportModal {
+  width: min(520px, 92vw);
+  background: color-mix(in srgb, var(--bg-elev-1) 96%, transparent);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-soft);
+  padding: 1.1rem 1.2rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.exportModal .filterGroup {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.exportModal .filterGroup :global(.dropdown) {
+  min-width: 160px;
+}
+
+.exportModal h3 {
+  margin: 0;
+}
+
+.exportModal p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.exportOptions {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.2rem 0;
+}
+
+.exportOption {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  font-size: 0.9rem;
+}
+
+.exportOption input {
+  accent-color: var(--primary-color);
+}
+
+.exportActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.exportCancel,
+.exportConfirm {
+  min-height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  padding: 0.4rem 0.9rem;
+  font-weight: 600;
+}
+
+.exportCancel {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.exportConfirm {
+  background: linear-gradient(140deg, var(--primary-color), var(--primary-color-strong));
+  color: #fff;
+  border-color: color-mix(in srgb, var(--primary-color) 45%, transparent);
+}
+
 @media (max-width: 1200px) {
   .logsContent {
     flex-direction: column;

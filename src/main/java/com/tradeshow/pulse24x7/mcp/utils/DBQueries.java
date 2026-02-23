@@ -4,6 +4,7 @@ public class DBQueries {
         private static final String TOOL_ANALYTICS_FILTER =
                 "tool_name IS NOT NULL AND TRIM(tool_name) <> '' " +
                 "AND tool_name NOT LIKE '\\\\_\\\\_%' ESCAPE '\\\\' " +
+                "AND LOWER(tool_name) NOT LIKE 'ui:%' " +
                 "AND LOWER(tool_name) NOT LIKE '%tools/list%' " +
                 "AND LOWER(tool_name) NOT LIKE '%ping%' " +
                 "AND LOWER(tool_name) NOT LIKE '%refresh%' " +

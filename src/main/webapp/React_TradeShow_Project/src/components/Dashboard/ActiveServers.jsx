@@ -1,5 +1,4 @@
 import DashboardStyles from '../../styles/Dashboard.module.css';
-import Cursor from '../../styles/cursor.module.css'
 import { MdStorage, MdAdd } from 'react-icons/md';
 
 export default function ActiveServers({ servers = [], selectedServerId, onSelectServer, onNavigate }) {
@@ -14,17 +13,17 @@ export default function ActiveServers({ servers = [], selectedServerId, onSelect
     }));
 
     return (
-        <div className={`${DashboardStyles.activeServers}`}>
-            <h2><span  className={Cursor.cursorText}>Active Servers</span></h2>
+        <div className={DashboardStyles.activeServers}>
+            <h2>Active Servers</h2>
             <div className={DashboardStyles.serversList}>
                 {normalizedServers.map((server, index) => (
                     <button
                         key={index}
                         type="button"
-                        className={`${DashboardStyles.serverItem} ${Cursor.cursorPointer} ${server.status === 'online' ? DashboardStyles.serverItemOnline : DashboardStyles.serverItemOffline} ${selectedServerId === server.id ? DashboardStyles.selectedServerItem : ''}`}
+                        className={`${DashboardStyles.serverItem} ${server.status === 'online' ? DashboardStyles.serverItemOnline : DashboardStyles.serverItemOffline} ${selectedServerId === server.id ? DashboardStyles.selectedServerItem : ''}`}
                         onClick={() => onSelectServer?.(server.id)}
                     >
-                        <div className={`${DashboardStyles.serverIcon}` }>
+                        <div className={DashboardStyles.serverIcon}>
                             <MdStorage />
                             <span className={`${DashboardStyles.serverStatusDot} ${server.status === 'online' ? DashboardStyles.online : DashboardStyles.offline}`}></span>
                         </div>
@@ -36,7 +35,7 @@ export default function ActiveServers({ servers = [], selectedServerId, onSelect
                     </button>
                 ))}
             </div>
-            <button className={`${DashboardStyles.addServerBtn} ${Cursor.cursorPointer}`} onClick={() => onNavigate?.('configure-server')}>
+            <button type="button" className={DashboardStyles.addServerBtn} onClick={() => onNavigate?.('configure-server')}>
                 <MdAdd /> ADD NEW NODE
             </button>
         </div>

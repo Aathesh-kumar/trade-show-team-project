@@ -10,6 +10,7 @@ import { useGet } from './components/Hooks/useGet';
 import AuthPage from './components/Auth/AuthPage';
 import { buildUrl, getAuthHeaders } from './services/api';
 import Analytics from './components/Analytics/Analytics';
+import LoadingStyles from './styles/Loading.module.css';
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -26,6 +27,7 @@ function App() {
   const [settingsSaveHandler, setSettingsSaveHandler] = useState(null);
   const [showLeaveSettingsModal, setShowLeaveSettingsModal] = useState(false);
   const [pendingPage, setPendingPage] = useState(null);
+  const [allowConfigureWithServers, setAllowConfigureWithServers] = useState(false);
   const [hasConfiguredServer, setHasConfiguredServer] = useState(() => {
     const raw = Number(localStorage.getItem('pulse24x7_selected_server_id'));
     return Number.isInteger(raw) && raw > 0;
@@ -97,17 +99,20 @@ function App() {
       if (!hasSelectedServer) {
         setSelectedServerId(servers[0].serverId);
       }
+      if (currentPage === 'configure-server' && !allowConfigureWithServers) {
+        setCurrentPage('dashboard');
+      }
+      return;
     } else if (selectedServerId != null) {
       setSelectedServerId(null);
       setHasConfiguredServer(false);
-    }
-    if (servers.length > 0) {
-      return;
+      setAllowConfigureWithServers(false);
     }
     if (currentPage !== 'configure-server') {
+      setAllowConfigureWithServers(false);
       setCurrentPage('configure-server');
     }
-  }, [currentUser, loadingServers, servers, currentPage, selectedServerId]);
+  }, [currentUser, loadingServers, servers, currentPage, selectedServerId, allowConfigureWithServers]);
 
   useEffect(() => {
     const previousLength = prevServersLengthRef.current;
@@ -123,6 +128,7 @@ function App() {
       setShowLeaveSettingsModal(true);
       return;
     }
+    setAllowConfigureWithServers(nextPage === 'configure-server');
     setCurrentPage(nextPage);
   };
 
@@ -170,6 +176,16 @@ function App() {
   }, []);
 
   const renderPage = () => {
+    if (currentUser && loadingServers && serversData == null) {
+      return (
+        <div className={AppStyles.bootstrapPane}>
+          <div className={LoadingStyles.spinnerContainer}>
+            <div className={LoadingStyles.spinner} style={{ width: 40, height: 40, borderWidth: 4 }}></div>
+            <p className={LoadingStyles.loadingText}>Loading your workspace...</p>
+          </div>
+        </div>
+      );
+    }
     switch (currentPage) {
       case 'dashboard':
         return (
@@ -227,7 +243,13 @@ function App() {
   return (
     <>
       {authReady && !currentUser ? (
-        <AuthPage onAuthenticated={(user) => setCurrentUser(user)} />
+        <AuthPage
+          onAuthenticated={(user) => {
+            setCurrentUser(user);
+            setCurrentPage('dashboard');
+            setIsSidebarOpen(false);
+          }}
+        />
       ) : null}
       {!authReady ? null : currentUser ? (
         <main className={`${AppStyles.app} cursor-default`}>
@@ -242,7 +264,16 @@ function App() {
                 localStorage.removeItem('mcp_jwt');
                 localStorage.removeItem('pulse24x7_selected_server_id');
                 localStorage.removeItem('pulse24x7_current_page');
+                setIsSidebarOpen(false);
                 setCurrentUser(null);
+                setCurrentPage('dashboard');
+                setSelectedServerId(null);
+                setHasConfiguredServer(false);
+                setSettingsHasUnsavedChanges(false);
+                setSettingsSaveHandler(null);
+                setShowLeaveSettingsModal(false);
+                setPendingPage(null);
+                prevServersLengthRef.current = 0;
               }}
             />
           ) : null}

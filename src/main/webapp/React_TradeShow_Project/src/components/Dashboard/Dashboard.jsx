@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import DashboardStyles from '../../styles/Dashboard.module.css';
 import StatCard from './StatCard';
 import SystemHealth from './SystemHealth';
@@ -16,6 +16,7 @@ import CursorStyle from "../../styles/cursor.module.css";
 
 export default function Dashboard({ selectedServer, onNavigate, onSelectServer }) {
     const [showNotifications, setShowNotifications] = useState(false);
+    const [notificationOpenCycle, setNotificationOpenCycle] = useState(0);
     const [timeMode, setTimeMode] = useState('today');
     const serverId = selectedServer?.serverId;
     const { data: serversData } = useGet('/server/all', { immediate: true, dependencies: [serverId] });
@@ -37,10 +38,36 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
         params: { limit: 300, offset: 0 },
         dependencies: [serverId]
     });
+    const notificationsBufferedLoading = useBufferedLoading(notificationsLoading, 280);
+    const notificationsReady = Array.isArray(notificationsData);
+    const notificationsLoadingView = notificationsBufferedLoading || !notificationsReady;
     const { data: unread, refetch: refetchUnread } = useGet('/notification/unread-count', {
         immediate: true,
         dependencies: [showNotifications, serverId]
     });
+    const [dismissedHighAlerts, setDismissedHighAlerts] = useState(() => new Set());
+
+    const highSeverityNotification = useMemo(() => {
+        const list = Array.isArray(notificationsData) ? notificationsData : [];
+        const ranked = list
+            .filter((item) => isHighSeverity(item?.severity))
+            .filter((item) => !dismissedHighAlerts.has(item?.id))
+            .filter((item) => isRecentAlert(item?.createdAt, 2))
+            .sort((a, b) => new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime());
+        return ranked[0] || null;
+    }, [notificationsData, dismissedHighAlerts]);
+    const statusNotification = useMemo(() => {
+        const list = Array.isArray(notificationsData) ? notificationsData : [];
+        const ranked = list
+            .filter((item) => String(item?.category || '').toLowerCase() === 'server')
+            .filter((item) => String(item?.title || '').toLowerCase() === 'server status')
+            .filter((item) => !dismissedHighAlerts.has(item?.id))
+            .filter((item) => isRecentAlert(item?.createdAt, 1))
+            .sort((a, b) => new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime());
+        return ranked[0] || null;
+    }, [notificationsData, dismissedHighAlerts]);
+    const toastNotification = highSeverityNotification || statusNotification;
+    const toastSeverityClass = toastNotification ? getAlertClass(toastNotification.severity) : '';
 
     useEffect(() => {
         if (!serverId) {
@@ -63,6 +90,33 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
         const id = setInterval(runMonitor, 300_000);
         return () => clearInterval(id);
     }, [serverId]);
+
+    useEffect(() => {
+        if (!serverId) {
+            return;
+        }
+        const refreshNotifications = () => {
+            refetchNotifications();
+            refetchUnread();
+        };
+        refreshNotifications();
+        const id = setInterval(refreshNotifications, 30_000);
+        return () => clearInterval(id);
+    }, [serverId, refetchNotifications, refetchUnread]);
+
+    useEffect(() => {
+        if (!toastNotification?.id) {
+            return;
+        }
+        const id = setTimeout(() => {
+            setDismissedHighAlerts((prev) => {
+                const next = new Set(prev);
+                next.add(toastNotification.id);
+                return next;
+            });
+        }, 8000);
+        return () => clearTimeout(id);
+    }, [toastNotification?.id]);
     const servers = Array.isArray(serverStatusesData) && serverStatusesData.length > 0
         ? serverStatusesData
         : (Array.isArray(serversData) ? serversData : []);
@@ -94,7 +148,13 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
                         <span className={DashboardStyles.statusDot}></span>
                         <span>System Online</span>
                     </div>
-                    <button className={DashboardStyles.notificationBtn} onClick={() => setShowNotifications(true)}>
+                    <button
+                        className={DashboardStyles.notificationBtn}
+                        onClick={() => {
+                            setShowNotifications(true);
+                            setNotificationOpenCycle(Date.now());
+                        }}
+                    >
                         <IoNotifications />
                         {(unread?.unreadCount || 0) > 0 && (
                             <span className={DashboardStyles.notificationCount}>{unread.unreadCount}</span>
@@ -157,7 +217,14 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
                     onChangeTimeMode={setTimeMode}
                 />
                 <div className={DashboardStyles.sidePanel}>
-                    <QuickActions onNavigate={onNavigate} selectedServer={selectedServer} />
+                    <QuickActions
+                        onNavigate={onNavigate}
+                        selectedServer={selectedServer}
+                        onNotificationsChanged={() => {
+                            refetchNotifications();
+                            refetchUnread();
+                        }}
+                    />
                     <ActiveServers
                         servers={servers}
                         selectedServerId={selectedServer?.serverId}
@@ -168,12 +235,38 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
             </div>
 
             <TopPerformingTools tools={metrics?.topTools || []} />
+            {toastNotification ? (
+                <div className={`${DashboardStyles.alertToast} ${toastSeverityClass ? DashboardStyles[toastSeverityClass] : ''}`} role="alert">
+                    <div className={DashboardStyles.alertMeta}>
+                        <span className={DashboardStyles.alertBadge}>{String(toastNotification.severity || 'alert')}</span>
+                        <strong>{toastNotification.title || 'Alert'}</strong>
+                    </div>
+                    <p className={DashboardStyles.alertMessage}>{toastNotification.message}</p>
+                    <div className={DashboardStyles.alertFooter}>
+                        <small className={DashboardStyles.alertTime}>{formatTime(toastNotification.createdAt)}</small>
+                        <button
+                            type="button"
+                            className={DashboardStyles.alertDismiss}
+                            onClick={() => {
+                                setDismissedHighAlerts((prev) => {
+                                    const next = new Set(prev);
+                                    next.add(toastNotification.id);
+                                    return next;
+                                });
+                            }}
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+            ) : null}
             {showNotifications ? (
                 <NotificationPanel
                     isOpen={showNotifications}
                     onClose={() => setShowNotifications(false)}
-                    notificationsData={Array.isArray(notificationsData) ? notificationsData : []}
-                    loading={notificationsLoading}
+                    notificationsData={notificationsReady ? notificationsData : []}
+                    loading={notificationsLoadingView}
+                    openCycle={notificationOpenCycle}
                     onNotificationsChanged={() => {
                         refetchNotifications();
                         refetchUnread();
@@ -213,4 +306,47 @@ function isInternalToolName(name) {
         || lower.includes('ping')
         || lower.includes('refresh')
         || lower.includes('token');
+}
+
+function isHighSeverity(severity) {
+    const level = String(severity || '').toLowerCase();
+    return level === 'error' || level === 'critical' || level === 'high';
+}
+
+function getAlertClass(severity) {
+    const level = String(severity || '').toLowerCase();
+    if (level === 'success') return 'alertSuccess';
+    if (level === 'warning') return 'alertWarning';
+    if (level === 'error' || level === 'critical' || level === 'high') return 'alertError';
+    return 'alertInfo';
+}
+
+function isRecentAlert(raw, minutes) {
+    if (!raw) {
+        return false;
+    }
+    const ts = new Date(String(raw).replace(' ', 'T'));
+    if (Number.isNaN(ts.getTime())) {
+        return false;
+    }
+    const diffMs = Date.now() - ts.getTime();
+    return diffMs >= 0 && diffMs <= minutes * 60_000;
+}
+
+function formatTime(raw) {
+    if (!raw) {
+        return '-';
+    }
+    const ts = new Date(String(raw).replace(' ', 'T'));
+    if (Number.isNaN(ts.getTime())) {
+        return String(raw);
+    }
+    return ts.toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
 }
