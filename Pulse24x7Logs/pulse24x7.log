@@ -1887,4 +1887,4 @@ java.net.UnknownHostException: trade-show-test-60065100497.zohomcp.in: Temporary
 2026-02-24 00:27:09,084 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 1 (keeping 10 tools active) 
 2026-02-24 00:27:09,102 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO 1 tools disabled for server ID: 1 
 2026-02-24 00:27:09,315 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 10 tools from server 1 
-2026-02-24 00:27:09,337 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 1 
+2026-02-24 00:27:09,337 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 1
