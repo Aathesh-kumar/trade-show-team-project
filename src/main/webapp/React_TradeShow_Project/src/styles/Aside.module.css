@@ -38,6 +38,11 @@
             align-items: center;
             gap: 0.75rem;
             white-space: nowrap;
+            cursor: var(--cursor-pointer);
+
+            & * {
+                cursor: inherit;
+            }
 
             .logoIcon {
                 display: flex;

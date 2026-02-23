@@ -659,6 +659,134 @@
     flex-direction: column;
 }
 
+.alertToast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    width: min(420px, 92vw);
+    background: linear-gradient(150deg, color-mix(in srgb, var(--info-color) 20%, transparent), rgba(15, 23, 42, 0.85));
+    border: 1px solid color-mix(in srgb, var(--info-color) 60%, transparent);
+    border-radius: 14px;
+    padding: 0.9rem 1rem;
+    color: var(--text-primary);
+    box-shadow: var(--shadow-soft);
+    z-index: 85;
+    display: grid;
+    gap: 0.45rem;
+    animation: alertRise 200ms ease-out;
+}
+
+.alertSuccess {
+    background: linear-gradient(150deg, color-mix(in srgb, var(--success-color) 22%, transparent), rgba(15, 23, 42, 0.85));
+    border-color: color-mix(in srgb, var(--success-color) 60%, transparent);
+}
+
+.alertWarning {
+    background: linear-gradient(150deg, color-mix(in srgb, var(--warning-color) 22%, transparent), rgba(15, 23, 42, 0.85));
+    border-color: color-mix(in srgb, var(--warning-color) 60%, transparent);
+}
+
+.alertError {
+    background: linear-gradient(150deg, color-mix(in srgb, var(--error-color) 22%, transparent), rgba(15, 23, 42, 0.85));
+    border-color: color-mix(in srgb, var(--error-color) 60%, transparent);
+}
+
+.alertInfo {
+    background: linear-gradient(150deg, color-mix(in srgb, var(--info-color) 22%, transparent), rgba(15, 23, 42, 0.85));
+    border-color: color-mix(in srgb, var(--info-color) 60%, transparent);
+}
+
+.alertMeta {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.95rem;
+}
+
+.alertBadge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--info-color) 28%, transparent);
+    border: 1px solid color-mix(in srgb, var(--info-color) 55%, transparent);
+}
+
+.alertMessage {
+    margin: 0;
+    font-size: 0.88rem;
+    color: color-mix(in srgb, var(--text-primary) 85%, transparent);
+}
+
+.alertFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.alertTime {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.alertDismiss {
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--info-color) 55%, transparent);
+    background: color-mix(in srgb, var(--info-color) 14%, transparent);
+    color: var(--info-color);
+    padding: 0.2rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.alertSuccess .alertBadge {
+    background: color-mix(in srgb, var(--success-color) 28%, transparent);
+    border-color: color-mix(in srgb, var(--success-color) 55%, transparent);
+}
+
+.alertWarning .alertBadge {
+    background: color-mix(in srgb, var(--warning-color) 28%, transparent);
+    border-color: color-mix(in srgb, var(--warning-color) 55%, transparent);
+}
+
+.alertError .alertBadge {
+    background: color-mix(in srgb, var(--error-color) 28%, transparent);
+    border-color: color-mix(in srgb, var(--error-color) 55%, transparent);
+}
+
+.alertSuccess .alertDismiss {
+    border-color: color-mix(in srgb, var(--success-color) 55%, transparent);
+    background: color-mix(in srgb, var(--success-color) 14%, transparent);
+    color: var(--success-color);
+}
+
+.alertWarning .alertDismiss {
+    border-color: color-mix(in srgb, var(--warning-color) 55%, transparent);
+    background: color-mix(in srgb, var(--warning-color) 14%, transparent);
+    color: var(--warning-color);
+}
+
+.alertError .alertDismiss {
+    border-color: color-mix(in srgb, var(--error-color) 55%, transparent);
+    background: color-mix(in srgb, var(--error-color) 14%, transparent);
+    color: var(--error-color);
+}
+
+@keyframes alertRise {
+    from {
+        transform: translateY(12px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
 .notificationHeader {
     padding: 12px;
     display: flex;
@@ -939,6 +1067,40 @@
 
 :root[data-theme='light'] .dashboard .notificationPanel {
   border-color: rgba(15, 23, 42, 0.18);
+}
+
+:root[data-theme='light'] .dashboard .alertToast {
+  background: linear-gradient(150deg, rgba(239, 68, 68, 0.14), rgba(255, 255, 255, 0.96));
+  color: #0f172a;
+  border-color: rgba(14, 116, 144, 0.4);
+}
+
+:root[data-theme='light'] .dashboard .alertMessage {
+  color: rgba(15, 23, 42, 0.8);
+}
+
+:root[data-theme='light'] .dashboard .alertTime {
+  color: rgba(71, 85, 105, 0.9);
+}
+
+:root[data-theme='light'] .dashboard .alertSuccess {
+  background: linear-gradient(150deg, rgba(16, 185, 129, 0.16), rgba(255, 255, 255, 0.96));
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+:root[data-theme='light'] .dashboard .alertWarning {
+  background: linear-gradient(150deg, rgba(245, 158, 11, 0.18), rgba(255, 255, 255, 0.96));
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+:root[data-theme='light'] .dashboard .alertError {
+  background: linear-gradient(150deg, rgba(239, 68, 68, 0.18), rgba(255, 255, 255, 0.96));
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+:root[data-theme='light'] .dashboard .alertInfo {
+  background: linear-gradient(150deg, rgba(14, 116, 144, 0.18), rgba(255, 255, 255, 0.96));
+  border-color: rgba(14, 116, 144, 0.4);
 }
 
 :root[data-theme='light'] .dashboard .notificationBtn,

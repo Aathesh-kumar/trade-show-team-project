@@ -35,7 +35,7 @@ export default function ActiveServers({ servers = [], selectedServerId, onSelect
                     </button>
                 ))}
             </div>
-            <button className={DashboardStyles.addServerBtn} onClick={() => onNavigate?.('configure-server')}>
+            <button type="button" className={DashboardStyles.addServerBtn} onClick={() => onNavigate?.('configure-server')}>
                 <MdAdd /> ADD NEW NODE
             </button>
         </div>

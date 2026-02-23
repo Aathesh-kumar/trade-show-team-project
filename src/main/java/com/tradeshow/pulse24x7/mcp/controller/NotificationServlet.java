@@ -26,6 +26,34 @@ public class NotificationServlet extends HttpServlet {
     }
 
     @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        initResponse(resp);
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        Integer serverId = payload.has("serverId") && !payload.get("serverId").isJsonNull()
+                ? payload.get("serverId").getAsInt()
+                : null;
+        String category = payload.has("category") && !payload.get("category").isJsonNull()
+                ? payload.get("category").getAsString()
+                : null;
+        String severity = payload.has("severity") && !payload.get("severity").isJsonNull()
+                ? payload.get("severity").getAsString()
+                : null;
+        String title = payload.has("title") && !payload.get("title").isJsonNull()
+                ? payload.get("title").getAsString()
+                : null;
+        String message = payload.has("message") && !payload.get("message").isJsonNull()
+                ? payload.get("message").getAsString()
+                : null;
+
+        boolean ok = notificationService.notify(serverId, category, severity, title, message);
+        if (!ok) {
+            sendErrorResponse(resp, "Failed to create notification", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            return;
+        }
+        sendSuccessResponse(resp, Map.of("message", "Notification created"));
+    }
+
+    @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         initResponse(resp);
         String pathInfo = req.getPathInfo();
