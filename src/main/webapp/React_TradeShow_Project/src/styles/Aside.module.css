@@ -38,6 +38,11 @@
             align-items: center;
             gap: 0.75rem;
             white-space: nowrap;
+            cursor: var(--cursor-pointer);
+
+            & * {
+                cursor: inherit;
+            }
 
             .logoIcon {
                 display: flex;
@@ -209,9 +214,12 @@
 }
 
 @keyframes pulse {
-    0%, 100% {
+
+    0%,
+    100% {
         opacity: 1;
     }
+
     50% {
         opacity: 0.5;
     }
@@ -282,7 +290,7 @@
         z-index: 999;
     }
 
-    .asideBar.open ~ .overlay,
+    .asideBar.open~.overlay,
     .overlay {
         display: block;
     }

@@ -207,11 +207,15 @@ a[href],
 button, button *,
 svg circle,
 select,
-input[type="datetime-local"] {
+input[type="datetime-local"],input[type="checkbox"] {
     cursor: var(--cursor-pointer) !important;
 }
 
-:is(h1, h2, h3, h4, h5, h6, p, span, strong, small, label), div:not(:has(> *)) {
+/* input[type="email"],input[type="password"]{
+    cursor:var(--cursor-text) !important;
+} */
+
+:is(h1, h2, h3, h4, h5, h6, p, span, strong, small, label,input), div:not(:has(> *)) {
     width: fit-content;
     cursor: var(--cursor-text);
 }
