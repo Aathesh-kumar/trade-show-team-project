@@ -12,7 +12,6 @@ import NotificationPanel from './NotificationPanel';
 import { buildUrl, getAuthHeaders } from '../../services/api';
 import useBufferedLoading from '../Hooks/useBufferedLoading';
 import LoadingSkeleton from '../Loading/LoadingSkeleton';
-import CursorStyle from "../../styles/cursor.module.css";
 
 export default function Dashboard({ selectedServer, onNavigate, onSelectServer }) {
     const [showNotifications, setShowNotifications] = useState(false);

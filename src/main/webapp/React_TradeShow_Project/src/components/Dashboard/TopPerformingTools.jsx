@@ -1,6 +1,5 @@
 import DashboardStyles from '../../styles/Dashboard.module.css';
 import { MdCloud, MdSearch, MdEmail } from 'react-icons/md';
-import CursorStyle from "../../styles/cursor.module.css";
 
 export default function TopPerformingTools({ tools = [] }) {
     const normalizedTools = tools
