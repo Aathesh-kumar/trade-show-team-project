@@ -13,7 +13,7 @@ public class DBConnection {
 
     private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/Pulse24x7";
     private static final String DEFAULT_USER = "root";
-    private static final String DEFAULT_PASSWORD = "Kasiragul97";
+    private static final String DEFAULT_PASSWORD = "aathesh";
 
     private DBConnection() {
         try {

@@ -119,6 +119,7 @@ public class HttpClientUtil {
 
             try (ClassicHttpResponse response = client.executeOpen(target, httpGet, context)) {
                 int statusCode = response.getCode();
+                System.out.println(statusCode);
                 HttpEntity responseEntity = response.getEntity();
                 String responseBody = (responseEntity != null)
                         ? EntityUtils.toString(responseEntity, StandardCharsets.UTF_8)
@@ -187,15 +188,15 @@ public class HttpClientUtil {
         }
     }
 
-    public static boolean isServerReachable(String url) {
-        try {
-            doGet(url, null);
-            return true;
-        } catch (Exception e) {
-            logger.warn("Server not reachable: {}", url);
-            return false;
-        }
-    }
+//    public static boolean isServerReachable(String url) {
+//        try {
+//            doGet(url, null);
+//            return true;
+//        } catch (Exception e) {
+//            logger.warn("Server not reachable: {}", url);
+//            return false;
+//        }
+//    }
 
     public static HttpResult canPingServer(String url, Map<String, String> headers, String jsonBody) {
         try {

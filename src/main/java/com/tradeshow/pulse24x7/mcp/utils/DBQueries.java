@@ -207,10 +207,6 @@ public class DBQueries {
         public static final String INSERT_REQUEST_LOG_PAYLOAD =
                 "INSERT INTO request_log_payloads (request_log_id, request_payload, response_body) VALUES (?, ?, ?)";
 
-        public static final String SELECT_REQUEST_LOGS_BASE =
-                "SELECT id, server_id, tool_id, tool_name, method, status_code, status_text, latency_ms, " +
-                        "error_message, response_size_bytes, user_agent, created_at " +
-                        "FROM request_logs";
 
         public static final String SELECT_REQUEST_LOGS_WITH_PAYLOAD_BASE =
                 "SELECT rl.id, rl.server_id, rl.tool_id, rl.tool_name, rl.method, rl.status_code, rl.status_text, rl.latency_ms, " +
@@ -253,7 +249,7 @@ public class DBQueries {
                         "ORDER BY total_calls DESC " +
                         "LIMIT ?";
 
-        // Notification Queries
+
         public static final String INSERT_NOTIFICATION =
                 "INSERT INTO notifications (server_id, category, severity, title, message) VALUES (?, ?, ?, ?, ?)";
 
@@ -284,6 +280,8 @@ public class DBQueries {
         public static final String COUNT_UNREAD_NOTIFICATIONS =
                 "SELECT COUNT(*) unread_count FROM notifications WHERE is_read = FALSE";
 
+        public static final String GET_PAST_TOOL =
+                "SELECT t.tool_id, t.tool_name, th.checked_at, th.is_available FROM tools_history th JOIN tools t ON th.tool_id = t.tool_id WHERE t.server_id = 1   AND th.checked_at >= NOW() - INTERVAL 60*2+10 MINUTE   AND th.checked_at <  NOW() - INTERVAL 60*2+5 MINUTE ORDER BY th.checked_at DESC";
         private DBQueries() {
         }
 }
