@@ -139,7 +139,7 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
     }
 
     return (
-        <div className={`${DashboardStyles.dashboard} ${CursorStyle.cursorDefault}`}>
+        <div className={`${DashboardStyles.dashboard}`}>
             <header className={DashboardStyles.header}>
                 <h1>Dashboard Overview</h1>
                 <div className={DashboardStyles.headerRight}>

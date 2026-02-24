@@ -202,7 +202,7 @@ button:active::after {
 ::-webkit-scrollbar-thumb:hover {
     background: color-mix(in srgb, var(--text-primary) 30%, transparent);
 }
-
+z
 a[href],
 button, button *,
 svg circle,
