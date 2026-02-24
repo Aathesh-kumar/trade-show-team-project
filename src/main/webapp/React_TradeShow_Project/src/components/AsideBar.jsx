@@ -69,9 +69,6 @@ export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate, ac
                     Logout
                 </button>
 
-                <button className={AsideStyles.mobileToggle} onClick={onToggle}>
-                    <MdDashboard />
-                </button>
             </aside>
             {isOpen && <div className={AsideStyles.overlay} onClick={onToggle}></div>}
         </>

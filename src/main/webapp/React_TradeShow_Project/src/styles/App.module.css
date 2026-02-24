@@ -6,6 +6,10 @@
     position: relative;
 }
 
+.mobileNavTrigger {
+    display: none;
+}
+
 .bootstrapPane {
     flex: 1;
     min-height: 100vh;
@@ -75,4 +79,28 @@
 .modalGhost {
     background: transparent;
     color: var(--text-muted);
+}
+
+@media (max-width: 1024px) {
+    .mobileNavTrigger {
+        position: fixed;
+        top: 14px;
+        left: 14px;
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border: 1px solid color-mix(in srgb, var(--primary-color) 30%, transparent);
+        border-radius: 10px;
+        background: linear-gradient(145deg, var(--primary-color), var(--primary-color-strong));
+        color: #fff;
+        box-shadow: 0 10px 24px rgba(2, 6, 23, 0.35);
+        z-index: 1001;
+        cursor: pointer;
+    }
+
+    .mobileNavTrigger svg {
+        width: 24px;
+        height: 24px;
+    }
 }

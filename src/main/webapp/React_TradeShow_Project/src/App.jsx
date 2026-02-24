@@ -11,10 +11,11 @@ import AuthPage from './components/Auth/AuthPage';
 import { buildUrl, getAuthHeaders } from './services/api';
 import Analytics from './components/Analytics/Analytics';
 import LoadingStyles from './styles/Loading.module.css';
+import { MdMenu } from 'react-icons/md';
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(() => localStorage.getItem('pulse24x7_current_page') || 'dashboard');
+  const [currentPage, setCurrentPage] = useState('dashboard');
   const [selectedServerId, setSelectedServerId] = useState(() => {
     const raw = localStorage.getItem('pulse24x7_selected_server_id');
     const parsed = Number(raw);
@@ -41,10 +42,6 @@ function App() {
   const servers = Array.isArray(serversData) ? serversData : [];
 
   const activeServer = servers.find((server) => server.serverId === selectedServerId) || servers[0] || null;
-
-  useEffect(() => {
-    localStorage.setItem('pulse24x7_current_page', currentPage);
-  }, [currentPage]);
 
   useEffect(() => {
     if (selectedServerId) {
@@ -247,12 +244,24 @@ function App() {
           onAuthenticated={(user) => {
             setCurrentUser(user);
             setCurrentPage('dashboard');
+            setAllowConfigureWithServers(false);
             setIsSidebarOpen(false);
           }}
         />
       ) : null}
       {!authReady ? null : currentUser ? (
         <main className={`${AppStyles.app} cursor-default`}>
+          {showSidebar ? (
+            <button
+              type="button"
+              className={AppStyles.mobileNavTrigger}
+              onClick={toggleSidebar}
+              aria-label={isSidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={isSidebarOpen}
+            >
+              <MdMenu />
+            </button>
+          ) : null}
           {showSidebar ? (
             <AsideBar
               isOpen={isSidebarOpen}
@@ -263,7 +272,6 @@ function App() {
               onLogout={() => {
                 localStorage.removeItem('mcp_jwt');
                 localStorage.removeItem('pulse24x7_selected_server_id');
-                localStorage.removeItem('pulse24x7_current_page');
                 setIsSidebarOpen(false);
                 setCurrentUser(null);
                 setCurrentPage('dashboard');

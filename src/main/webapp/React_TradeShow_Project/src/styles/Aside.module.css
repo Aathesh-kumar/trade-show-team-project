@@ -193,10 +193,6 @@
         }
     }
 
-    .mobileToggle {
-        display: none;
-    }
-
     .logoutBtn {
         margin: 0 0.8rem;
         min-height: 34px;
@@ -246,28 +242,6 @@
         .statusInfo {
             opacity: 1;
             visibility: visible;
-        }
-
-        .mobileToggle {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: absolute;
-            right: -50px;
-            top: 20px;
-            width: 40px;
-            height: 40px;
-            background-color: var(--primary-color);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            cursor: pointer;
-            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
-
-            svg {
-                width: 24px;
-                height: 24px;
-            }
         }
 
         .logoutBtn {
