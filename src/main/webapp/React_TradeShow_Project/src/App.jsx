@@ -250,7 +250,7 @@ function App() {
         />
       ) : null}
       {!authReady ? null : currentUser ? (
-        <main className={`${AppStyles.app} cursor-default`}>
+        <main className={AppStyles.app}>
           {showSidebar ? (
             <button
               type="button"

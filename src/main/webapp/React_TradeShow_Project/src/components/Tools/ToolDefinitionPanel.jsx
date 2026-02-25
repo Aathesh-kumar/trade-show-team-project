@@ -70,9 +70,6 @@ export default function ToolDefinitionPanel({ tool, onClose, onTest }) {
                             <MdPlayArrow />
                             {tool.isAvailability ? 'Test Tool' : 'Tool Inactive'}
                         </button>
-                        <button className={ToolsStyles.secondaryBtn}>
-                            <MdEdit />
-                        </button>
                     </div>
                 </section>
             </div>

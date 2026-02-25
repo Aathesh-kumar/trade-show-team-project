@@ -70,7 +70,7 @@ export default function Analytics({ selectedServer }) {
       <div className={DashboardStyles.statsGrid}>
         <section className={DashboardStyles.systemHealth}>
           <div className={DashboardStyles.sectionHeader}>
-            <h2>Tools Usage (Donut)</h2>
+            <h2>Tools Usage</h2>
           </div>
           {bufferedLoading ? (
             <LoadingSkeleton type="card" lines={5} />
@@ -107,7 +107,7 @@ export default function Analytics({ selectedServer }) {
 
         <section className={DashboardStyles.systemHealth}>
           <div className={DashboardStyles.sectionHeader}>
-            <h2>Request Distribution (Pie)</h2>
+            <h2>Request Distribution</h2>
           </div>
           {bufferedLoading ? (
             <LoadingSkeleton type="card" lines={5} />

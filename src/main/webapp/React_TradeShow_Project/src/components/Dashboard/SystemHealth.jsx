@@ -71,12 +71,12 @@ const CustomTooltip = ({ active, payload, label }) => {
         fontFamily: 'inherit',
         boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
       }}>
-        <p style={{ margin: 0, fontSize: 11, color: '#64748b', marginBottom: 4 }}>
+        <p style={{ margin: 0, fontSize: 12, color: '#64748b', marginBottom: 4 }}>
           {formatTooltipTime(label)}
         </p>
         <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: accent }}>
           {payload[0].value?.toLocaleString()}
-          <span style={{ fontSize: 11, color: '#475569', fontWeight: 400, marginLeft: 4 }}>requests</span>
+          <span style={{ fontSize: 14, color: '#475569', fontWeight: 400, marginLeft: 4 }}>{payload[0].value === 1 ? "request" : "requests"}</span>
         </p>
         <p style={{ margin: '2px 0 0 0', fontSize: 11, color: accent, fontWeight: 600, textTransform: 'uppercase' }}>
           {state}
