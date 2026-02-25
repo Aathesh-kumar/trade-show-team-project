@@ -266,7 +266,7 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                         <SelectField
                             label="Server Monitor Interval (minutes)"
                             value={String(formData.monitorIntervalMinutes)}
-                            onChange={(value) => handleInputChange('monitorIntervalMinutes', Number(value) || 30)}
+                            onChange={(value) => handleInputChange('monitorIntervalMinutes', Number(value) ||5)}
                             options={['5', '10', '15', '30', '60', '120']}
                         />
 
