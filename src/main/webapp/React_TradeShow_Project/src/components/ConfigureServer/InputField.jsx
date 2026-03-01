@@ -1,5 +1,5 @@
 import ConfigureServerStyles from '../../styles/ConfigureServer.module.css';
-import { MdVisibility, MdVisibilityOff, MdLink, MdInfoOutline } from 'react-icons/md';
+import { MdVisibility, MdVisibilityOff, MdLink, MdInfoOutline, MdDns, MdBadge, MdLock, MdVpnKey } from 'react-icons/md';
 
 export default function InputField({ 
     label, 
@@ -14,6 +14,15 @@ export default function InputField({
     tooltip,
     readOnly = false
 }) {
+    const renderIcon = () => {
+        if (icon === 'link') return <MdLink />;
+        if (icon === 'server') return <MdDns />;
+        if (icon === 'client') return <MdBadge />;
+        if (icon === 'secret') return <MdLock />;
+        if (icon === 'token') return <MdVpnKey />;
+        return null;
+    };
+
     return (
         <div className={ConfigureServerStyles.inputField}>
             <label>
@@ -26,9 +35,9 @@ export default function InputField({
                 )}
             </label>
             <div className={ConfigureServerStyles.inputWrapper}>
-                {icon === 'link' && (
+                {icon && (
                     <span className={ConfigureServerStyles.inputIcon}>
-                        <MdLink />
+                        {renderIcon()}
                     </span>
                 )}
                 <input

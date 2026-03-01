@@ -262,6 +262,97 @@
   flex-wrap: wrap;
 }
 
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 0.72rem 0.85rem;
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+}
+
+.switchRow span {
+  font-size: 0.92rem;
+  color: var(--text-primary);
+}
+
+.toggle {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.toggle input {
+  display: none;
+}
+
+.toggleTrack {
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-primary) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 28%, transparent);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.toggleTrack::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.2s ease;
+}
+
+.toggle input:checked + .toggleTrack {
+  background: color-mix(in srgb, var(--primary-color) 46%, transparent);
+  border-color: color-mix(in srgb, var(--primary-color) 76%, transparent);
+}
+
+.toggle input:checked + .toggleTrack::after {
+  transform: translateX(20px);
+}
+
+.checkGrid {
+  display: grid;
+  gap: 0.62rem;
+}
+
+.checkItem {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.checkItem input {
+  width: 16px;
+  height: 16px;
+}
+
+.emailAlertsCard h2 {
+  font-size: 1.24rem;
+}
+
+.emailAlertsCard .cardHint {
+  font-size: 1rem;
+}
+
+.emailAlertsCard .switchRow span {
+  font-size: 1.05rem;
+}
+
+.emailAlertsCard .checkItem {
+  font-size: 1rem;
+}
+
 .btnPrimary,
 .btnSecondary {
   position: relative;
@@ -425,6 +516,12 @@
   opacity: 0.62;
   cursor: not-allowed;
   transform: none;
+}
+
+.saveBar {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
 }
 
 @keyframes settingsDropWave {

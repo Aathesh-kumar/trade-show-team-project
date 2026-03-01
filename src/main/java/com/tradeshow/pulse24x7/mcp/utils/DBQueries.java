@@ -34,6 +34,26 @@ public class DBQueries {
 
         public static final String DELETE_SERVER =
                 "DELETE FROM servers WHERE server_id = ? AND user_id = ?";
+        public static final String DELETE_SERVER_HISTORY_BY_SERVER =
+                "DELETE FROM server_history WHERE server_id = ?";
+        public static final String DELETE_AUTH_TOKEN_BY_SERVER =
+                "DELETE FROM auth_token WHERE server_id = ?";
+        public static final String DELETE_NOTIFICATIONS_BY_SERVER =
+                "DELETE FROM notifications WHERE server_id = ?";
+        public static final String DELETE_ORPHAN_NOTIFICATIONS =
+                "DELETE FROM notifications WHERE server_id IS NULL";
+        public static final String DELETE_REQUEST_LOG_PAYLOADS_BY_SERVER =
+                "DELETE rlp FROM request_log_payloads rlp " +
+                        "INNER JOIN request_logs rl ON rl.id = rlp.request_log_id " +
+                        "WHERE rl.server_id = ?";
+        public static final String DELETE_REQUEST_LOGS_BY_SERVER =
+                "DELETE FROM request_logs WHERE server_id = ?";
+        public static final String DELETE_TOOLS_HISTORY_BY_SERVER =
+                "DELETE th FROM tools_history th " +
+                        "INNER JOIN tools t ON t.tool_id = th.tool_id " +
+                        "WHERE t.server_id = ?";
+        public static final String DELETE_TOOLS_BY_SERVER =
+                "DELETE FROM tools WHERE server_id = ?";
 
         // Tool Queries
         public static final String INSERT_TOOL =
@@ -260,12 +280,44 @@ public class DBQueries {
         public static final String SELECT_NOTIFICATIONS =
                 "SELECT id, server_id, category, severity, title, message, is_read, created_at " +
                         "FROM notifications ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        public static final String SELECT_NOTIFICATIONS_BY_SERVER =
+                "SELECT id, server_id, category, severity, title, message, is_read, created_at " +
+                        "FROM notifications WHERE server_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        public static final String SELECT_NOTIFICATION_BY_ID =
+                "SELECT id, server_id, category, severity, title, message, is_read, created_at " +
+                        "FROM notifications WHERE id = ?";
+        public static final String SELECT_NOTIFICATIONS_BY_USER =
+                "SELECT n.id, n.server_id, n.category, n.severity, n.title, n.message, n.is_read, n.created_at " +
+                        "FROM notifications n " +
+                        "INNER JOIN servers s ON s.server_id = n.server_id " +
+                        "WHERE s.user_id = ? " +
+                        "ORDER BY n.created_at DESC LIMIT ? OFFSET ?";
+        public static final String SELECT_NOTIFICATIONS_BY_USER_AND_SERVER =
+                "SELECT n.id, n.server_id, n.category, n.severity, n.title, n.message, n.is_read, n.created_at " +
+                        "FROM notifications n " +
+                        "INNER JOIN servers s ON s.server_id = n.server_id " +
+                        "WHERE s.user_id = ? AND n.server_id = ? " +
+                        "ORDER BY n.created_at DESC LIMIT ? OFFSET ?";
 
         public static final String DELETE_NOTIFICATION =
                 "DELETE FROM notifications WHERE id = ?";
 
         public static final String DELETE_ALL_NOTIFICATIONS =
                 "DELETE FROM notifications";
+        public static final String DELETE_ALL_NOTIFICATIONS_BY_SERVER =
+                "DELETE FROM notifications WHERE server_id = ?";
+        public static final String DELETE_NOTIFICATION_BY_USER =
+                "DELETE n FROM notifications n " +
+                        "INNER JOIN servers s ON s.server_id = n.server_id " +
+                        "WHERE n.id = ? AND s.user_id = ?";
+        public static final String DELETE_ALL_NOTIFICATIONS_BY_USER =
+                "DELETE n FROM notifications n " +
+                        "INNER JOIN servers s ON s.server_id = n.server_id " +
+                        "WHERE s.user_id = ?";
+        public static final String DELETE_ALL_NOTIFICATIONS_BY_USER_AND_SERVER =
+                "DELETE n FROM notifications n " +
+                        "INNER JOIN servers s ON s.server_id = n.server_id " +
+                        "WHERE s.user_id = ? AND n.server_id = ?";
 
         public static final String COUNT_REQUEST_LOGS_BASE =
                 "SELECT COUNT(*) total FROM request_logs rl";
@@ -277,12 +329,85 @@ public class DBQueries {
 
         public static final String MARK_NOTIFICATION_READ =
                 "UPDATE notifications SET is_read = TRUE WHERE id = ?";
+        public static final String MARK_NOTIFICATION_READ_BY_USER =
+                "UPDATE notifications n " +
+                        "INNER JOIN servers s ON s.server_id = n.server_id " +
+                        "SET n.is_read = TRUE " +
+                        "WHERE n.id = ? AND s.user_id = ?";
 
         public static final String MARK_ALL_NOTIFICATIONS_READ =
                 "UPDATE notifications SET is_read = TRUE WHERE is_read = FALSE";
+        public static final String MARK_ALL_NOTIFICATIONS_READ_BY_SERVER =
+                "UPDATE notifications SET is_read = TRUE WHERE is_read = FALSE AND server_id = ?";
+        public static final String MARK_ALL_NOTIFICATIONS_READ_BY_USER =
+                "UPDATE notifications n " +
+                        "INNER JOIN servers s ON s.server_id = n.server_id " +
+                        "SET n.is_read = TRUE " +
+                        "WHERE n.is_read = FALSE AND s.user_id = ?";
+        public static final String MARK_ALL_NOTIFICATIONS_READ_BY_USER_AND_SERVER =
+                "UPDATE notifications n " +
+                        "INNER JOIN servers s ON s.server_id = n.server_id " +
+                        "SET n.is_read = TRUE " +
+                        "WHERE n.is_read = FALSE AND s.user_id = ? AND n.server_id = ?";
 
         public static final String COUNT_UNREAD_NOTIFICATIONS =
                 "SELECT COUNT(*) unread_count FROM notifications WHERE is_read = FALSE";
+        public static final String COUNT_UNREAD_NOTIFICATIONS_BY_SERVER =
+                "SELECT COUNT(*) unread_count FROM notifications WHERE is_read = FALSE AND server_id = ?";
+        public static final String COUNT_UNREAD_NOTIFICATIONS_BY_USER =
+                "SELECT COUNT(*) unread_count FROM notifications n " +
+                        "INNER JOIN servers s ON s.server_id = n.server_id " +
+                        "WHERE n.is_read = FALSE AND s.user_id = ?";
+        public static final String COUNT_UNREAD_NOTIFICATIONS_BY_USER_AND_SERVER =
+                "SELECT COUNT(*) unread_count FROM notifications n " +
+                        "INNER JOIN servers s ON s.server_id = n.server_id " +
+                        "WHERE n.is_read = FALSE AND s.user_id = ? AND n.server_id = ?";
+
+        // User Email Settings Queries
+        public static final String UPSERT_USER_EMAIL_SETTINGS =
+                "INSERT INTO user_email_settings " +
+                        "(user_id, alerts_enabled, receiver_email, min_severity, include_server_alerts, include_tool_alerts, include_system_alerts) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?) " +
+                        "ON DUPLICATE KEY UPDATE " +
+                        "alerts_enabled = VALUES(alerts_enabled), " +
+                        "receiver_email = VALUES(receiver_email), " +
+                        "min_severity = VALUES(min_severity), " +
+                        "include_server_alerts = VALUES(include_server_alerts), " +
+                        "include_tool_alerts = VALUES(include_tool_alerts), " +
+                        "include_system_alerts = VALUES(include_system_alerts), " +
+                        "updated_at = CURRENT_TIMESTAMP";
+
+        public static final String SELECT_USER_EMAIL_SETTINGS =
+                "SELECT user_id, alerts_enabled, receiver_email, min_severity, include_server_alerts, include_tool_alerts, include_system_alerts, updated_at " +
+                        "FROM user_email_settings WHERE user_id = ?";
+
+        public static final String SELECT_NOTIFICATION_OWNER_BY_SERVER =
+                "SELECT u.id AS user_id, u.full_name, u.email FROM servers s " +
+                        "INNER JOIN users u ON u.id = s.user_id " +
+                        "WHERE s.server_id = ?";
+
+        public static final String UPSERT_PASSWORD_RESET_CODE =
+                "INSERT INTO password_reset_codes (user_id, code_hash, expires_at, attempts, consumed) " +
+                        "VALUES (?, ?, ?, 0, FALSE) " +
+                        "ON DUPLICATE KEY UPDATE " +
+                        "code_hash = VALUES(code_hash), " +
+                        "expires_at = VALUES(expires_at), " +
+                        "attempts = 0, " +
+                        "consumed = FALSE, " +
+                        "updated_at = CURRENT_TIMESTAMP";
+
+        public static final String SELECT_PASSWORD_RESET_CODE =
+                "SELECT user_id, code_hash, expires_at, attempts, consumed, updated_at " +
+                        "FROM password_reset_codes WHERE user_id = ?";
+
+        public static final String INCREMENT_PASSWORD_RESET_ATTEMPTS =
+                "UPDATE password_reset_codes SET attempts = attempts + 1, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?";
+
+        public static final String CONSUME_PASSWORD_RESET_CODE =
+                "UPDATE password_reset_codes SET consumed = TRUE, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?";
+
+        public static final String UPDATE_USER_PASSWORD_HASH =
+                "UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
 
         private DBQueries() {
         }

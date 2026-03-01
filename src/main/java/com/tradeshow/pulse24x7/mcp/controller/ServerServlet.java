@@ -77,10 +77,16 @@ public class ServerServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         initResponse(resp);
         String pathInfo = req.getPathInfo();
+        String requestUri = req.getRequestURI() == null ? "" : req.getRequestURI();
+        boolean exchangeRoute = (pathInfo != null && pathInfo.startsWith("/exchange-code"))
+                || requestUri.endsWith("/server/exchange-code")
+                || requestUri.contains("/server/exchange-code");
 
         try {
             if (pathInfo == null || pathInfo.equals("/")) {
                 handleRegisterServer(req, resp);
+            } else if (exchangeRoute) {
+                handleExchangeAuthorizationCode(req, resp);
             } else if (pathInfo.equals("/test")) {
                 handleTestServer(req, resp);
             } else if (pathInfo.equals("/monitor")) {
@@ -143,7 +149,13 @@ public class ServerServlet extends HttpServlet {
         String clientSecret = ServletUtil.getString(payload, "clientSecret", null);
         String tokenEndpoint = ServletUtil.getString(payload, "tokenEndpoint", "https://accounts.zoho.in/oauth/v2/token");
         String oauthTokenLink = ServletUtil.getString(payload, "oauthTokenLink", null);
+        String authorizationCode = ServletUtil.getString(payload, "authorizationCode", null);
+        String redirectUri = ServletUtil.getString(payload, "redirectUri", null);
         Integer monitorIntervalMinutes = ServletUtil.getInteger(payload, "monitorIntervalMinutes", 30);
+        Integer connectionTimeout = ServletUtil.getInteger(payload, "connectionTimeout", 5000);
+        Boolean autoReconnect = payload != null && payload.has("autoReconnect")
+                ? payload.get("autoReconnect").getAsBoolean()
+                : Boolean.TRUE;
 
         if (serverName == null || serverName.isBlank()) {
             sendErrorResponse(resp, "Server name is required", HttpServletResponse.SC_BAD_REQUEST);
@@ -155,14 +167,6 @@ public class ServerServlet extends HttpServlet {
         }
         if (headerType == null || headerType.isBlank()) {
             sendErrorResponse(resp, "Header type is required", HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-        if (accessToken == null || accessToken.isBlank()) {
-            sendErrorResponse(resp, "Access token is required", HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-        if (refreshToken == null || refreshToken.isBlank()) {
-            sendErrorResponse(resp, "Refresh token is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
         if (clientId == null || clientId.isBlank()) {
@@ -177,6 +181,43 @@ public class ServerServlet extends HttpServlet {
             sendErrorResponse(resp, "Token endpoint is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
+        if ((accessToken == null || accessToken.isBlank() || refreshToken == null || refreshToken.isBlank())
+                && (authorizationCode == null || authorizationCode.isBlank())) {
+            sendErrorResponse(resp, "Authorization code is required to generate OAuth tokens", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        if (redirectUri == null || redirectUri.isBlank()) {
+            redirectUri = req.getScheme() + "://" + req.getServerName() + ":" + req.getServerPort() + req.getContextPath() + "/oauth-callback.html";
+        }
+
+        if (accessToken == null || accessToken.isBlank() || refreshToken == null || refreshToken.isBlank()) {
+            try {
+                JsonObject tokenResponse = HttpClientUtil.doPostForm(tokenEndpoint, null, Map.of(
+                        "grant_type", "authorization_code",
+                        "code", authorizationCode,
+                        "client_id", clientId,
+                        "client_secret", clientSecret,
+                        "redirect_uri", redirectUri
+                ));
+                accessToken = tokenResponse.has("access_token") && !tokenResponse.get("access_token").isJsonNull()
+                        ? tokenResponse.get("access_token").getAsString()
+                        : null;
+                refreshToken = tokenResponse.has("refresh_token") && !tokenResponse.get("refresh_token").isJsonNull()
+                        ? tokenResponse.get("refresh_token").getAsString()
+                        : null;
+                long expiresIn = extractProviderExpirySeconds(tokenResponse);
+                if (expiresIn > 0) {
+                    expiresAtStr = Timestamp.from(Instant.now().plusSeconds(expiresIn)).toString();
+                }
+            } catch (Exception exchangeEx) {
+                sendErrorResponse(resp, "Failed to exchange authorization code: " + exchangeEx.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+        }
+            if (accessToken == null || accessToken.isBlank() || refreshToken == null || refreshToken.isBlank()) {
+                sendErrorResponse(resp, "Unable to generate access/refresh token. Re-authorize with consent to receive refresh token.", HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
 
         HttpResult result = HttpClientUtil.canPingServer(
                 serverUrl,
@@ -207,6 +248,66 @@ public class ServerServlet extends HttpServlet {
         responseData.put("server", server);
         responseData.put("message", "Server registered successfully");
         sendSuccessResponse(resp, responseData);
+    }
+
+    private void handleExchangeAuthorizationCode(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        String code = ServletUtil.getString(payload, "code", null);
+        String redirectUri = ServletUtil.getString(payload, "redirectUri", null);
+        String clientId = ServletUtil.getString(payload, "clientId", null);
+        String clientSecret = ServletUtil.getString(payload, "clientSecret", null);
+        String tokenEndpoint = ServletUtil.getString(payload, "tokenEndpoint", "https://accounts.zoho.in/oauth/v2/token");
+
+        if (code == null || code.isBlank()) {
+            sendErrorResponse(resp, "Authorization code is required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        if (clientId == null || clientId.isBlank() || clientSecret == null || clientSecret.isBlank()) {
+            sendErrorResponse(resp, "Client ID and client secret are required", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        if (redirectUri == null || redirectUri.isBlank()) {
+            redirectUri = req.getScheme() + "://" + req.getServerName() + ":" + req.getServerPort() + req.getContextPath() + "/oauth-callback.html";
+        }
+
+        try {
+            JsonObject tokenResponse = HttpClientUtil.doPostForm(tokenEndpoint, null, Map.of(
+                    "grant_type", "authorization_code",
+                    "code", code,
+                    "client_id", clientId,
+                    "client_secret", clientSecret,
+                    "redirect_uri", redirectUri
+            ));
+
+            String accessToken = tokenResponse.has("access_token") && !tokenResponse.get("access_token").isJsonNull()
+                    ? tokenResponse.get("access_token").getAsString()
+                    : null;
+            String refreshToken = tokenResponse.has("refresh_token") && !tokenResponse.get("refresh_token").isJsonNull()
+                    ? tokenResponse.get("refresh_token").getAsString()
+                    : null;
+            long expiresIn = extractProviderExpirySeconds(tokenResponse);
+            String expiresAt = expiresIn > 0 ? Timestamp.from(Instant.now().plusSeconds(expiresIn)).toString() : null;
+
+            if (accessToken == null || accessToken.isBlank() || refreshToken == null || refreshToken.isBlank()) {
+                sendErrorResponse(resp, "Unable to generate access/refresh token. Re-authorize with consent to receive refresh token.", HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            Map<String, Object> responseData = new HashMap<>();
+            responseData.put("accessToken", accessToken);
+            responseData.put("refreshToken", refreshToken);
+            responseData.put("expiresAt", expiresAt);
+            responseData.put("expiresIn", expiresIn);
+            sendSuccessResponse(resp, responseData);
+        } catch (Exception e) {
+            sendErrorResponse(resp, "Failed to exchange authorization code: " + e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+        }
     }
 
     private void handleGetServerById(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -586,6 +687,27 @@ public class ServerServlet extends HttpServlet {
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    private long extractProviderExpirySeconds(JsonObject tokenResponse) {
+        if (tokenResponse == null) {
+            return -1L;
+        }
+        try {
+            if (tokenResponse.has("expires_in_sec") && !tokenResponse.get("expires_in_sec").isJsonNull()) {
+                return tokenResponse.get("expires_in_sec").getAsLong();
+            }
+        } catch (Exception ignored) {
+            // fallback to expires_in
+        }
+        try {
+            if (tokenResponse.has("expires_in") && !tokenResponse.get("expires_in").isJsonNull()) {
+                return tokenResponse.get("expires_in").getAsLong();
+            }
+        } catch (Exception ignored) {
+            // give up
+        }
+        return -1L;
     }
 
     private Long getUserId(HttpServletRequest req) {

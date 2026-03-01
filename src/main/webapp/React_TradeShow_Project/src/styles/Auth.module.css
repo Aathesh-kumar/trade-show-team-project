@@ -11,14 +11,6 @@
     var(--bg-app);
 }
 
-.topBrand {
-  display: grid;
-  justify-items: center;
-  text-align: center;
-  gap: 0.72rem;
-  margin-bottom: 1.25rem;
-}
-
 .logoBadge {
   width: 80px;
   height: 80px;
@@ -35,10 +27,18 @@
   }
 }
 
+.topBrand {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 0.72rem;
+  margin-bottom: 1.25rem;
+}
+
 .brandLogo {
-  width: 58px;
-  height: 58px;
-  border-radius: 10px;
+  width: 60px;
+  height: 60px;
+  scale: 1.5;
 }
 
 .topBrand h1 {
@@ -225,6 +225,60 @@
   font-size: 0.9rem;
 }
 
+.info {
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--info-color) 42%, transparent);
+  background: color-mix(in srgb, var(--info-color) 12%, transparent);
+  color: color-mix(in srgb, var(--info-color) 85%, var(--text-primary));
+  padding: 0.64rem 0.78rem;
+  font-size: 0.9rem;
+}
+
+.recoveryPanel {
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--primary-color) 30%, transparent);
+  background: color-mix(in srgb, var(--primary-color) 8%, transparent);
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.recoveryPanel h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.recoveryPanel p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.recoveryGrid {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.btnSecondary {
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--primary-color) 50%, transparent);
+  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnSecondary:hover {
+  background: color-mix(in srgb, var(--primary-color) 20%, transparent);
+}
+
+.btnSecondary:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
 .btn {
   margin-top: 0.2rem;
   min-height: 52px;
@@ -374,11 +428,6 @@
   .logoBadge {
     width: 68px;
     height: 68px;
-  }
-
-  .brandLogo {
-    width: 50px;
-    height: 50px;
   }
 
   .passwordGrid {

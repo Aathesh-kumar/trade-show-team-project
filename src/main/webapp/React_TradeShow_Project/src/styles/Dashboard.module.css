@@ -129,7 +129,7 @@
         }
 
         .statContent {
-            flex: 1;
+            flex-grow: 1;
 
             .statLabel {
                 font-size: 0.9rem;
@@ -852,10 +852,6 @@
                 grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             }
         }
-
-        .statsGrid {
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        }
     }
 }
 
@@ -872,11 +868,6 @@
                 width: 100%;
                 justify-content: space-between;
             }
-        }
-
-        .statsGrid {
-            grid-template-columns: 1fr;
-            gap: 1rem;
         }
 
         .statCard {

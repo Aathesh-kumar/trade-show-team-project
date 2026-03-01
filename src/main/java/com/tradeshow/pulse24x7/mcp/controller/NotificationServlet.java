@@ -2,6 +2,7 @@ package com.tradeshow.pulse24x7.mcp.controller;
 
 import com.google.gson.JsonObject;
 import com.tradeshow.pulse24x7.mcp.service.NotificationService;
+import com.tradeshow.pulse24x7.mcp.service.ServerService;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import com.tradeshow.pulse24x7.mcp.utils.ServletUtil;
 import jakarta.servlet.ServletException;
@@ -18,20 +19,31 @@ import java.util.Map;
 @WebServlet("/notification/*")
 public class NotificationServlet extends HttpServlet {
     private NotificationService notificationService;
+    private ServerService serverService;
 
     @Override
     public void init() throws ServletException {
         super.init();
         notificationService = new NotificationService();
+        serverService = new ServerService();
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         initResponse(resp);
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         JsonObject payload = ServletUtil.readJsonBody(req);
         Integer serverId = payload.has("serverId") && !payload.get("serverId").isJsonNull()
                 ? payload.get("serverId").getAsInt()
                 : null;
+        if (serverId != null && !serverService.isServerOwnedByUser(serverId, userId)) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
         String category = payload.has("category") && !payload.get("category").isJsonNull()
                 ? payload.get("category").getAsString()
                 : null;
@@ -56,22 +68,43 @@ public class NotificationServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         initResponse(resp);
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         String pathInfo = req.getPathInfo();
+        Integer serverId = parseInteger(req.getParameter("serverId"));
+        if (serverId != null && !serverService.isServerOwnedByUser(serverId, userId)) {
+            sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
         if ("/unread-count".equals(pathInfo)) {
-            sendSuccessResponse(resp, Map.of("unreadCount", notificationService.countUnread()));
+            sendSuccessResponse(resp, Map.of("unreadCount", notificationService.countUnreadByUser(userId, serverId)));
             return;
         }
         int limit = parseInt(req.getParameter("limit"), 50);
         int offset = parseInt(req.getParameter("offset"), 0);
-        sendSuccessResponse(resp, notificationService.getRecent(limit, offset));
+        sendSuccessResponse(resp, notificationService.getRecentByUser(userId, serverId, limit, offset));
     }
 
     @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         initResponse(resp);
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         String pathInfo = req.getPathInfo();
         if ("/read-all".equals(pathInfo)) {
-            int updated = notificationService.markAllRead();
+            JsonObject payload = ServletUtil.readJsonBody(req);
+            Integer serverId = ServletUtil.getInteger(payload, "serverId", parseInteger(req.getParameter("serverId")));
+            if (serverId != null && !serverService.isServerOwnedByUser(serverId, userId)) {
+                sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+            int updated = notificationService.markAllReadByUser(userId, serverId);
             sendSuccessResponse(resp, Map.of("updated", updated));
             return;
         }
@@ -81,7 +114,7 @@ public class NotificationServlet extends HttpServlet {
             sendErrorResponse(resp, "id is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-        boolean ok = notificationService.markRead(id);
+        boolean ok = notificationService.markReadForUser(id, userId);
         if (!ok) {
             sendErrorResponse(resp, "Notification not found", HttpServletResponse.SC_NOT_FOUND);
             return;
@@ -92,10 +125,24 @@ public class NotificationServlet extends HttpServlet {
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         initResponse(resp);
+        Long userId = getUserId(req);
+        if (userId == null) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
         String pathInfo = req.getPathInfo();
 
         if ("/all".equals(pathInfo)) {
-            int deleted = notificationService.clearAll();
+            Integer serverId = parseInteger(req.getParameter("serverId"));
+            if (serverId == null) {
+                JsonObject payload = ServletUtil.readJsonBody(req);
+                serverId = ServletUtil.getInteger(payload, "serverId", null);
+            }
+            if (serverId != null && !serverService.isServerOwnedByUser(serverId, userId)) {
+                sendErrorResponse(resp, "Server not found", HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
+            int deleted = notificationService.clearAllByUser(userId, serverId);
             sendSuccessResponse(resp, Map.of("deleted", deleted));
             return;
         }
@@ -105,7 +152,7 @@ public class NotificationServlet extends HttpServlet {
             sendErrorResponse(resp, "Notification id is required", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-        boolean deleted = notificationService.clearById(id);
+        boolean deleted = notificationService.clearByIdForUser(id, userId);
         if (!deleted) {
             sendErrorResponse(resp, "Notification not found", HttpServletResponse.SC_NOT_FOUND);
             return;
@@ -113,11 +160,24 @@ public class NotificationServlet extends HttpServlet {
         sendSuccessResponse(resp, Map.of("message", "Notification cleared"));
     }
 
+    private Long getUserId(HttpServletRequest req) {
+        Object uid = req.getAttribute("userId");
+        return (uid instanceof Long) ? (Long) uid : null;
+    }
+
     private int parseInt(String value, int fallback) {
         try {
             return value == null ? fallback : Integer.parseInt(value);
         } catch (Exception e) {
             return fallback;
+        }
+    }
+
+    private Integer parseInteger(String value) {
+        try {
+            return value == null ? null : Integer.parseInt(value);
+        } catch (Exception e) {
+            return null;
         }
     }
 

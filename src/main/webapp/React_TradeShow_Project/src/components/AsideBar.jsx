@@ -4,6 +4,15 @@ import { MdDashboard, MdListAlt, MdBuild, MdSettings, MdDonutLarge } from "react
 const pulseLogo = '/Logo.svg';
 
 export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate, activeServer, onLogout }) {
+    const navItems = [
+        { key: 'dashboard', label: 'Dashboard', icon: <MdDashboard /> },
+        { key: 'logs', label: 'Logs', icon: <MdListAlt /> },
+        { key: 'tools', label: 'Tools', icon: <MdBuild /> },
+        { key: 'analytics', label: 'Analytics', icon: <MdDonutLarge /> },
+        { key: 'settings', label: 'Settings', icon: <MdSettings /> }
+    ];
+    const activeMobileIndex = Math.max(0, navItems.findIndex((item) => item.key === currentPage));
+
     return (
         <>
             <aside className={`${AsideStyles.asideBar} ${isOpen ? AsideStyles.open : ''}`}>
@@ -71,6 +80,29 @@ export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate, ac
 
             </aside>
             {isOpen && <div className={AsideStyles.overlay} onClick={onToggle}></div>}
+
+            <nav className={AsideStyles.mobileNav} aria-label="Mobile navigation">
+                <div
+                    className={AsideStyles.mobileNavTrack}
+                    style={{ "--mobile-active-index": activeMobileIndex }}
+                >
+                    {navItems.map((item) => {
+                        const active = currentPage === item.key;
+                        return (
+                            <button
+                                key={item.key}
+                                type="button"
+                                className={`${AsideStyles.mobileNavItem} ${active ? AsideStyles.mobileNavItemActive : ''}`}
+                                onClick={() => onNavigate(item.key)}
+                                aria-label={item.label}
+                            >
+                                <span className={AsideStyles.mobileNavIcon}>{item.icon}</span>
+                                {active ? <span className={AsideStyles.mobileNavLabel}>{item.label}</span> : null}
+                            </button>
+                        );
+                    })}
+                </div>
+            </nav>
         </>
     );
 }

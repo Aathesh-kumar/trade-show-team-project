@@ -1,54 +1,48 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { usePost } from '../Hooks/usePost';
 import ConfigureServerStyles from '../../styles/ConfigureServer.module.css';
 import Breadcrumb from './Breadcrumb';
 import FormSection from './FormSection';
 import InputField from './InputField';
 import { SelectField, SliderField, ToggleField, Toast } from './FormFields';
-import DateTimeField from './DateTimeField';
 import LoadingDots from '../Loading/LoadingDots';
-import { MdBook, MdMessage, MdSensors } from 'react-icons/md';
-import { buildUrl } from '../../services/api';
+import { MdBook, MdMessage } from 'react-icons/md';
+import { buildUrl, getAuthHeaders, parseApiResponse, unwrapData } from '../../services/api';
 
-export default function ConfigureServer({ onClose, onSuccess }) {
+export default function ConfigureServer({ onClose, onSuccess, canLogout = false, onLogout }) {
+    const redirectUri = `${window.location.origin}/trade-show-team-project/oauth-callback.html`;
     const [formData, setFormData] = useState({
         serverName: '',
         serverUrl: '',
-        headerType: 'Bearer',
+        headerType: 'Zoho-oauthtoken',
         accessToken: '',
         refreshToken: '',
-        expiresAt: '',
         clientId: '',
         clientSecret: '',
-        oauthTokenLink: 'https://accounts.zoho.in/oauth/v2/auth',
+        requiredScope: 'ZohoMCP.tool.execute',
+        additionalScopes: '',
+        oauthBaseUrl: 'https://accounts.zoho.in',
         tokenEndpoint: 'https://accounts.zoho.in/oauth/v2/token',
         monitorIntervalMinutes: 30,
         connectionTimeout: 5000,
         autoReconnect: true
     });
 
-    const [showAccessToken, setShowAccessToken] = useState(false);
-    const [showRefreshToken, setShowRefreshToken] = useState(false);
+    const [authorizationCode, setAuthorizationCode] = useState('');
     const [showClientSecret, setShowClientSecret] = useState(false);
+    const [exchangingToken, setExchangingToken] = useState(false);
     const [toast, setToast] = useState(null);
-    const [testingConnection, setTestingConnection] = useState(false);
 
     const { loading, execute } = usePost(buildUrl('/server'), {
         validateData: (data) => {
             if (!data.serverName || data.serverName.trim().length < 3) {
                 return 'Server name must be at least 3 characters';
             }
-            if (!data.serverUrl || !/^https?:\/\/.+/.test(data.serverUrl)) {
-                return 'Invalid server URL format (must start with http:// or https://)';
+            if (!data.serverUrl || !String(data.serverUrl).toLowerCase().includes('mcp/')) {
+                return 'Server URL must contain `mcp/` in the endpoint path';
             }
             if (!data.headerType || !String(data.headerType).trim()) {
                 return 'Header type is required';
-            }
-            if (!data.accessToken || data.accessToken.trim().length < 10) {
-                return 'Access token is required and must be at least 10 characters';
-            }
-            if (!data.refreshToken || data.refreshToken.trim().length < 10) {
-                return 'Refresh token is required and must be at least 10 characters';
             }
             if (!data.clientId || !String(data.clientId).trim()) {
                 return 'Client ID is required';
@@ -56,8 +50,14 @@ export default function ConfigureServer({ onClose, onSuccess }) {
             if (!data.clientSecret || !String(data.clientSecret).trim()) {
                 return 'Client Secret is required';
             }
-            if (!data.oauthTokenLink || !/^https?:\/\/.+/.test(data.oauthTokenLink)) {
-                return 'OAuth Token Link is required and must be valid';
+            if (!data.requiredScope || !String(data.requiredScope).trim()) {
+                return 'Required scope is required';
+            }
+            if (!data.oauthBaseUrl || !/^https?:\/\/.+/.test(data.oauthBaseUrl)) {
+                return 'OAuth Base URL is required and must be valid';
+            }
+            if (!data.accessToken || !String(data.accessToken).trim() || !data.refreshToken || !String(data.refreshToken).trim()) {
+                return 'Click Open OAuth and complete token generation before saving';
             }
             if (!data.tokenEndpoint || !/^https?:\/\/.+/.test(data.tokenEndpoint)) {
                 return 'Token Endpoint is required and must be valid';
@@ -66,6 +66,10 @@ export default function ConfigureServer({ onClose, onSuccess }) {
             if (!Number.isFinite(interval) || interval < 1 || interval > 1440) {
                 return 'Monitor interval must be between 1 and 1440 minutes';
             }
+            const timeout = Number(data.connectionTimeout);
+            if (!Number.isFinite(timeout) || timeout < 1000 || timeout > 30000) {
+                return 'Connection timeout must be between 1000ms and 30000ms';
+            }
             return true;
         },
         onSuccess: (response) => {
@@ -73,59 +77,197 @@ export default function ConfigureServer({ onClose, onSuccess }) {
             setToast({ type: 'success', message: 'Server configured successfully!' });
             setTimeout(() => {
                 onSuccess && onSuccess(server);
-            }, 2000);
+            }, 900);
         },
         onError: (error) => {
             setToast({ type: 'error', message: error.message });
         }
     });
-    const { execute: testServer } = usePost(buildUrl('/server/test'));
 
     const handleInputChange = (field, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
+        setFormData((prev) => {
+            const next = { ...prev, [field]: value };
+            if (field === 'clientId' || field === 'clientSecret' || field === 'oauthBaseUrl' || field === 'requiredScope' || field === 'additionalScopes') {
+                next.accessToken = '';
+                next.refreshToken = '';
+                next.expiresAt = null;
+            }
+            return next;
+        });
+        if (field === 'clientId' || field === 'clientSecret' || field === 'oauthBaseUrl' || field === 'requiredScope' || field === 'additionalScopes') {
+            setAuthorizationCode('');
+        }
     };
 
-    const quickIntervals = [5, 10, 15, 30, 60];
+    const quickIntervals = [5, 10, 15, 30, 60, 120];
+    const finalScope = useMemo(
+        () => buildScopeString(formData.requiredScope, formData.additionalScopes),
+        [formData.requiredScope, formData.additionalScopes]
+    );
+    const oauthUrl = useMemo(
+        () => buildAuthorizeUrl(formData.oauthBaseUrl, finalScope, formData.clientId, redirectUri, null),
+        [formData.oauthBaseUrl, finalScope, formData.clientId, redirectUri]
+    );
 
-    const handleTestConnection = async () => {
-        setTestingConnection(true);
-        setToast(null);
+    const openOAuthWindow = () => {
+        const clientId = String(formData.clientId || '').trim();
+        const clientSecret = String(formData.clientSecret || '').trim();
+        if (!clientId || !clientSecret) {
+            setToast({ type: 'error', message: 'Enter client ID and client secret before opening OAuth.' });
+            return;
+        }
+        if (authorizationCode) {
+            setToast({ type: 'success', message: 'OAuth already connected. Change scope/client settings to re-authorize.' });
+            return;
+        }
+        if (!finalScope) {
+            setToast({ type: 'error', message: 'Scope is required before opening OAuth.' });
+            return;
+        }
+        const state = `pulse_server_setup_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const authUrl = buildAuthorizeUrl(formData.oauthBaseUrl, finalScope, clientId, redirectUri, state);
+        if (!authUrl) {
+            setToast({ type: 'error', message: 'OAuth URL cannot be generated. Check base URL, scope, and client ID.' });
+            return;
+        }
+        const popup = window.open(authUrl, 'pulse_server_oauth', 'width=900,height=760,resizable=yes,scrollbars=yes');
+        if (!popup) {
+            setToast({ type: 'error', message: 'Popup blocked. Allow popups and retry OAuth.' });
+            return;
+        }
 
+        let pollId = null;
+        let handled = false;
+        const cleanup = () => {
+            window.removeEventListener('message', onMessage);
+            if (pollId) {
+                clearInterval(pollId);
+            }
+        };
+
+        const handleCode = async (code) => {
+            if (handled || !code) {
+                return;
+            }
+            handled = true;
+            cleanup();
+            try {
+                popup.close();
+            } catch {
+                // ignore popup close failures
+            }
+            setAuthorizationCode(code);
+            await exchangeAuthorizationCode(code);
+        };
+
+        const onMessage = (event) => {
+            const payload = event.data || {};
+            if (payload.type !== 'pulse_oauth_callback') {
+                return;
+            }
+            if (payload.state !== state || !payload.code) {
+                return;
+            }
+            handleCode(payload.code);
+        };
+        window.addEventListener('message', onMessage);
+
+        pollId = setInterval(async () => {
+            try {
+                if (popup.closed) {
+                    cleanup();
+                    return;
+                }
+                const popupHref = popup.location.href;
+                const popupUrl = new URL(popupHref);
+                const popupState = popupUrl.searchParams.get('state');
+                const popupCode = popupUrl.searchParams.get('code');
+                if (!popupCode || !popupState || popupState !== state) {
+                    return;
+                }
+                await handleCode(popupCode);
+            } catch {
+                // cross-origin until redirect returns to our callback URL
+            }
+        }, 450);
+    };
+
+    const handleCopyOAuthUrl = async () => {
+        if (!oauthUrl) {
+            setToast({ type: 'error', message: 'OAuth URL is empty. Fill client ID and scope first.' });
+            return;
+        }
         try {
-            const response = await testServer({
-                serverUrl: formData.serverUrl,
-                headerType: formData.headerType,
-                accessToken: formData.accessToken
-            });
-            setToast({
-                type: 'success',
-                message: `Connection successful (${response?.latencyMs ?? 0} ms)`
-            });
-        } catch (err) {
-            setToast({
-                type: 'error',
-                message: err.message || 'Connection test failed'
-            });
-        } finally {
-            setTestingConnection(false);
+            await navigator.clipboard.writeText(oauthUrl);
+            setToast({ type: 'success', message: 'OAuth URL copied.' });
+        } catch {
+            setToast({ type: 'error', message: 'Failed to copy OAuth URL.' });
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-    
         try {
+            const oauthBase = String(formData.oauthBaseUrl || '').replace(/\/$/, '');
             const payload = {
                 ...formData,
-                oauthTokenLink: formData.oauthTokenLink || '',
-                expiresAt: formData.expiresAt || getDefaultExpiryIso()
+                scope: finalScope,
+                oauthTokenLink: `${oauthBase}/oauth/v2/auth`,
+                authorizationCode,
+                redirectUri,
+                monitorIntervalMinutes: Number(formData.monitorIntervalMinutes) || 30,
+                connectionTimeout: clampTimeout(formData.connectionTimeout, formData.autoReconnect),
+                expiresAt: formData.expiresAt || null
             };
             await execute(payload);
         } catch {
             // handled in hook
+        }
+    };
+
+    const exchangeAuthorizationCode = async (code) => {
+        const clientId = String(formData.clientId || '').trim();
+        const clientSecret = String(formData.clientSecret || '').trim();
+        const tokenEndpoint = String(formData.tokenEndpoint || '').trim();
+        if (!clientId || !clientSecret || !tokenEndpoint) {
+            setToast({ type: 'error', message: 'Token exchange needs client ID, client secret, and token endpoint.' });
+            return;
+        }
+
+        setExchangingToken(true);
+        setToast({ type: 'success', message: 'Authorization code captured. Exchanging for tokens...' });
+        try {
+            const response = await fetch(buildUrl('/server/exchange-code'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders()
+                },
+                body: JSON.stringify({
+                    code,
+                    redirectUri,
+                    clientId,
+                    clientSecret,
+                    tokenEndpoint
+                })
+            });
+            const parsed = await parseApiResponse(response);
+            const data = unwrapData(parsed) || {};
+            if (!data?.accessToken || !data?.refreshToken) {
+                throw new Error('Token exchange failed');
+            }
+
+            setFormData((prev) => ({
+                ...prev,
+                accessToken: data.accessToken || '',
+                refreshToken: data.refreshToken || '',
+                expiresAt: data.expiresAt || null
+            }));
+            setToast({ type: 'success', message: 'OAuth tokens generated successfully.' });
+        } catch (error) {
+            setToast({ type: 'error', message: error?.message || 'Failed to exchange authorization code.' });
+        } finally {
+            setExchangingToken(false);
         }
     };
 
@@ -146,34 +288,29 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                 </header>
 
                 <form className={ConfigureServerStyles.form} onSubmit={handleSubmit}>
-                    <FormSection
-                        icon="info"
-                        title="GENERAL INFORMATION"
-                    >
+                    <FormSection icon="info" title="GENERAL INFORMATION">
                         <InputField
                             label="Server Name"
-                            placeholder="e.g., Production Analytics Engine"
+                            placeholder="e.g., Production MCP Server"
                             value={formData.serverName}
                             onChange={(value) => handleInputChange('serverName', value)}
                             required
+                            icon="server"
                             tooltip="A descriptive name for your Pulse24x7 server"
                         />
 
                         <InputField
                             label="Server URL (Endpoint)"
-                            placeholder="wss://mcp.production-server.com/v1"
+                            placeholder="api.example.com/mcp/v1"
                             value={formData.serverUrl}
                             onChange={(value) => handleInputChange('serverUrl', value)}
                             required
                             icon="link"
-                            tooltip="WebSocket URL for the Pulse24x7 endpoint"
+                            tooltip="Endpoint must include mcp/ in the URL path"
                         />
                     </FormSection>
 
-                    <FormSection
-                        icon="lock"
-                        title="AUTHENTICATION"
-                    >
+                    <FormSection icon="lock" title="AUTHENTICATION">
                         <SelectField
                             label="Header Type"
                             value={formData.headerType}
@@ -188,57 +325,54 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                         />
 
                         <InputField
-                            label="Access Token"
-                            type={showAccessToken ? 'text' : 'password'}
-                            placeholder="Enter your access token"
-                            value={formData.accessToken}
-                            onChange={(value) => handleInputChange('accessToken', value)}
-                            showToggle
-                            required
-                            onToggle={() => setShowAccessToken(!showAccessToken)}
-                            tooltip="Primary authentication token for API access"
-                        />
-
-                        <InputField
-                            label="Refresh Token"
-                            type={showRefreshToken ? 'text' : 'password'}
-                            placeholder="Enter refresh token if available"
-                            value={formData.refreshToken}
-                            onChange={(value) => handleInputChange('refreshToken', value)}
-                            showToggle
-                            required
-                            onToggle={() => setShowRefreshToken(!showRefreshToken)}
-                            tooltip="Token used to refresh the access token when it expires"
-                        />
-
-                        <InputField
-                            label="Client ID (for auto refresh)"
-                            placeholder="Zoho OAuth client id"
+                            label="Client ID"
+                            placeholder="••••••••••••••••••••••••"
                             value={formData.clientId}
                             onChange={(value) => handleInputChange('clientId', value)}
                             required
-                            tooltip="Required to regenerate access token from refresh token"
+                            icon="client"
+                            tooltip="OAuth client ID for token generation"
                         />
 
                         <InputField
-                            label="Client Secret (for auto refresh)"
+                            label="Client Secret"
                             type={showClientSecret ? 'text' : 'password'}
-                            placeholder="Zoho OAuth client secret"
+                            placeholder="••••••••••••••••••••••••"
                             value={formData.clientSecret}
                             onChange={(value) => handleInputChange('clientSecret', value)}
                             showToggle
                             required
+                            icon="secret"
                             onToggle={() => setShowClientSecret(!showClientSecret)}
-                            tooltip="Stored for backend token refresh flow"
+                            tooltip="OAuth client secret for token generation"
                         />
 
                         <InputField
-                            label="OAuth Token Link"
-                            placeholder="https://accounts.zoho.in/oauth/v2/auth?scope=..."
-                            value={formData.oauthTokenLink}
-                            onChange={(value) => handleInputChange('oauthTokenLink', value)}
+                            label="Required Scope"
+                            placeholder="ZohoMCP.tool.execute"
+                            value={formData.requiredScope}
+                            onChange={() => null}
                             required
-                            tooltip="Open this URL to generate OAuth code/token"
+                            icon="token"
+                            tooltip="Default scope (fixed)"
+                            readOnly
+                        />
+
+                        <InputField
+                            label="Additional Scopes (comma separated)"
+                            placeholder="scope.one,scope.two"
+                            value={formData.additionalScopes}
+                            onChange={(value) => handleInputChange('additionalScopes', value)}
+                            icon="token"
+                            tooltip="These scopes will be appended after default scope with comma"
+                        />
+
+                        <InputField
+                            label="OAuth Base URL"
+                            placeholder="https://accounts.zoho.in"
+                            value={formData.oauthBaseUrl}
+                            onChange={(value) => handleInputChange('oauthBaseUrl', value)}
+                            required
                             icon="link"
                         />
 
@@ -248,30 +382,41 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                             value={formData.tokenEndpoint}
                             onChange={(value) => handleInputChange('tokenEndpoint', value)}
                             required
-                            tooltip="OAuth refresh endpoint"
+                            icon="token"
+                            tooltip="OAuth token exchange endpoint"
                         />
 
-                        <DateTimeField
-                            label="Token Expiry Time (Optional)"
-                            value={formData.expiresAt}
-                            onChange={(value) => handleInputChange('expiresAt', value)}
-                            tooltip="When the access token will expire"
-                        />
+                        {oauthUrl ? (
+                            <div className={ConfigureServerStyles.oauthUrlBox}>
+                                <textarea
+                                    readOnly
+                                    value={oauthUrl}
+                                    rows={4}
+                                    className={ConfigureServerStyles.oauthUrlText}
+                                />
+                                <div className={ConfigureServerStyles.oauthActions}>
+                                    <button type="button" className={ConfigureServerStyles.secondaryInlineBtn} onClick={handleCopyOAuthUrl}>
+                                        Copy URL
+                                    </button>
+                                </div>
+                            </div>
+                        ) : null}
+
+                        <div className={ConfigureServerStyles.actionsInline}>
+                            <button
+                                type="button"
+                                className={ConfigureServerStyles.secondaryInlineBtn}
+                                onClick={openOAuthWindow}
+                                disabled={!formData.clientId || !formData.clientSecret || !finalScope || exchangingToken}
+                            >
+                                {exchangingToken ? 'Exchanging Token...' : authorizationCode ? 'Re-Authorize OAuth' : 'Open OAuth'}
+                            </button>
+                        </div>
                     </FormSection>
 
-                    <FormSection
-                        icon="settings"
-                        title="CONNECTION SETTINGS"
-                    >
-                        <SelectField
-                            label="Server Monitor Interval (minutes)"
-                            value={String(formData.monitorIntervalMinutes)}
-                            onChange={(value) => handleInputChange('monitorIntervalMinutes', Number(value) || 30)}
-                            options={['5', '10', '15', '30', '60', '120']}
-                        />
-
+                    <FormSection icon="settings" title="CONNECTION SETTINGS">
                         <div className={ConfigureServerStyles.dateTimeField}>
-                            <label>Quick Interval Choices</label>
+                            <label>Server Monitor Interval (minutes)</label>
                             <div className={ConfigureServerStyles.quickSelectButtons}>
                                 {quickIntervals.map((mins) => (
                                     <button
@@ -280,73 +425,72 @@ export default function ConfigureServer({ onClose, onSuccess }) {
                                         className={ConfigureServerStyles.quickBtn}
                                         onClick={() => handleInputChange('monitorIntervalMinutes', mins)}
                                     >
-                                        Every {mins}m
+                                        {mins >= 60 ? `${mins / 60}h` : `${mins}m`}
                                     </button>
                                 ))}
+                            </div>
+
+                            <div className={ConfigureServerStyles.customDateTime}>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="1440"
+                                    value={Number(formData.monitorIntervalMinutes) || 30}
+                                    onChange={(e) => handleInputChange('monitorIntervalMinutes', Math.max(1, Math.min(1440, Number(e.target.value) || 30)))}
+                                    className={ConfigureServerStyles.dateTimeInput}
+                                />
                             </div>
                         </div>
 
                         <SliderField
                             label="Connection Timeout"
                             value={formData.connectionTimeout}
-                            onChange={(value) => handleInputChange('connectionTimeout', value)}
+                            onChange={(value) => handleInputChange('connectionTimeout', clampTimeout(value, formData.autoReconnect))}
                             min={1000}
-                            max={30000}
+                            max={formData.autoReconnect ? 30000 : 10000}
                             step={1000}
                             unit="ms"
-                            tooltip="Maximum time to wait for server response"
+                            tooltip={formData.autoReconnect ? '1000ms to 30000ms' : 'Auto reconnect OFF: max timeout 10000ms'}
                         />
 
                         <ToggleField
                             label="Auto-Reconnect Enabled"
-                            description="The system will attempt to reconnect if dropped."
-                            checked={formData.autoReconnect}
-                            onChange={(value) => handleInputChange('autoReconnect', value)}
+                            description={formData.autoReconnect
+                                ? 'Reconnect mode ON (extended timeout range enabled).'
+                                : 'Reconnect mode OFF (reduced timeout range).'}
+                            checked={Boolean(formData.autoReconnect)}
+                            onChange={(value) => {
+                                const nextTimeout = clampTimeout(formData.connectionTimeout, value);
+                                setFormData((prev) => ({ ...prev, autoReconnect: value, connectionTimeout: nextTimeout }));
+                            }}
                         />
                     </FormSection>
 
-                    {!formData.serverUrl || !formData.accessToken ? (
-                        <div className={ConfigureServerStyles.testInfo}>
-                            <span className={ConfigureServerStyles.infoIcon}>{<MdSensors />}</span>
-                            <div>
-                                <strong>Test connection status</strong>
-                                <p>Enter a valid URL and access token above to verify the server status before saving.</p>
-                            </div>
-                        </div>
-                    ) : null}
-
                     <div className={ConfigureServerStyles.actions}>
+                        {canLogout ? (
+                            <button
+                                type="button"
+                                className={ConfigureServerStyles.logoutBtn}
+                                onClick={onLogout}
+                                disabled={loading}
+                            >
+                                Logout
+                            </button>
+                        ) : null}
+
                         <button
                             type="button"
                             className={ConfigureServerStyles.cancelBtn}
                             onClick={onClose}
-                            disabled={loading || testingConnection}
+                            disabled={loading}
                         >
                             Cancel
                         </button>
 
                         <button
-                            type="button"
-                            className={ConfigureServerStyles.testBtn}
-                            onClick={handleTestConnection}
-                            disabled={!formData.serverUrl || !formData.accessToken || testingConnection || loading}
-                        >
-                            {testingConnection ? (
-                                <>
-                                    <LoadingDots text="" />
-                                    Testing...
-                                </>
-                            ) : (
-                                <>
-                                    {<MdSensors />} Test Connection
-                                </>
-                            )}
-                        </button>
-
-                        <button
                             type="submit"
                             className={ConfigureServerStyles.saveBtn}
-                            disabled={loading || testingConnection}
+                            disabled={loading}
                         >
                             {loading ? <LoadingDots text="Saving" /> : 'Save Server'}
                         </button>
@@ -383,8 +527,32 @@ export default function ConfigureServer({ onClose, onSuccess }) {
     );
 }
 
-function getDefaultExpiryIso() {
-    const d = new Date(Date.now() + 60 * 60 * 1000);
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+function clampTimeout(value, autoReconnect) {
+    const min = 1000;
+    const max = autoReconnect ? 30000 : 10000;
+    const n = Number(value) || min;
+    return Math.max(min, Math.min(max, n));
+}
+
+function buildScopeString(requiredScope, additionalScopes) {
+    const required = String(requiredScope || '').trim();
+    const extras = String(additionalScopes || '')
+        .split(',')
+        .map((scope) => scope.trim())
+        .filter(Boolean);
+    if (!required) {
+        return extras.join(',');
+    }
+    return [required, ...extras].join(',');
+}
+
+function buildAuthorizeUrl(baseUrl, scope, clientId, redirectUri, state) {
+    const base = String(baseUrl || '').replace(/\/$/, '');
+    const normalizedScope = String(scope || '').trim();
+    const normalizedClientId = String(clientId || '').trim();
+    if (!base || !normalizedScope || !normalizedClientId) {
+        return '';
+    }
+    const nextState = state || `pulse_server_setup_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    return `${base}/oauth/v2/auth?scope=${encodeURIComponent(normalizedScope)}&client_id=${encodeURIComponent(normalizedClientId)}&state=${encodeURIComponent(nextState)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&access_type=offline&prompt=consent`;
 }

@@ -47,4 +47,15 @@ public final class ServletUtil {
             return defaultValue;
         }
     }
+
+    public static boolean getBoolean(JsonObject json, String key, boolean defaultValue) {
+        if (json == null || !json.has(key) || json.get(key).isJsonNull()) {
+            return defaultValue;
+        }
+        try {
+            return json.get(key).getAsBoolean();
+        } catch (Exception ex) {
+            return defaultValue;
+        }
+    }
 }
