@@ -206,10 +206,9 @@ public class AuthTokenService {
                 ? response.get("refresh_token").getAsString()
                 : token.getRefreshToken();
 
-        Timestamp expiresAt = null;
-        if (response.has("expires_in_sec") && !response.get("expires_in_sec").isJsonNull()) {
-            long seconds = response.get("expires_in_sec").getAsLong();
-            expiresAt = Timestamp.from(Instant.now().plusSeconds(seconds));
+        Timestamp expiresAt = resolveExpiryFromProviderOrConfigured(response, token);
+        if (expiresAt == null) {
+            expiresAt = Timestamp.from(Instant.now().plusSeconds(3600L));
         }
 
         boolean saved = saveToken(
@@ -233,6 +232,46 @@ public class AuthTokenService {
         result.put("refreshToken", newRefreshToken);
         result.put("expiresAt", expiresAt);
         return result;
+    }
+
+    private Timestamp resolveExpiryFromProviderOrConfigured(JsonObject response, AuthToken token) {
+        if (hasConfiguredExpiryWindow(token)) {
+            long configuredSeconds = Math.max(60L, resolveConfiguredExpirySeconds(token));
+            return Timestamp.from(Instant.now().plusSeconds(configuredSeconds));
+        }
+        long providerSeconds = extractProviderExpirySeconds(response);
+        if (providerSeconds > 0) {
+            return Timestamp.from(Instant.now().plusSeconds(providerSeconds));
+        }
+        return Timestamp.from(Instant.now().plusSeconds(3600L));
+    }
+
+    private boolean hasConfiguredExpiryWindow(AuthToken token) {
+        if (token == null || token.getExpiresAt() == null || token.getUpdatedAt() == null) {
+            return false;
+        }
+        return token.getExpiresAt().getTime() - token.getUpdatedAt().getTime() > 0;
+    }
+
+    private long extractProviderExpirySeconds(JsonObject response) {
+        if (response == null) {
+            return -1L;
+        }
+        if (response.has("expires_in_sec") && !response.get("expires_in_sec").isJsonNull()) {
+            try {
+                return response.get("expires_in_sec").getAsLong();
+            } catch (Exception ignored) {
+                // fallback
+            }
+        }
+        if (response.has("expires_in") && !response.get("expires_in").isJsonNull()) {
+            try {
+                return response.get("expires_in").getAsLong();
+            } catch (Exception ignored) {
+                // fallback
+            }
+        }
+        return -1L;
     }
 
     private void recordTokenRefreshLog(Integer serverId, String tokenEndpoint, boolean success,

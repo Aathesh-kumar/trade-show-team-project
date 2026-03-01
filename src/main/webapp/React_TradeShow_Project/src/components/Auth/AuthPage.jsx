@@ -9,50 +9,59 @@ import {
   MdArrowForward
 } from 'react-icons/md';
 import AuthStyles from '../../styles/Auth.module.css';
-import { buildUrl, parseApiResponse, unwrapData } from '../../services/api';
-import pulseLogo from '../../assets/pulse24x7-logo.png';
+import { API_BASE, buildUrl, parseApiResponse, unwrapData } from '../../services/api';
+const pulseLogo = '/Logo.svg';
 
 export default function AuthPage({ onAuthenticated }) {
   const [mode, setMode] = useState('login');
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [signupForm, setSignupForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '', acceptedTerms: false });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const passwordStrength = getPasswordStrength(password);
+  const [zohoLoading, setZohoLoading] = useState(false);
+  const passwordStrength = getPasswordStrength(signupForm.password);
+  const apiOrigin = (() => {
+    try {
+      return new URL(API_BASE).origin;
+    } catch {
+      return '';
+    }
+  })();
+
+  const currentEmail = mode === 'login' ? loginForm.email : signupForm.email;
+  const currentPassword = mode === 'login' ? loginForm.password : signupForm.password;
 
   const switchMode = (nextMode) => {
     setMode(nextMode);
     setError('');
-    setPassword('');
-    setConfirmPassword('');
-    setAcceptedTerms(false);
+    setLoginForm({ email: '', password: '' });
+    setSignupForm({ fullName: '', email: '', password: '', confirmPassword: '', acceptedTerms: false });
+    setShowPassword(false);
+    setShowConfirmPassword(false);
   };
 
   const submit = async () => {
     setError('');
-    if (!email.trim() || !password) {
+    if (!currentEmail.trim() || !currentPassword) {
       setError('Email and password are required.');
       return;
     }
     if (mode === 'signup') {
-      if (!fullName.trim()) {
+      if (!signupForm.fullName.trim()) {
         setError('Full name is required.');
         return;
       }
-      if (password.length < 8) {
+      if (signupForm.password.length < 8) {
         setError('Password must be at least 8 characters.');
         return;
       }
-      if (password !== confirmPassword) {
+      if (signupForm.password !== signupForm.confirmPassword) {
         setError('Password and confirm password do not match.');
         return;
       }
-      if (!acceptedTerms) {
+      if (!signupForm.acceptedTerms) {
         setError('Please agree to Terms and Privacy Policy.');
         return;
       }
@@ -61,8 +70,8 @@ export default function AuthPage({ onAuthenticated }) {
     try {
       const endpoint = mode === 'login' ? '/user-auth/login' : '/user-auth/signup';
       const payload = mode === 'login'
-        ? { email, password }
-        : { fullName, email, password };
+        ? { email: loginForm.email, password: loginForm.password }
+        : { fullName: signupForm.fullName, email: signupForm.email, password: signupForm.password };
       const response = await fetch(buildUrl(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -83,6 +92,79 @@ export default function AuthPage({ onAuthenticated }) {
     }
   };
 
+  const continueWithZoho = async () => {
+    const clientId = import.meta.env.VITE_ZOHO_LOGIN_CLIENT_ID;
+    const configuredRedirectUri = import.meta.env.VITE_ZOHO_LOGIN_REDIRECT_URI;
+    const zohoBase = (import.meta.env.VITE_ZOHO_LOGIN_BASE_URL || 'https://accounts.zoho.in').replace(/\/$/, '');
+    const redirectUri = configuredRedirectUri || `${window.location.origin}/trade-show-team-project/oauth-callback.html`;
+    if (!clientId) {
+      setError('Zoho login is not configured. Missing VITE_ZOHO_LOGIN_CLIENT_ID.');
+      return;
+    }
+
+    const scope = 'openid profile email,ZohoMCP.tool.execute';
+    const state = `pulse_login_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    const authUrl = `${zohoBase}/oauth/v2/auth?scope=${encodeURIComponent(scope)}&client_id=${encodeURIComponent(clientId)}&response_type=code&access_type=offline&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
+    setError('');
+    setZohoLoading(true);
+
+    const popup = window.open(authUrl, 'pulse_zoho_login', 'width=820,height=760,resizable=yes,scrollbars=yes');
+    if (!popup) {
+      setZohoLoading(false);
+      setError('Popup blocked. Allow popups and try again.');
+      return;
+    }
+
+    const finish = () => setZohoLoading(false);
+    const timeoutId = setTimeout(() => {
+      window.removeEventListener('message', onMessage);
+      finish();
+      setError('Zoho login timed out. Please retry.');
+    }, 120000);
+
+    const onMessage = async (event) => {
+      const allowedOrigins = new Set([window.location.origin, apiOrigin].filter(Boolean));
+      if (!allowedOrigins.has(event.origin)) {
+        return;
+      }
+      const payload = event.data || {};
+      if (payload.type !== 'pulse_oauth_callback') {
+        return;
+      }
+      const code = String(payload.code || '').trim();
+      const responseState = String(payload.state || '').trim();
+      if (!code || responseState !== state) {
+        return;
+      }
+      clearTimeout(timeoutId);
+      window.removeEventListener('message', onMessage);
+      try {
+        const response = await fetch(buildUrl('/user-auth/zoho'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code,
+            redirectUri,
+            zohoBaseUrl: zohoBase
+          })
+        });
+        const body = await parseApiResponse(response);
+        const data = unwrapData(body);
+        if (!data?.token) {
+          throw new Error('Zoho login failed: token missing.');
+        }
+        localStorage.setItem('mcp_jwt', data.token);
+        onAuthenticated?.(data.user);
+      } catch (e) {
+        setError(e.message || 'Zoho authentication failed');
+      } finally {
+        finish();
+      }
+    };
+
+    window.addEventListener('message', onMessage);
+  };
+
   return (
     <div className={AuthStyles.authPage}>
       <div className={AuthStyles.topBrand}>
@@ -91,14 +173,14 @@ export default function AuthPage({ onAuthenticated }) {
             <img src={pulseLogo} alt="Pulse24x7 logo" className={AuthStyles.brandLogo} />
           </div>
           <h1>Pulse24x7</h1>
-          <p>Secure access to your agentic infrastructure.</p>
+          <p>Pulse of your server, 24x7</p>
         </>
       </div>
 
       <div className={AuthStyles.card}>
         <div className={AuthStyles.header}>
-          <h2>{mode === 'login' ? 'Welcome Back' : 'Create Your Account'}</h2>
-          <p>{mode === 'login' ? 'Sign in to continue with Pulse24x7 platform.' : 'Experience the next generation of cloud management.'}</p>
+          <h2>{mode === 'login' ? 'Continue where you left off' : 'Create Your Account'}</h2>
+          <p>{mode === 'login' ? 'Let\'s hear the pulse of your server' : 'Experience the next generation of cloud management.'}</p>
         </div>
 
         <form
@@ -116,8 +198,8 @@ export default function AuthPage({ onAuthenticated }) {
                 <input
                   className={AuthStyles.input}
                   placeholder="John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  value={signupForm.fullName}
+                  onChange={(e) => setSignupForm((prev) => ({ ...prev, fullName: e.target.value }))}
                 />
               </div>
             </div>
@@ -131,26 +213,31 @@ export default function AuthPage({ onAuthenticated }) {
                 className={AuthStyles.input}
                 placeholder="name@company.com"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={currentEmail}
+                autoComplete={mode === 'login' ? 'email' : 'off'}
+                onChange={(e) => {
+                  const nextEmail = e.target.value;
+                  if (mode === 'login') {
+                    setLoginForm((prev) => ({ ...prev, email: nextEmail }));
+                  } else {
+                    setSignupForm((prev) => ({ ...prev, email: nextEmail }));
+                  }
+                }}
               />
             </div>
           </div>
 
           {mode === 'login' ? (
             <div className={AuthStyles.fieldBlock}>
-              <div className={AuthStyles.labelRow}>
-                <label>PASSWORD</label>
-                <button type="button" className={AuthStyles.ghostLink}>Forgot Password?</button>
-              </div>
+              <label>PASSWORD</label>
               <div className={AuthStyles.fieldWrap}>
                 <MdLock className={AuthStyles.fieldIcon} />
                 <input
                   className={AuthStyles.input}
                   placeholder="••••••••"
                   type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm((prev) => ({ ...prev, password: e.target.value }))}
                 />
                 <button
                   type="button"
@@ -161,6 +248,7 @@ export default function AuthPage({ onAuthenticated }) {
                   {showPassword ? <MdVisibilityOff /> : <MdVisibility />}
                 </button>
               </div>
+              <button type="button" className={AuthStyles.ghostLink}>Forgot Password?</button>
             </div>
           ) : (
             <div className={AuthStyles.passwordGrid}>
@@ -172,8 +260,8 @@ export default function AuthPage({ onAuthenticated }) {
                     className={AuthStyles.input}
                     placeholder="••••••••"
                     type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    value={signupForm.password}
+                    onChange={(e) => setSignupForm((prev) => ({ ...prev, password: e.target.value }))}
                   />
                   <button
                     type="button"
@@ -187,15 +275,15 @@ export default function AuthPage({ onAuthenticated }) {
               </div>
 
               <div className={AuthStyles.fieldBlock}>
-                <label>CONFIRM</label>
+                <label>CONFIRM PASSWORD</label>
                 <div className={AuthStyles.fieldWrap}>
                   <MdSecurity className={AuthStyles.fieldIcon} />
                   <input
                     className={AuthStyles.input}
                     placeholder="••••••••"
                     type={showConfirmPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    value={signupForm.confirmPassword}
+                    onChange={(e) => setSignupForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
                   />
                   <button
                     type="button"
@@ -227,8 +315,8 @@ export default function AuthPage({ onAuthenticated }) {
               <label className={AuthStyles.termsRow}>
                 <input
                   type="checkbox"
-                  checked={acceptedTerms}
-                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  checked={signupForm.acceptedTerms}
+                  onChange={(e) => setSignupForm((prev) => ({ ...prev, acceptedTerms: e.target.checked }))}
                 />
                 <span>I agree to the <button type="button" className={AuthStyles.inlineLink}>Terms and Conditions</button> and <button type="button" className={AuthStyles.inlineLink}>Privacy Policy</button>.</span>
               </label>
@@ -240,6 +328,24 @@ export default function AuthPage({ onAuthenticated }) {
           <button type="submit" className={AuthStyles.btn} disabled={loading}>
             {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : <>Create Account <MdArrowForward /></>}
           </button>
+          {mode === 'login' ? (
+            <>
+              <div className={AuthStyles.divider}><span>OR</span></div>
+              <button
+                type="button"
+                className={AuthStyles.zohoBtn}
+                disabled={zohoLoading || loading}
+                onClick={continueWithZoho}
+              >
+                <img
+                  src="https://static.zohocdn.com/devconsole/images/Zoho.6a322ea5abc600a709e2014b607b631c.svg"
+                  alt="Zoho"
+                  className={AuthStyles.zohoLogo}
+                />
+                {zohoLoading ? 'Connecting Zoho...' : 'Continue with Zoho'}
+              </button>
+            </>
+          ) : null}
         </form>
 
         <p className={AuthStyles.switchRow}>

@@ -3,6 +3,7 @@ import RequestLogsStyles from '../../styles/RequestLogs.module.css';
 import { MdClose, MdContentCopy, MdPlayArrow, MdFlag } from 'react-icons/md';
 import { usePost } from '../Hooks/usePost';
 import { buildUrl } from '../../services/api';
+import JsonCodeEditor from '../Common/JsonCodeEditor';
 
 export default function RequestDetailsPanel({ request, selectedServer, onClose }) {
     const [copiedSection, setCopiedSection] = useState(null);
@@ -83,9 +84,12 @@ export default function RequestDetailsPanel({ request, selectedServer, onClose }
                             {copiedSection === 'request' ? 'Copied!' : 'Copy'}
                         </button>
                     </div>
-                    <pre className={RequestLogsStyles.jsonViewer}>
-                        <code>{JSON.stringify(request.requestPayload, null, 2)}</code>
-                    </pre>
+                    <JsonCodeEditor
+                        value={JSON.stringify(request.requestPayload || {}, null, 2)}
+                        readOnly={true}
+                        height="240px"
+                        className={RequestLogsStyles.jsonEditor}
+                    />
                 </section>
 
                 {/* Response Body */}
@@ -100,9 +104,12 @@ export default function RequestDetailsPanel({ request, selectedServer, onClose }
                             {copiedSection === 'response' ? 'Copied!' : 'Copy'}
                         </button>
                     </div>
-                    <pre className={RequestLogsStyles.jsonViewer}>
-                        <code>{JSON.stringify(request.responseBody, null, 2)}</code>
-                    </pre>
+                    <JsonCodeEditor
+                        value={JSON.stringify(request.responseBody || {}, null, 2)}
+                        readOnly={true}
+                        height="240px"
+                        className={RequestLogsStyles.jsonEditor}
+                    />
                 </section>
 
                 {/* Contextual Metadata */}

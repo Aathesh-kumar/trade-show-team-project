@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import ToolsStyles from '../../styles/Tools.module.css';
-import { MdClose, MdContentCopy, MdPlayArrow, MdEdit } from 'react-icons/md';
+import { MdClose, MdContentCopy, MdPlayArrow } from 'react-icons/md';
 import { FaWrench } from 'react-icons/fa';
+import JsonCodeEditor from '../Common/JsonCodeEditor';
 
 export default function ToolDefinitionPanel({ tool, onClose, onTest }) {
     const [copied, setCopied] = useState(false);
@@ -58,9 +59,12 @@ export default function ToolDefinitionPanel({ tool, onClose, onTest }) {
                             {copied ? 'Copied!' : 'Copy'}
                         </button>
                     </div>
-                    <pre className={ToolsStyles.jsonSchema}>
-                        <code>{schemaText}</code>
-                    </pre>
+                    <JsonCodeEditor
+                        value={schemaText}
+                        readOnly={true}
+                        height="260px"
+                        className={ToolsStyles.jsonEditor}
+                    />
                 </section>
 
                 <section className={ToolsStyles.panelSection}>

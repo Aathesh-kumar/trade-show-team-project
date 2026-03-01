@@ -3,7 +3,7 @@ import { MdRefresh, MdAdd, MdNetworkPing, MdVisibility } from 'react-icons/md';
 import { buildUrl, getAuthHeaders, parseApiResponse } from '../../services/api';
 import { useEffect, useState } from 'react';
 
-export default function QuickActions({ onNavigate, selectedServer, onNotificationsChanged }) {
+export default function QuickActions({ onNavigate, selectedServer, onNotificationsChanged, onRefreshData }) {
     const [busyAction, setBusyAction] = useState('');
     const [statusResult, setStatusResult] = useState('');
 
@@ -18,6 +18,9 @@ export default function QuickActions({ onNavigate, selectedServer, onNotificatio
         }
         if (type !== 'status') {
             setStatusResult('');
+        }
+        if (type === 'refresh') {
+            onRefreshData?.();
         }
         setBusyAction(type);
         const startedAt = Date.now();
@@ -48,6 +51,9 @@ export default function QuickActions({ onNavigate, selectedServer, onNotificatio
                 setStatusResult(isUp ? 'online' : 'offline');
                 await createStatusNotification(isUp);
                 setTimeout(() => setStatusResult(''), 5000);
+            }
+            if (type === 'refresh') {
+                onRefreshData?.();
             }
             await logUiRequest({
                 serverId,

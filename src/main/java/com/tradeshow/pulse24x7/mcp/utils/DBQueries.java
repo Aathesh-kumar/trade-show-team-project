@@ -178,7 +178,7 @@ public class DBQueries {
                         "    header_type = COALESCE(NULLIF(VALUES(header_type), ''), header_type, 'Bearer')," +
                         "    access_token = VALUES(access_token), " +
                         "    refresh_token = COALESCE(NULLIF(VALUES(refresh_token), ''), refresh_token), " +
-                        "    expires_at = VALUES(expires_at), " +
+                        "    expires_at = COALESCE(VALUES(expires_at), expires_at, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 HOUR)), " +
                         "    client_id = COALESCE(NULLIF(VALUES(client_id), ''), client_id), " +
                         "    client_secret = COALESCE(NULLIF(VALUES(client_secret), ''), client_secret), " +
                         "    token_endpoint = COALESCE(NULLIF(VALUES(token_endpoint), ''), token_endpoint), " +

@@ -40,6 +40,10 @@ public class UserAuthServlet extends HttpServlet {
             handleLogin(req, resp);
             return;
         }
+        if ("/zoho".equals(pathInfo)) {
+            handleZohoLogin(req, resp);
+            return;
+        }
         sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
     }
 
@@ -88,6 +92,23 @@ public class UserAuthServlet extends HttpServlet {
         User user = userAuthService.login(email, password);
         if (user == null) {
             sendErrorResponse(resp, "Invalid email or password", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+        String token = JwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole(), 8 * 3600L);
+        Map<String, Object> response = new HashMap<>();
+        response.put("token", token);
+        response.put("user", toSafeUser(user));
+        sendSuccessResponse(resp, response);
+    }
+
+    private void handleZohoLogin(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        String code = ServletUtil.getString(payload, "code", null);
+        String redirectUri = ServletUtil.getString(payload, "redirectUri", null);
+        String zohoBaseUrl = ServletUtil.getString(payload, "zohoBaseUrl", null);
+        User user = userAuthService.loginWithZoho(code, redirectUri, zohoBaseUrl);
+        if (user == null) {
+            sendErrorResponse(resp, "Zoho authentication failed", HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
         String token = JwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole(), 8 * 3600L);

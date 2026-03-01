@@ -940,50 +940,103 @@
     }
 }
 
-
-:root[data-theme='light'] .configurePage :is(h1, h2, h3, p, label, span, button, strong) {
-  color: var(--text-primary);
+[data-theme='light'] .breadcrumb,
+[data-theme='light'] .breadcrumbItem a,
+[data-theme='light'] .header p,
+[data-theme='light'] .sectionTitle,
+[data-theme='light'] .tooltip,
+[data-theme='light'] .inputIcon,
+[data-theme='light'] .toggleBtn,
+[data-theme='light'] .toggleModeBtn,
+[data-theme='light'] .previewLabel,
+[data-theme='light'] .toggleInfo p,
+[data-theme='light'] .testInfo p,
+[data-theme='light'] .cancelBtn,
+[data-theme='light'] .helpCard p,
+[data-theme='light'] .emptyStateContent p,
+[data-theme='light'] .feature span:last-child,
+[data-theme='light'] .customHeaderInput::placeholder {
+    color: var(--text-muted);
 }
 
-:root[data-theme='light'] .configurePage .header p,
-:root[data-theme='light'] .configurePage .breadcrumb,
-:root[data-theme='light'] .configurePage .tooltip,
-:root[data-theme='light'] .configurePage .statusLabel {
-  color: var(--text-muted);
+[data-theme='light'] .breadcrumbItem a:hover,
+[data-theme='light'] .breadcrumbItem .active,
+[data-theme='light'] .toggleModeBtn:hover,
+[data-theme='light'] .cancelBtn:hover:not(:disabled) {
+    color: var(--text-primary);
 }
 
-:root[data-theme='light'] .configurePage .formSection {
-  background: color-mix(in srgb, var(--bg-elev-1) 92%, transparent);
-  border-color: var(--panel-border);
+[data-theme='light'] .formSection,
+[data-theme='light'] .selectDropdownMenu {
+    background: var(--bg-elev-1);
+    border-color: var(--panel-border);
+    box-shadow: var(--shadow-soft);
 }
 
-:root[data-theme='light'] .configurePage .inputWrapper input,
-:root[data-theme='light'] .configurePage .selectDropdownButton,
-:root[data-theme='light'] .configurePage .dateTimeInput,
-:root[data-theme='light'] .configurePage .customHeaderInput {
-  background: #ffffff;
-  color: #0f172a;
-  border-color: rgba(15, 23, 42, 0.2);
+[data-theme='light'] :is(.inputWrapper input, .selectDropdownButton, .quickBtn, .dateTimeInput, .testBtn, .helpCard, .customHeaderInput) {
+    background-color: var(--input-bg);
+    border-color: var(--input-border);
+    color: var(--text-primary);
 }
 
-:root[data-theme='light'] .configurePage .inputWrapper input::placeholder,
-:root[data-theme='light'] .configurePage .customHeaderInput::placeholder {
-  color: #64748b;
+[data-theme='light'] :is(.inputWrapper input:focus, .dateTimeInput:focus, .customHeaderInput:focus) {
+    background-color: var(--input-bg-strong);
+    border-color: color-mix(in srgb, var(--primary-color) 65%, transparent);
 }
 
-:root[data-theme='light'] .configurePage .sectionTitle,
-:root[data-theme='light'] .configurePage .previewLabel,
-:root[data-theme='light'] .configurePage .toggleInfo p,
-:root[data-theme='light'] .configurePage .testInfo p,
-:root[data-theme='light'] .configurePage .helpCard p {
-  color: #475569;
+[data-theme='light'] .inputWrapper input::placeholder {
+    color: var(--input-placeholder);
 }
 
-:root[data-theme='light'] .configurePage .toggleBtn,
-:root[data-theme='light'] .configurePage .inputIcon {
-  color: #334155;
+[data-theme='light'] .selectDropdownButton:hover,
+[data-theme='light'] .selectDropdownButton:focus-visible,
+[data-theme='light'] .quickBtn:hover,
+[data-theme='light'] .testBtn:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--primary-color) 12%, var(--input-bg));
 }
 
-:root[data-theme='light'] .configurePage .toggleBtn:hover {
-  background: rgba(15, 23, 42, 0.08);
+[data-theme='light'] .dateTimeToggle {
+    background-color: var(--input-bg);
 }
+
+[data-theme='light'] .expiryPreview {
+    background-color: color-mix(in srgb, var(--success-color) 10%, transparent);
+    border-color: color-mix(in srgb, var(--success-color) 35%, transparent);
+}
+
+[data-theme='light'] .toggleSlider {
+    background-color: color-mix(in srgb, var(--text-primary) 22%, transparent);
+}
+
+[data-theme='light'] .toggleSlider:before {
+    background-color: var(--bg-elev-1);
+}
+
+[data-theme='light'] .testInfo {
+    background-color: color-mix(in srgb, var(--primary-color) 8%, transparent);
+    border-color: color-mix(in srgb, var(--primary-color) 25%, transparent);
+}
+
+[data-theme='light'] .helpCard {
+    background-color: color-mix(in srgb, var(--bg-elev-1) 92%, var(--bg-elev-2));
+}
+
+[data-theme='light'] .toastClose:hover {
+    background-color: color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+
+[data-theme='light'] .emptyState {
+    background-color: var(--bg-app);
+}
+
+[data-theme='light'] .emptyStateContent h2 {
+    color: var(--text-primary);
+}
+
+
+
+
+
+
+
+

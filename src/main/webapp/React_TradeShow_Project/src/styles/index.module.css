@@ -3,21 +3,30 @@
 :root {
     --primary-font: 'Outfit', sans-serif;
     --base-font-size: 18px;
-    --bg-app: #eef6fc;
+    --bg-app: #f4f8ff;
     --bg-elev-1: #ffffff;
-    --bg-elev-2: #e6f2fb;
+    --bg-elev-2: #e9f1fd;
     --primary-bg: #ffffff;
-    --secondary-bg: #e6f2fb;
-    --text-primary: #0f172a;
-    --text-muted: #4b5563;
-    --panel-border: rgba(148, 163, 184, 0.25);
+    --secondary-bg: #e9f1fd;
+    --text-primary: #182641;
+    --text-muted: #5d6f8d;
+    --panel-border: rgba(25, 71, 140, 0.18);
     --primary-color: #2AAAF4;
     --primary-color-strong: #0f9be7;
     --success-color: #10b981;
     --warning-color: #f59e0b;
     --error-color: #ef4444;
     --info-color: #06b6d4;
-    --shadow-soft: 0 12px 30px rgba(3, 10, 24, 0.35);
+    --shadow-soft: 0 12px 30px rgba(16, 41, 80, 0.12);
+    --overlay-bg: rgba(15, 23, 42, 0.4);
+    --surface-contrast: #102145;
+    --text-inverse: #f5f9ff;
+    --input-bg: #f7faff;
+    --input-bg-strong: #eef4ff;
+    --input-border: rgba(30, 76, 145, 0.22);
+    --input-placeholder: #7b8ba7;
+    --app-glow-1: rgba(22, 119, 255, 0.2);
+    --app-glow-2: rgba(6, 182, 212, 0.15);
     --cursor-default: url("../assets/iOS_default_cursor.svg") 0 0, auto;
     --cursor-pointer: url("../assets/iOS_pointer_cursor.svg") 5 0, pointer;
     --cursor-grab: url("../assets/iOS_grab_cursor.svg") 8 8, grab;
@@ -25,22 +34,7 @@
     --cursor-text: url("../assets/iOS_text_cursor.svg") 4 10, text;
 }
 
-:root[data-theme='light'] {
-    --bg-app: #f3f7fc;
-    --bg-elev-1: #ffffff;
-    --bg-elev-2: #e8eef8;
-    --primary-bg: #ffffff;
-    --secondary-bg: #e8eef8;
-    --text-primary: #0f172a;
-    --text-muted: #4b5563;
-    --panel-border: rgba(15, 23, 42, 0.15);
-    --primary-color: #2AAAF4;
-    --primary-color-strong: #0f9be7;
-    --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.1);
-}
-
-
-:root[data-theme='dark'] {
+[data-theme='dark'] {
     --bg-app: #090f1f;
     --bg-elev-1: #0f172a;
     --bg-elev-2: #1a2542;
@@ -52,38 +46,24 @@
     --primary-color: #2AAAF4;
     --primary-color-strong: #0f9be7;
     --shadow-soft: 0 12px 30px rgba(3, 10, 24, 0.35);
+    --overlay-bg: rgba(2, 6, 23, 0.6);
+    --surface-contrast: #0b1226;
+    --text-inverse: #f5f9ff;
+    --input-bg: rgba(255, 255, 255, 0.05);
+    --input-bg-strong: rgba(255, 255, 255, 0.08);
+    --input-border: rgba(255, 255, 255, 0.14);
+    --input-placeholder: rgba(255, 255, 255, 0.42);
+    --app-glow-1: rgba(42, 170, 244, 0.18);
+    --app-glow-2: rgba(6, 182, 212, 0.14);
 }
 
-@media (prefers-color-scheme: light) {
-    :root[data-theme='default'] {
-        --bg-app: #f3f7fc;
-        --bg-elev-1: #ffffff;
-        --bg-elev-2: #e8eef8;
-        --primary-bg: #ffffff;
-        --secondary-bg: #e8eef8;
-        --text-primary: #0f172a;
-        --text-muted: #4b5563;
-        --panel-border: rgba(15, 23, 42, 0.15);
-        --primary-color: #2AAAF4;
-        --primary-color-strong: #0f9be7;
-        --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.1);
-    }
+[data-theme='light'],
+:root {
+    color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root[data-theme='default'] {
-        --bg-app: #090f1f;
-        --bg-elev-1: #0f172a;
-        --bg-elev-2: #1a2542;
-        --primary-bg: #0f172a;
-        --secondary-bg: #1a2542;
-        --text-primary: #eef4ff;
-        --text-muted: #a9b7d6;
-        --panel-border: rgba(148, 163, 184, 0.25);
-        --primary-color: #2AAAF4;
-        --primary-color-strong: #0f9be7;
-        --shadow-soft: 0 12px 30px rgba(3, 10, 24, 0.35);
-    }
+[data-theme='dark'] {
+    color-scheme: dark;
 }
 
 * {
@@ -95,8 +75,8 @@
 
 body {
     min-height: 100vh;
-    background: radial-gradient(1200px 650px at 8% -10%, color-mix(in srgb, var(--primary-color) 18%, transparent), transparent 65%),
-    radial-gradient(800px 500px at 95% 0%, color-mix(in srgb, var(--info-color) 14%, transparent), transparent 68%),
+    background: radial-gradient(1200px 650px at 8% -10%, var(--app-glow-1), transparent 65%),
+    radial-gradient(800px 500px at 95% 0%, var(--app-glow-2), transparent 68%),
     var(--bg-app);
     font-size: var(--base-font-size);
     font-family: var(--primary-font);
@@ -126,6 +106,7 @@ label {
 button {
     position: relative;
     overflow: hidden;
+    transition: transform 160ms ease, filter 160ms ease, background-color 180ms ease, border-color 180ms ease, color 180ms ease;
 }
 
 button:active::after {
@@ -192,7 +173,7 @@ button:active::after {
 }
 
 ::-webkit-scrollbar-track {
-    background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+    background: color-mix(in srgb, var(--bg-elev-2) 85%, transparent);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -219,11 +200,35 @@ tbody tr * {
 
 :is(h1, h2, h3, h4, h5, h6, p, strong, small, label), div:not(:has(> *)), input, textarea {
     width: fit-content;
-    cursor:var(--cursor-text);
-}
-span{
     cursor: var(--cursor-text);
 }
+
+span {
+    cursor: var(--cursor-text);
+}
+
 *:disabled {
-    cursor: not-allowed;
+    cursor: not-allowed !important;
+}
+
+button:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+:where([class*='btnPrimary'], [class*='saveBtn'], [class*='modalPrimary'], [class*='modeBtnActive']):hover:not(:disabled) {
+    filter: brightness(1.08);
+}
+
+:where([class*='btnSecondary'], [class*='testBtn'], [class*='modalSecondary'], [class*='toolBtn']):hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--primary-color) 55%, transparent);
+    background-color: color-mix(in srgb, var(--primary-color) 14%, transparent);
+}
+
+:where([class*='notificationClearBtn'], [class*='logoutBtn'], [class*='cancelCustomBtn'], [class*='cancelBtn'], [class*='alertDismiss']):hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--error-color) 58%, transparent);
+    background-color: color-mix(in srgb, var(--error-color) 20%, transparent);
 }
