@@ -123,7 +123,7 @@ export default function NotificationPanel({ isOpen, onClose, notificationsData =
           ) : (
             <>
               {displayNotifications.length === 0 && (
-                <p className={DashboardStyles.emptyState}>No notifications yet.</p>
+                <p className={DashboardStyles.emptyState}>No notifications to show.</p>
               )}
               {displayNotifications.map((n) => (
                 <div

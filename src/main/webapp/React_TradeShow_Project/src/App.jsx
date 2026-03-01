@@ -173,6 +173,7 @@ function App() {
   }, []);
 
   const renderPage = () => {
+    console.log(serversData);
     if (currentUser && loadingServers && serversData == null) {
       return (
         <div className={AppStyles.bootstrapPane}>

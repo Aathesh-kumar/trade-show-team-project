@@ -39,6 +39,7 @@
     --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.1);
 }
 
+
 :root[data-theme='dark'] {
     --bg-app: #090f1f;
     --bg-elev-1: #0f172a;
@@ -216,7 +217,13 @@ tbody tr * {
     cursor: var(--cursor-pointer) !important;
 }
 
-:is(h1, h2, h3, h4, h5, h6, p, span, strong, small, label), div:not(:has(> *)), input, textarea {
+:is(h1, h2, h3, h4, h5, h6, p, strong, small, label), div:not(:has(> *)), input, textarea {
     width: fit-content;
+    cursor:var(--cursor-text);
+}
+span{
     cursor: var(--cursor-text);
+}
+*:disabled {
+    cursor: not-allowed;
 }
