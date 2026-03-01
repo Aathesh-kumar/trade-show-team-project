@@ -29,14 +29,6 @@ export const useGet = (path, options = {}) => {
     const headersKey = useMemo(() => JSON.stringify(headers || {}), [headers]);
     const dependenciesKey = useMemo(() => JSON.stringify(dependencies || []), [dependencies]);
     const resolvedUrl = useMemo(() => buildUrl(path, JSON.parse(paramsKey)), [path, paramsKey]);
-    const resolvedHeaders = useMemo(() => {
-        return {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders(),
-            ...JSON.parse(headersKey)
-        };
-    }, [headersKey]);
-
     const fetchData = useCallback(async (signal) => {
         try {
             if (!path) {
@@ -47,7 +39,11 @@ export const useGet = (path, options = {}) => {
 
             const response = await fetch(resolvedUrl, {
                 method: 'GET',
-                headers: resolvedHeaders,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders(),
+                    ...JSON.parse(headersKey)
+                },
                 signal
             });
 
@@ -66,7 +62,7 @@ export const useGet = (path, options = {}) => {
         } finally {
             setLoading(false);
         }
-    }, [path, resolvedUrl, resolvedHeaders]);
+    }, [path, resolvedUrl, headersKey]);
 
     const refetch = useCallback(() => {
         const controller = new AbortController();

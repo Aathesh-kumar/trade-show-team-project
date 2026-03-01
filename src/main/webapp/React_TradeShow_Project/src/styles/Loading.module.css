@@ -18,6 +18,31 @@
     animation: spin 0.8s linear infinite;
 }
 
+.logoLoader {
+    position: relative;
+    width: 76px;
+    height: 76px;
+    display: grid;
+    place-items: center;
+}
+
+.logoLoader::before {
+    content: '';
+    position: absolute;
+    inset: -10px;
+    border-radius: 999px;
+    background: radial-gradient(circle, color-mix(in srgb, var(--primary-color) 28%, transparent), transparent 72%);
+    animation: logoPulse 1.8s ease-in-out infinite;
+}
+
+.logoLoader img {
+    width: 58px;
+    height: 58px;
+    border-radius: 12px;
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--primary-color) 34%, transparent));
+    animation: logoFloat 2s ease-in-out infinite;
+}
+
 .spinner.small {
     width: 24px;
     height: 24px;
@@ -62,6 +87,26 @@
     }
     100% {
         transform: rotate(360deg);
+    }
+}
+
+@keyframes logoPulse {
+    0%, 100% {
+        transform: scale(0.92);
+        opacity: 0.6;
+    }
+    50% {
+        transform: scale(1.08);
+        opacity: 1;
+    }
+}
+
+@keyframes logoFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
     }
 }
 
@@ -453,30 +498,29 @@
    DARK MODE SUPPORT
    ======================================== */
 
-@media (prefers-color-scheme: light) {
-    .spinner {
-        border-color: rgba(0, 0, 0, 0.1);
-    }
+[data-theme='light'] .spinner {
+    border-color: color-mix(in srgb, var(--text-primary) 12%, transparent);
+    border-top-color: var(--primary-color);
+}
 
-    .skeletonLine,
-    .skeletonImage,
-    .skeletonCell,
-    .skeletonCustom {
-        background: linear-gradient(
-            90deg,
-            rgba(0, 0, 0, 0.05) 25%,
-            rgba(0, 0, 0, 0.1) 50%,
-            rgba(0, 0, 0, 0.05) 75%
-        );
-        background-size: 200% 100%;
-    }
+[data-theme='light'] :is(.loadingText, .dotsText) {
+    color: var(--text-muted);
+}
 
-    .progressBar {
-        background-color: rgba(0, 0, 0, 0.1);
-    }
+[data-theme='light'] .fullScreenOverlay {
+    background-color: var(--overlay-bg);
+}
 
-    .loadingText,
-    .dotsText {
-        color: rgba(0, 0, 0, 0.7);
-    }
+[data-theme='light'] :is(.skeletonLine, .skeletonImage, .skeletonStatIcon, .skeletonCell, .skeletonCustom) {
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--text-primary) 5%, transparent) 25%,
+        color-mix(in srgb, var(--text-primary) 10%, transparent) 50%,
+        color-mix(in srgb, var(--text-primary) 5%, transparent) 75%
+    );
+}
+
+[data-theme='light'] :is(.skeletonCard, .skeletonStatCard) {
+    background-color: color-mix(in srgb, var(--bg-elev-1) 90%, var(--bg-elev-2));
+    border-color: var(--panel-border);
 }

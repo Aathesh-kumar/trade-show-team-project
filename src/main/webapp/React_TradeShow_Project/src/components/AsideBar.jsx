@@ -1,7 +1,7 @@
 import AsideItem from "./AsideItem";
 import AsideStyles from '../styles/Aside.module.css';
 import { MdDashboard, MdListAlt, MdBuild, MdSettings, MdDonutLarge } from "react-icons/md";
-import pulseLogo from '../assets/pulse24x7-logo.png';
+const pulseLogo = '/Logo.svg';
 
 export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate, activeServer, onLogout }) {
     return (

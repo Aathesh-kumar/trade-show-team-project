@@ -337,6 +337,96 @@
   color: var(--text-muted);
 }
 
+.dangerCard {
+  border-color: color-mix(in srgb, var(--error-color) 45%, transparent);
+  background:
+    linear-gradient(150deg, color-mix(in srgb, var(--error-color) 6%, var(--bg-elev-1) 94%), var(--bg-elev-1)),
+    var(--bg-elev-1);
+}
+
+.dangerGrid {
+  margin-top: 0.95rem;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.serverPreview {
+  display: grid;
+  gap: 0.28rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--error-color) 35%, transparent);
+  background: color-mix(in srgb, var(--error-color) 8%, transparent);
+  padding: 0.75rem 0.9rem;
+}
+
+.serverPreview span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.serverPreview strong {
+  color: var(--text-primary);
+}
+
+.dangerField {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.dangerField label {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.selectWrap {
+  max-height: 180px;
+  overflow-y: auto;
+  border-radius: 10px;
+}
+
+.dangerSelect,
+.dangerInput {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--text-primary) 20%, transparent);
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  color: var(--text-primary);
+  padding: 0.62rem 0.75rem;
+}
+
+.dangerSelect:focus,
+.dangerInput:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--error-color) 70%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--error-color) 18%, transparent);
+}
+
+.btnDanger {
+  min-height: 40px;
+  border-radius: 11px;
+  padding: 0.45rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--error-color) 75%, transparent);
+  background: linear-gradient(140deg, color-mix(in srgb, var(--error-color) 90%, #b91c1c 10%), color-mix(in srgb, var(--error-color) 72%, #991b1b 28%));
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.btnDanger:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+.btnDanger:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+  transform: none;
+}
+
 @keyframes settingsDropWave {
   0% {
     opacity: 0.92;

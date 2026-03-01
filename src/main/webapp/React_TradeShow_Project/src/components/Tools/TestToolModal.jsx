@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react';
 import ToolsStyles from '../../styles/Tools.module.css';
 import { MdCheckCircle, MdClose, MdContentCopy, MdErrorOutline, MdPlayArrow } from 'react-icons/md';
 import { usePost } from '../Hooks/usePost';
-import { buildUrl } from '../../services/api';
+import { API_BASE, buildUrl } from '../../services/api';
 import InputField from '../ConfigureServer/InputField';
 import CustomDropdown from '../Common/CustomDropdown';
 import { useGet } from '../Hooks/useGet';
+import JsonCodeEditor from '../Common/JsonCodeEditor';
 
 const DEFAULT_SCOPE = 'ZohoMCP.tool.execute';
 
@@ -34,70 +35,107 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
         dependencies: [serverId]
     });
 
-    const { execute: testTool, loading } = usePost(
-        buildUrl('/tool/test'),
-        {
-            onSuccess: (response) => {
-                setTestResult({
-                    success: true,
-                    data: response.result || response,
-                    timestamp: new Date()
-                });
-                setErrors({});
-                onCompleted?.();
-            },
-            onError: (error) => {
-                setTestResult({
-                    success: false,
-                    error: error.message,
-                    timestamp: new Date()
-                });
-                const payload = error?.payload || {};
-                const needsScopeRecovery = payload?.errorCode === 'scope_mismatch'
-                    || /scope/i.test(String(error?.message || ''));
-                if (needsScopeRecovery) {
-                    setScopeRecovery((prev) => ({
-                        ...prev,
-                        active: true,
-                        requiredScope: payload?.requiredScope || DEFAULT_SCOPE,
-                        message: payload?.actionMessage || error.message
-                    }));
-                }
-            }
-        }
-    );
+    const {
+        execute: testTool,
+        loading
+    } = usePost(buildUrl('/tool/test'));
     const { execute: exchangeCode, loading: exchangingCode } = usePost(buildUrl('/auth/exchange-code', { serverId }));
+    const apiOrigin = (() => {
+        try {
+            return new URL(API_BASE).origin;
+        } catch {
+            return '';
+        }
+    })();
 
     const handleTest = async () => {
         setErrors({});
         setTestResult(null);
 
-        let payloadJson = '{}';
+        let payloadObject = {};
         if (mode === 'json') {
             if (inputParams.trim()) {
                 try {
-                    JSON.parse(inputParams);
+                    payloadObject = JSON.parse(inputParams);
                 } catch {
                     setErrors({ inputParams: 'Invalid JSON format' });
                     return;
                 }
+            } else {
+                payloadObject = {};
             }
-            payloadJson = inputParams || '{}';
         } else {
             const validation = validateSchema(schema, formValues, []);
             if (validation) {
                 setErrors({ form: validation });
                 return;
             }
-            payloadJson = JSON.stringify(formValues);
+            payloadObject = formValues;
         }
 
-        await testTool({
-            serverId,
-            toolId: tool.toolId && tool.toolId > 0 ? tool.toolId : null,
-            toolName: tool.toolName || tool.name,
-            inputParams: payloadJson
-        }).catch(() => null);
+        const runRequest = async (candidatePayload) => {
+            return testTool({
+                serverId,
+                toolId: tool.toolId && tool.toolId > 0 ? tool.toolId : null,
+                toolName: tool.toolName || tool.name,
+                inputParams: JSON.stringify(candidatePayload ?? {})
+            });
+        };
+
+        const trySetErrorState = (error) => {
+            const payload = error?.payload || {};
+            const needsScopeRecovery = payload?.errorCode === 'scope_mismatch'
+                || /scope/i.test(String(error?.message || ''));
+            if (needsScopeRecovery) {
+                setScopeRecovery((prev) => ({
+                    ...prev,
+                    active: true,
+                    requiredScope: payload?.requiredScope || DEFAULT_SCOPE,
+                    message: payload?.actionMessage || error.message
+                }));
+            }
+            setTestResult({
+                success: false,
+                error: error?.message || 'Request failed',
+                timestamp: new Date()
+            });
+        };
+
+        try {
+            const response = await runRequest(payloadObject);
+            setTestResult({
+                success: true,
+                data: response?.result || response,
+                timestamp: new Date()
+            });
+            setErrors({});
+            onCompleted?.();
+            return;
+        } catch (firstError) {
+            const sanitizedPayload = sanitizePayload(payloadObject);
+            const canRetry = !isTokenLikeError(firstError) && hasMeaningfulDifference(payloadObject, sanitizedPayload);
+            if (!canRetry) {
+                trySetErrorState(firstError);
+                return;
+            }
+            try {
+                const retryResponse = await runRequest(sanitizedPayload);
+                if (mode === 'json') {
+                    setInputParams(JSON.stringify(sanitizedPayload, null, 2));
+                } else {
+                    setFormValues(sanitizedPayload);
+                }
+                setTestResult({
+                    success: true,
+                    data: retryResponse?.result || retryResponse,
+                    timestamp: new Date()
+                });
+                setErrors({});
+                onCompleted?.();
+            } catch (retryError) {
+                trySetErrorState(retryError);
+            }
+        }
     };
 
     const handleUseExample = () => {
@@ -165,7 +203,8 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
         };
 
         const onMessage = async (event) => {
-            if (event.origin !== window.location.origin) {
+            const allowedOrigins = new Set([window.location.origin, apiOrigin].filter(Boolean));
+            if (!allowedOrigins.has(event.origin)) {
                 return;
             }
             const payload = event.data || {};
@@ -290,16 +329,15 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
 
                         {mode === 'json' ? (
                             <>
-                                <textarea
-                                    id="inputParams"
+                                <JsonCodeEditor
                                     value={inputParams}
-                                    onChange={(e) => {
-                                        setInputParams(e.target.value);
+                                    onChange={(value) => {
+                                        setInputParams(value);
                                         setErrors({});
                                     }}
                                     placeholder={JSON.stringify(generateExample(schema), null, 2)}
-                                    rows="10"
-                                    className={`${ToolsStyles.codeInput} ${errors.inputParams ? ToolsStyles.error : ''}`}
+                                    height="320px"
+                                    className={`${ToolsStyles.jsonEditor} ${errors.inputParams ? ToolsStyles.error : ''}`}
                                 />
                                 {errors.inputParams ? <span className={ToolsStyles.errorMessage}>{errors.inputParams}</span> : null}
                             </>
@@ -321,7 +359,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
 
                                 <div className={ToolsStyles.toolPreviewPane}>
                                     <div className={ToolsStyles.schemaLabelRow}>
-                                        <strong>Live Payload</strong>
+                                        <strong>Live payload</strong>
                                         <button
                                             type="button"
                                             className={`${ToolsStyles.copyBtn} ${payloadCopied ? ToolsStyles.copied : ''}`}
@@ -335,9 +373,12 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                                             {payloadCopied ? 'Copied' : 'Copy'}
                                         </button>
                                     </div>
-                                    <pre className={ToolsStyles.jsonPreview}>
-                                        <code>{JSON.stringify(formValues, null, 2)}</code>
-                                    </pre>
+                                    <JsonCodeEditor
+                                        value={JSON.stringify(formValues, null, 2)}
+                                        readOnly={true}
+                                        height="300px"
+                                        className={ToolsStyles.jsonEditor}
+                                    />
                                 </div>
                             </div>
                         )}
@@ -370,9 +411,18 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                                     </span>
                                     <span className={ToolsStyles.statusText}>{testResult.success ? 'Success' : 'Failed'}</span>
                                 </div>
-                                <pre className={ToolsStyles.resultData}>
-                                    <code>{testResult.success ? JSON.stringify(testResult.data, null, 2) : testResult.error}</code>
-                                </pre>
+                                {testResult.success ? (
+                                    <JsonCodeEditor
+                                        value={JSON.stringify(testResult.data ?? {}, null, 2)}
+                                        readOnly={true}
+                                        height="220px"
+                                        className={ToolsStyles.jsonEditor}
+                                    />
+                                ) : (
+                                    <pre className={ToolsStyles.resultData}>
+                                        <code>{testResult.error}</code>
+                                    </pre>
+                                )}
                             </div>
                         </div>
                     ) : null}
@@ -641,9 +691,66 @@ function buildOAuthUrl({ baseUrl, scope, clientId, serverId, state, redirectUri 
         return '';
     }
     const base = (baseUrl || 'https://accounts.zoho.in').replace(/\/$/, '');
-    const safeRedirectUri = redirectUri || `${window.location.origin}/trade-show-team-project/oauth-callback.html`;
+        const safeRedirectUri = redirectUri || `${window.location.origin}/trade-show-team-project/oauth-callback.html`;
     const finalState = state || createOAuthState(serverId);
     return `${base}/oauth/v2/auth?scope=${encodeURIComponent(scope)}&client_id=${encodeURIComponent(clientId)}&state=${encodeURIComponent(finalState)}&response_type=code&redirect_uri=${encodeURIComponent(safeRedirectUri)}&access_type=offline`;
+}
+
+function sanitizePayload(payload) {
+    const sanitized = sanitizeNode(payload);
+    if (sanitized === undefined) {
+        return {};
+    }
+    if (typeof sanitized !== 'object' || sanitized === null) {
+        return { value: sanitized };
+    }
+    return sanitized;
+}
+
+function sanitizeNode(value) {
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+    if (typeof value === 'string') {
+        return value.trim() === '' ? undefined : value;
+    }
+    if (Array.isArray(value)) {
+        const cleanedItems = value
+            .map((item) => sanitizeNode(item))
+            .filter((item) => item !== undefined);
+        return cleanedItems.length > 0 ? cleanedItems : undefined;
+    }
+    if (typeof value === 'object') {
+        const result = {};
+        Object.entries(value).forEach(([key, childValue]) => {
+            const cleanedValue = sanitizeNode(childValue);
+            if (cleanedValue !== undefined) {
+                result[key] = cleanedValue;
+            }
+        });
+        return Object.keys(result).length > 0 ? result : undefined;
+    }
+    return value;
+}
+
+function hasMeaningfulDifference(original, sanitized) {
+    return JSON.stringify(original ?? {}) !== JSON.stringify(sanitized ?? {});
+}
+
+function isTokenLikeError(error) {
+    const status = Number(error?.status || 0);
+    if (status === 401 || status === 403) {
+        return true;
+    }
+    const payloadText = JSON.stringify(error?.payload || {}).toLowerCase();
+    const message = String(error?.message || '').toLowerCase();
+    const text = `${message} ${payloadText}`;
+    return text.includes('unauthorized')
+        || text.includes('invalid token')
+        || text.includes('token expired')
+        || text.includes('missing bearer token')
+        || text.includes('auth token')
+        || text.includes('oauth token');
 }
 
 function buildScopeString(defaultScope, additionalScopes) {

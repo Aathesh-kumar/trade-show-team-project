@@ -13,9 +13,26 @@ import Analytics from './components/Analytics/Analytics';
 import LoadingStyles from './styles/Loading.module.css';
 import { MdMenu } from 'react-icons/md';
 
+const THEME_STORAGE_KEY = 'pulse24x7_theme_mode';
+const SYSTEM_DARK_QUERY = '(prefers-color-scheme: dark)';
+
+function getStoredThemeMode() {
+  const mode = localStorage.getItem(THEME_STORAGE_KEY);
+  return mode === 'light' || mode === 'dark' || mode === 'system' ? mode : 'system';
+}
+
+function resolveTheme(mode) {
+  if (mode === 'light' || mode === 'dark') {
+    return mode;
+  }
+  return window.matchMedia(SYSTEM_DARK_QUERY).matches ? 'dark' : 'light';
+}
+
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [themeMode, setThemeMode] = useState(getStoredThemeMode);
+  const [resolvedTheme, setResolvedTheme] = useState(() => resolveTheme(getStoredThemeMode()));
   const [selectedServerId, setSelectedServerId] = useState(() => {
     const raw = localStorage.getItem('pulse24x7_selected_server_id');
     const parsed = Number(raw);
@@ -23,7 +40,6 @@ function App() {
   });
   const [authReady, setAuthReady] = useState(() => !localStorage.getItem('mcp_jwt'));
   const [currentUser, setCurrentUser] = useState(null);
-  const [themeMode, setThemeMode] = useState(() => localStorage.getItem('pulse24x7_theme') || 'default');
   const [settingsHasUnsavedChanges, setSettingsHasUnsavedChanges] = useState(false);
   const [settingsSaveHandler, setSettingsSaveHandler] = useState(null);
   const [showLeaveSettingsModal, setShowLeaveSettingsModal] = useState(false);
@@ -81,9 +97,27 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const root = document.documentElement;
-    root.setAttribute('data-theme', themeMode);
-    localStorage.setItem('pulse24x7_theme', themeMode);
+    localStorage.setItem(THEME_STORAGE_KEY, themeMode);
+    const mediaQuery = window.matchMedia(SYSTEM_DARK_QUERY);
+    const applyTheme = () => {
+      const nextTheme = themeMode === 'system' ? (mediaQuery.matches ? 'dark' : 'light') : themeMode;
+      setResolvedTheme(nextTheme);
+      document.documentElement.setAttribute('data-theme', nextTheme);
+      document.documentElement.setAttribute('data-theme-mode', themeMode);
+      document.documentElement.style.colorScheme = nextTheme;
+    };
+    applyTheme();
+
+    if (themeMode !== 'system') {
+      return undefined;
+    }
+    const onSystemThemeChange = () => applyTheme();
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', onSystemThemeChange);
+      return () => mediaQuery.removeEventListener('change', onSystemThemeChange);
+    }
+    mediaQuery.addListener(onSystemThemeChange);
+    return () => mediaQuery.removeListener(onSystemThemeChange);
   }, [themeMode]);
 
   useEffect(() => {
@@ -177,7 +211,9 @@ function App() {
       return (
         <div className={AppStyles.bootstrapPane}>
           <div className={LoadingStyles.spinnerContainer}>
-            <div className={LoadingStyles.spinner} style={{ width: 40, height: 40, borderWidth: 4 }}></div>
+            <div className={LoadingStyles.logoLoader}>
+              <img src="/Logo.svg" alt="Pulse24x7 loading logo" />
+            </div>
             <p className={LoadingStyles.loadingText}>Loading your workspace...</p>
           </div>
         </div>
@@ -214,11 +250,18 @@ function App() {
           <Settings
             key={activeServer?.serverId || 'no-server'}
             selectedServer={activeServer}
+            servers={servers}
+            onSelectServer={(id) => setSelectedServerId(id)}
             onServerUpdated={refetchServers}
-            themeMode={themeMode}
-            onThemeModeChange={setThemeMode}
+            onServerDeleted={() => {
+              setSelectedServerId(null);
+              refetchServers();
+            }}
             onUnsavedStateChange={setSettingsHasUnsavedChanges}
             onRegisterSaveBeforeLeave={registerSettingsSaveBeforeLeave}
+            themeMode={themeMode}
+            resolvedTheme={resolvedTheme}
+            onThemeModeChange={setThemeMode}
           />
         );
       default:

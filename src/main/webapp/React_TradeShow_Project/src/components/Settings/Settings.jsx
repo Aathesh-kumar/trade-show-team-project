@@ -7,22 +7,21 @@ import InputField from '../ConfigureServer/InputField';
 import DateTimeField from '../ConfigureServer/DateTimeField';
 import { SelectField } from '../ConfigureServer/FormFields';
 
-const themeChoices = [
-  { id: 'default', label: 'Default (System)' },
-  { id: 'light', label: 'Light' },
-  { id: 'dark', label: 'Dark' }
-];
 const DEFAULT_TOKEN_ENDPOINT = 'https://accounts.zoho.in/oauth/v2/token';
 const DEFAULT_MONITOR_INTERVAL = 30;
 const MONITOR_INTERVAL_CHOICES = [5, 10, 15, 30, 60, 120, 240, 720, 1440];
 
 export default function Settings({
   selectedServer,
+  servers = [],
+  onSelectServer,
   onServerUpdated,
-  themeMode = 'default',
-  onThemeModeChange,
+  onServerDeleted,
   onUnsavedStateChange,
-  onRegisterSaveBeforeLeave
+  onRegisterSaveBeforeLeave,
+  themeMode = 'system',
+  resolvedTheme = 'light',
+  onThemeModeChange
 }) {
   const serverId = selectedServer?.serverId;
   const [serverName, setServerName] = useState(() => selectedServer?.serverName || '');
@@ -40,6 +39,9 @@ export default function Settings({
   const [showAccessToken, setShowAccessToken] = useState(false);
   const [showRefreshToken, setShowRefreshToken] = useState(false);
   const [showClientSecret, setShowClientSecret] = useState(false);
+  const [deleteServerId, setDeleteServerId] = useState(() => selectedServer?.serverId || null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletingServer, setDeletingServer] = useState(false);
   const [initialServer, setInitialServer] = useState({
     serverName: selectedServer?.serverName || '',
     serverUrl: selectedServer?.serverUrl || '',
@@ -85,7 +87,14 @@ export default function Settings({
       tokenEndpoint: DEFAULT_TOKEN_ENDPOINT,
       oauthTokenLink: ''
     });
+    setDeleteServerId(selectedServer?.serverId || null);
+    setDeleteConfirmText('');
   }, [selectedServer?.serverId, selectedServer?.serverName, selectedServer?.serverUrl, selectedServer?.monitorIntervalMinutes]);
+
+  const ownedServers = useMemo(
+    () => (Array.isArray(servers) ? servers : []).filter((item) => Number(item?.serverId) > 0),
+    [servers]
+  );
 
   const { refetch: refetchToken } = useGet('/auth', {
     immediate: !!serverId,
@@ -332,8 +341,9 @@ export default function Settings({
       if (response?.accessToken) {
         setAccessToken(response.accessToken);
       }
-      if (response?.expiresAt) {
-        setExpiresAt(response.expiresAt);
+      const nextExpiresAt = formatTimestampInput(response?.expiresAt);
+      if (nextExpiresAt) {
+        setExpiresAt(nextExpiresAt);
       }
       setMessage({ type: 'success', text: 'Access token refreshed.' });
       refetchToken();
@@ -342,11 +352,40 @@ export default function Settings({
     }
   };
 
+  const canDeleteServer = Number(deleteServerId) > 0 && deleteConfirmText.trim().toUpperCase() === 'DELETE';
+  const selectedDeleteServer = ownedServers.find((item) => Number(item.serverId) === Number(deleteServerId)) || null;
+
+  const deleteServerNow = async () => {
+    if (!canDeleteServer || deletingServer) {
+      return;
+    }
+    setMessage(null);
+    setDeletingServer(true);
+    try {
+      const response = await fetch(buildUrl('/server', { id: Number(deleteServerId) }), {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        }
+      });
+      const body = await parseApiResponse(response);
+      unwrapData(body);
+      setMessage({ type: 'success', text: 'Server deleted successfully.' });
+      setDeleteConfirmText('');
+      onServerDeleted?.(Number(deleteServerId));
+    } catch (e) {
+      setMessage({ type: 'error', text: e.message });
+    } finally {
+      setDeletingServer(false);
+    }
+  };
+
   return (
     <div className={SettingsStyles.settingsPage}>
       <header className={SettingsStyles.settingsHeader}>
         <h1>Pulse24x7 Settings</h1>
-        <p>Control server profile, secure OAuth credentials, and product appearance in one place.</p>
+        <p>Control server profile and secure OAuth credentials in one place.</p>
       </header>
 
       {message && (
@@ -410,22 +449,36 @@ export default function Settings({
             <button className={SettingsStyles.btnPrimary} disabled={!canSaveServer} onClick={() => saveServer()}>Save Server</button>
           </div>
         </section>
-
         <section className={SettingsStyles.card}>
           <h2>Appearance</h2>
-          <p className={SettingsStyles.cardHint}>Choose how Pulse24x7 should render across all pages.</p>
+          <p className={SettingsStyles.cardHint}>Choose your preferred theme for the full workspace.</p>
           <div className={SettingsStyles.themeGroup}>
-            {themeChoices.map((choice) => (
-              <button
-                key={choice.id}
-                type="button"
-                className={`${SettingsStyles.themeBtn} ${themeMode === choice.id ? SettingsStyles.themeActive : ''}`}
-                onClick={() => onThemeModeChange?.(choice.id)}
-              >
-                {choice.label}
-              </button>
-            ))}
+            <button
+              type="button"
+              className={`${SettingsStyles.themeBtn} ${themeMode === 'light' ? SettingsStyles.themeActive : ''}`}
+              aria-pressed={themeMode === 'light'}
+              onClick={() => onThemeModeChange?.('light')}
+            >
+              Light
+            </button>
+            <button
+              type="button"
+              className={`${SettingsStyles.themeBtn} ${themeMode === 'dark' ? SettingsStyles.themeActive : ''}`}
+              aria-pressed={themeMode === 'dark'}
+              onClick={() => onThemeModeChange?.('dark')}
+            >
+              Dark
+            </button>
+            <button
+              type="button"
+              className={`${SettingsStyles.themeBtn} ${themeMode === 'system' ? SettingsStyles.themeActive : ''}`}
+              aria-pressed={themeMode === 'system'}
+              onClick={() => onThemeModeChange?.('system')}
+            >
+              System
+            </button>
           </div>
+          <p className={SettingsStyles.cardHint}>Current active theme: <strong>{resolvedTheme === 'dark' ? 'Dark' : 'Light'}</strong></p>
         </section>
       </div>
 
@@ -505,6 +558,61 @@ export default function Settings({
           <button className={SettingsStyles.btnSecondary} onClick={refreshTokenNow} disabled={refreshingAuth}>Refresh Access Token</button>
         </div>
       </section>
+
+      <section className={`${SettingsStyles.cardWide} ${SettingsStyles.dangerCard}`}>
+        <h2>Danger Zone</h2>
+        <p className={SettingsStyles.cardHint}>Delete a server and all of its related tool/configuration records permanently.</p>
+        <div className={SettingsStyles.dangerGrid}>
+          {ownedServers.length <= 1 ? (
+            <div className={SettingsStyles.serverPreview}>
+              <span>Current Server</span>
+              <strong>{selectedServer?.serverName || 'No server selected'}</strong>
+            </div>
+          ) : (
+            <div className={SettingsStyles.dangerField}>
+              <label htmlFor="danger-server-select">Select Server To Delete</label>
+              <div className={SettingsStyles.selectWrap}>
+                <select
+                  id="danger-server-select"
+                  className={SettingsStyles.dangerSelect}
+                  value={Number(deleteServerId) || ''}
+                  onChange={(event) => {
+                    const next = Number(event.target.value);
+                    setDeleteServerId(Number.isFinite(next) ? next : null);
+                    onSelectServer?.(Number.isFinite(next) ? next : null);
+                  }}
+                >
+                  {ownedServers.map((server) => (
+                    <option key={server.serverId} value={server.serverId}>
+                      {server.serverName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+          <div className={SettingsStyles.dangerField}>
+            <label htmlFor="danger-confirm-input">Type DELETE to confirm</label>
+            <input
+              id="danger-confirm-input"
+              className={SettingsStyles.dangerInput}
+              placeholder="DELETE"
+              value={deleteConfirmText}
+              onChange={(event) => setDeleteConfirmText(event.target.value)}
+            />
+          </div>
+          <div className={SettingsStyles.actions}>
+            <button
+              type="button"
+              className={SettingsStyles.btnDanger}
+              disabled={!canDeleteServer || deletingServer}
+              onClick={deleteServerNow}
+            >
+              {deletingServer ? 'Deleting...' : `Delete ${selectedDeleteServer?.serverName || 'Server'}`}
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -518,10 +626,27 @@ function mapAuthState(tokenData) {
     headerType: normalize(tokenData?.headerType) || 'Bearer',
     accessToken: normalize(tokenData?.accessToken),
     refreshToken: normalize(tokenData?.refreshToken),
-    expiresAt: normalize(tokenData?.expiresAt),
+    expiresAt: formatTimestampInput(tokenData?.expiresAt),
     clientId: normalize(tokenData?.clientId),
     clientSecret: normalize(tokenData?.clientSecret),
     tokenEndpoint: normalize(tokenData?.tokenEndpoint) || DEFAULT_TOKEN_ENDPOINT,
     oauthTokenLink: normalize(tokenData?.oauthTokenLink)
   };
+}
+
+function formatTimestampInput(value) {
+  if (!value) {
+    return '';
+  }
+  const raw = String(value).trim();
+  const directMatch = raw.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})/);
+  if (directMatch) {
+    return `${directMatch[1]}T${directMatch[2]}`;
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
 }

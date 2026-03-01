@@ -101,10 +101,9 @@
         border-radius: 16px;
         padding: 1.5rem;
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: 1rem;
-        position: relative;
-        overflow: hidden;
         transition: all 0.3s ease;
 
         &:hover {
@@ -133,7 +132,7 @@
             flex: 1;
 
             .statLabel {
-                font-size: 0.875rem;
+                font-size: 0.9rem;
                 color: color-mix(in srgb, var(--text-primary) 60%, transparent);
                 margin-bottom: 0.25rem;
             }
@@ -146,10 +145,8 @@
         }
 
         .statTrend {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            font-size: 0.75rem;
+            align-self: self-start;
+            font-size: .9rem;
             font-weight: 600;
             padding: 0.25rem 0.5rem;
             border-radius: 6px;
@@ -641,7 +638,7 @@
 .notificationOverlay {
     position: fixed;
     inset: 0;
-    background: rgba(1, 5, 15, 0.55);
+    background: var(--overlay-bg);
     z-index: 80;
 }
 
@@ -652,11 +649,12 @@
     width: min(420px, 90vw);
     max-height: 70vh;
     overflow: hidden;
-    background: #101935;
-    border: 1px solid color-mix(in srgb, var(--text-primary) 15%, transparent);
+    background: var(--bg-elev-1);
+    border: 1px solid var(--panel-border);
     border-radius: 12px;
     display: flex;
     flex-direction: column;
+    box-shadow: var(--shadow-soft);
 }
 
 .alertToast {
@@ -664,7 +662,7 @@
     right: 24px;
     bottom: 24px;
     width: min(420px, 92vw);
-    background: linear-gradient(150deg, color-mix(in srgb, var(--info-color) 20%, transparent), rgba(15, 23, 42, 0.85));
+    background: linear-gradient(150deg, color-mix(in srgb, var(--info-color) 20%, transparent), color-mix(in srgb, var(--bg-elev-1) 84%, transparent));
     border: 1px solid color-mix(in srgb, var(--info-color) 60%, transparent);
     border-radius: 14px;
     padding: 0.9rem 1rem;
@@ -677,22 +675,22 @@
 }
 
 .alertSuccess {
-    background: linear-gradient(150deg, color-mix(in srgb, var(--success-color) 22%, transparent), rgba(15, 23, 42, 0.85));
+    background: linear-gradient(150deg, color-mix(in srgb, var(--success-color) 22%, transparent), color-mix(in srgb, var(--bg-elev-1) 84%, transparent));
     border-color: color-mix(in srgb, var(--success-color) 60%, transparent);
 }
 
 .alertWarning {
-    background: linear-gradient(150deg, color-mix(in srgb, var(--warning-color) 22%, transparent), rgba(15, 23, 42, 0.85));
+    background: linear-gradient(150deg, color-mix(in srgb, var(--warning-color) 22%, transparent), color-mix(in srgb, var(--bg-elev-1) 84%, transparent));
     border-color: color-mix(in srgb, var(--warning-color) 60%, transparent);
 }
 
 .alertError {
-    background: linear-gradient(150deg, color-mix(in srgb, var(--error-color) 22%, transparent), rgba(15, 23, 42, 0.85));
+    background: linear-gradient(150deg, color-mix(in srgb, var(--error-color) 22%, transparent), color-mix(in srgb, var(--bg-elev-1) 84%, transparent));
     border-color: color-mix(in srgb, var(--error-color) 60%, transparent);
 }
 
 .alertInfo {
-    background: linear-gradient(150deg, color-mix(in srgb, var(--info-color) 22%, transparent), rgba(15, 23, 42, 0.85));
+    background: linear-gradient(150deg, color-mix(in srgb, var(--info-color) 22%, transparent), color-mix(in srgb, var(--bg-elev-1) 84%, transparent));
     border-color: color-mix(in srgb, var(--info-color) 60%, transparent);
 }
 
@@ -741,6 +739,11 @@
     font-size: 0.78rem;
     font-weight: 600;
     cursor: pointer;
+}
+
+.alertDismiss:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.08);
 }
 
 .alertSuccess .alertBadge {
@@ -799,10 +802,16 @@
     min-height: 30px;
     border-radius: 8px;
     border: 1px solid color-mix(in srgb, var(--text-primary) 14%, transparent);
-    background: rgba(59, 130, 246, 0.15);
-    color: #fff;
+    background: color-mix(in srgb, var(--primary-color) 18%, transparent);
+    color: var(--text-primary);
     padding: 0.25rem 0.6rem;
     cursor: pointer;
+}
+
+.notificationActionBtn:hover {
+    background: color-mix(in srgb, var(--primary-color) 28%, transparent);
+    border-color: color-mix(in srgb, var(--primary-color) 62%, transparent);
+    transform: translateY(-1px);
 }
 
 .notificationList {
@@ -813,11 +822,11 @@
 }
 
 .notificationItem {
-    background: linear-gradient(120deg, color-mix(in srgb, var(--text-primary) 6%, transparent), color-mix(in srgb, var(--text-primary) 2%, transparent));
+    background: color-mix(in srgb, var(--bg-elev-2) 58%, var(--bg-elev-1));
     border: none;
     border-radius: 10px;
     padding: 10px;
-    color: #e7ebff;
+    color: var(--text-primary);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-primary) 5%, transparent);
 }
 
@@ -892,23 +901,8 @@
     }
 }
 
-:root[data-theme='light'] .dashboard :is(h1, h2, h3, p, span, th, td, button, label) {
-  color: var(--text-primary);
-}
 
-:root[data-theme='light'] .dashboard .sectionSubtitle,
-:root[data-theme='light'] .dashboard .statLabel,
-:root[data-theme='light'] .dashboard .toolRequests,
-:root[data-theme='light'] .dashboard .serverRegion,
-:root[data-theme='light'] .dashboard .systemStatus,
-:root[data-theme='light'] .dashboard .chartLabels,
-:root[data-theme='light'] .dashboard .statusLabel {
-  color: var(--text-muted);
-}
 
-:root[data-theme='light'] .dashboard .notificationPanel {
-  background: #ffffff;
-}
 
 .chartGrabbable {
   cursor: var(--cursor-grab, grab);
@@ -987,23 +981,9 @@
   background: color-mix(in srgb, var(--success-color) 10%, transparent);
 }
 
-:root[data-theme='light'] .dashboard .notificationItem {
-  color: var(--text-primary);
-  border-color: var(--panel-border);
-}
 
-:root[data-theme='light'] .dashboard .notificationSeverity {
-  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
-}
 
-:root[data-theme='light'] .dashboard .chartTooltip {
-  background: #ffffff;
-  border-color: rgba(15, 23, 42, 0.24);
-}
 
-:root[data-theme='light'] .dashboard .chartTooltipTime {
-  color: #475569;
-}
 
 .notificationHeaderActions {
   display: inline-flex;
@@ -1034,7 +1014,13 @@
   background: color-mix(in srgb, var(--error-color) 12%, transparent);
   color: var(--error-color);
   padding: 0.2rem 0.6rem;
-  cursor: var(--cursor-pointer, pointer);
+    cursor: var(--cursor-pointer, pointer);
+}
+
+.notificationClearBtn:hover {
+    background: color-mix(in srgb, var(--error-color) 20%, transparent);
+    border-color: color-mix(in srgb, var(--error-color) 58%, transparent);
+    transform: translateY(-1px);
 }
 
 .chartGrabbable {
@@ -1063,80 +1049,4 @@
   opacity: 0.6;
   filter: grayscale(0.15);
   cursor: not-allowed;
-}
-
-:root[data-theme='light'] .dashboard .notificationPanel {
-  border-color: rgba(15, 23, 42, 0.18);
-}
-
-:root[data-theme='light'] .dashboard .alertToast {
-  background: linear-gradient(150deg, rgba(239, 68, 68, 0.14), rgba(255, 255, 255, 0.96));
-  color: #0f172a;
-  border-color: rgba(14, 116, 144, 0.4);
-}
-
-:root[data-theme='light'] .dashboard .alertMessage {
-  color: rgba(15, 23, 42, 0.8);
-}
-
-:root[data-theme='light'] .dashboard .alertTime {
-  color: rgba(71, 85, 105, 0.9);
-}
-
-:root[data-theme='light'] .dashboard .alertSuccess {
-  background: linear-gradient(150deg, rgba(16, 185, 129, 0.16), rgba(255, 255, 255, 0.96));
-  border-color: rgba(16, 185, 129, 0.45);
-}
-
-:root[data-theme='light'] .dashboard .alertWarning {
-  background: linear-gradient(150deg, rgba(245, 158, 11, 0.18), rgba(255, 255, 255, 0.96));
-  border-color: rgba(245, 158, 11, 0.45);
-}
-
-:root[data-theme='light'] .dashboard .alertError {
-  background: linear-gradient(150deg, rgba(239, 68, 68, 0.18), rgba(255, 255, 255, 0.96));
-  border-color: rgba(239, 68, 68, 0.45);
-}
-
-:root[data-theme='light'] .dashboard .alertInfo {
-  background: linear-gradient(150deg, rgba(14, 116, 144, 0.18), rgba(255, 255, 255, 0.96));
-  border-color: rgba(14, 116, 144, 0.4);
-}
-
-:root[data-theme='light'] .dashboard .notificationBtn,
-:root[data-theme='light'] .dashboard .tabGroup,
-:root[data-theme='light'] .dashboard .toolItem,
-:root[data-theme='light'] .dashboard .serverItem,
-:root[data-theme='light'] .dashboard .actionBtn {
-  border-color: rgba(15, 23, 42, 0.14);
-}
-
-:root[data-theme='light'] .dashboard .statusDot {
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
-}
-
-:root[data-theme='light'] .dashboard .header h1,
-:root[data-theme='light'] .dashboard .statCard .statContent .statValue,
-:root[data-theme='light'] .dashboard .topPerformingTools .toolStats .toolAvgTime,
-:root[data-theme='light'] .dashboard .topPerformingTools .toolInfo .toolName,
-:root[data-theme='light'] .dashboard .activeServers .serverName {
-  color: #0f172a;
-}
-
-:root[data-theme='light'] .dashboard .notificationBtn,
-:root[data-theme='light'] .dashboard .statCard,
-:root[data-theme='light'] .dashboard .quickActions,
-:root[data-theme='light'] .dashboard .activeServers,
-:root[data-theme='light'] .dashboard .systemHealth,
-:root[data-theme='light'] .dashboard .topPerformingTools {
-  background: color-mix(in srgb, var(--bg-elev-1) 96%, transparent);
-  border-color: rgba(15, 23, 42, 0.14);
-}
-
-:root[data-theme='light'] .dashboard .tabGroup,
-:root[data-theme='light'] .dashboard .toolItem,
-:root[data-theme='light'] .dashboard .serverItem,
-:root[data-theme='light'] .dashboard .actionBtn,
-:root[data-theme='light'] .dashboard .notificationItem {
-  background: color-mix(in srgb, var(--bg-elev-2) 62%, transparent);
 }

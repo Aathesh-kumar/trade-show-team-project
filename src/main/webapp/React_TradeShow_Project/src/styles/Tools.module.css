@@ -7,7 +7,7 @@
   color: var(--text-primary);
   margin-left: 4rem;
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .toolsHeader {
@@ -182,7 +182,7 @@
   display: flex;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .tableContainer {
@@ -512,7 +512,7 @@
   background:
     radial-gradient(150% 90% at 0% 0%, color-mix(in srgb, var(--primary-color) 14%, transparent), transparent 55%),
     var(--bg-elev-1);
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
 }
@@ -533,7 +533,7 @@
 .modalContent {
   padding: 0.95rem;
   overflow: auto;
-  overflow-x: hidden;
+  overflow-x: visible;
   display: grid;
   gap: 0.75rem;
   min-height: 0;
@@ -588,6 +588,7 @@
   gap: 0.8rem;
   grid-template-columns: 1.1fr 0.9fr;
   min-height: 0;
+  width: 100%;
 }
 
 .toolFormPane,
@@ -598,6 +599,7 @@
   padding: 0.68rem;
   min-width: 0;
   min-height: 0;
+  width: 100%;
 }
 
 .schemaSection {
@@ -663,6 +665,26 @@
 .jsonPreview {
   min-height: 200px;
   max-height: 320px;
+}
+
+.jsonEditor {
+  width: 100%;
+  min-width: 0;
+}
+
+.jsonEditor :global(.cm-editor) {
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: color-mix(in srgb, var(--bg-elev-2) 82%, transparent);
+  font-size: 0.84rem;
+}
+
+.jsonEditor :global(.cm-scroller) {
+  overflow: auto;
+}
+
+.jsonEditor :global(.cm-content) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .buttonSpinner {

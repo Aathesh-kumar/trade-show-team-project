@@ -499,6 +499,22 @@ tbody tr {
   overflow: auto;
 }
 
+.jsonEditor {
+  width: 100%;
+  min-width: 0;
+}
+
+.jsonEditor :global(.cm-editor) {
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: color-mix(in srgb, var(--bg-elev-2) 82%, transparent);
+  font-size: 0.84rem;
+}
+
+.jsonEditor :global(.cm-content) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 .metadataGrid {
   display: grid;
   gap: 0.46rem;

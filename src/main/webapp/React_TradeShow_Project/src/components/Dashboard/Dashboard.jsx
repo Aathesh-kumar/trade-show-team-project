@@ -17,11 +17,21 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
     const [showNotifications, setShowNotifications] = useState(false);
     const [notificationOpenCycle, setNotificationOpenCycle] = useState(0);
     const [timeMode, setTimeMode] = useState('today');
+    const [reloadTick, setReloadTick] = useState(0);
+    const [dashboardReloading, setDashboardReloading] = useState(false);
     const serverId = selectedServer?.serverId;
-    const { data: serversData } = useGet('/server/all', { immediate: true, dependencies: [serverId] });
-    const { data: serverStatusesData } = useGet('/server/statuses', { immediate: true, dependencies: [serverId] });
+    const {
+        data: serversData,
+        loading: serversLoading,
+        refetch: refetchServers
+    } = useGet('/server/all', { immediate: true, dependencies: [serverId, reloadTick] });
+    const {
+        data: serverStatusesData,
+        loading: serverStatusesLoading,
+        refetch: refetchServerStatuses
+    } = useGet('/server/statuses', { immediate: true, dependencies: [serverId, reloadTick] });
     const timeParams = getTimeParams(timeMode);
-    const { data: metrics, loading: metricsRawLoading } = useGet('/metrics/overview', {
+    const { data: metrics, loading: metricsRawLoading, refetch: refetchMetrics } = useGet('/metrics/overview', {
         immediate: !!serverId,
         params: {
             serverId,
@@ -29,20 +39,20 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
             bucketMinutes: timeParams.bucketMinutes,
             bucketSeconds: timeParams.bucketSeconds
         },
-        dependencies: [serverId, timeMode]
+        dependencies: [serverId, timeMode, reloadTick]
     });
-    const metricsLoading = useBufferedLoading(metricsRawLoading, 1500);
+    const metricsLoading = useBufferedLoading(metricsRawLoading || dashboardReloading, 1500);
     const { data: notificationsData, loading: notificationsLoading, refetch: refetchNotifications } = useGet('/notification', {
         immediate: true,
         params: { limit: 300, offset: 0 },
-        dependencies: [serverId]
+        dependencies: [serverId, reloadTick]
     });
     const notificationsBufferedLoading = useBufferedLoading(notificationsLoading, 280);
     const notificationsReady = Array.isArray(notificationsData);
     const notificationsLoadingView = notificationsBufferedLoading || !notificationsReady;
-    const { data: unread, refetch: refetchUnread } = useGet('/notification/unread-count', {
+    const { data: unread, loading: unreadLoading, refetch: refetchUnread } = useGet('/notification/unread-count', {
         immediate: true,
-        dependencies: [showNotifications, serverId]
+        dependencies: [showNotifications, serverId, reloadTick]
     });
     const [dismissedHighAlerts, setDismissedHighAlerts] = useState(() => new Set());
 
@@ -116,6 +126,28 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
         }, 8000);
         return () => clearTimeout(id);
     }, [toastNotification?.id]);
+
+    useEffect(() => {
+        if (!dashboardReloading) {
+            return;
+        }
+        if (!metricsRawLoading && !notificationsLoading && !serversLoading && !serverStatusesLoading && !unreadLoading) {
+            setDashboardReloading(false);
+        }
+    }, [dashboardReloading, metricsRawLoading, notificationsLoading, serversLoading, serverStatusesLoading, unreadLoading]);
+
+    const refreshDashboardData = () => {
+        if (!serverId) {
+            return;
+        }
+        setDashboardReloading(true);
+        setReloadTick((prev) => prev + 1);
+        refetchMetrics();
+        refetchNotifications();
+        refetchUnread();
+        refetchServerStatuses();
+        refetchServers();
+    };
     const servers = Array.isArray(serverStatusesData) && serverStatusesData.length > 0
         ? serverStatusesData
         : (Array.isArray(serversData) ? serversData : []);
@@ -219,6 +251,7 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
                     <QuickActions
                         onNavigate={onNavigate}
                         selectedServer={selectedServer}
+                        onRefreshData={refreshDashboardData}
                         onNotificationsChanged={() => {
                             refetchNotifications();
                             refetchUnread();
@@ -233,7 +266,7 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
                 </div>
             </div>
 
-            <TopPerformingTools tools={metrics?.topTools || []} />
+            {metricsLoading ? <LoadingSkeleton type="table" lines={4} /> : <TopPerformingTools tools={metrics?.topTools || []} />}
             {toastNotification ? (
                 <div className={`${DashboardStyles.alertToast} ${toastSeverityClass ? DashboardStyles[toastSeverityClass] : ''}`} role="alert">
                     <div className={DashboardStyles.alertMeta}>

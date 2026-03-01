@@ -57,30 +57,50 @@ function fmtTotal(v) {
   return `${Math.round(v)} req`;
 }
 
+function getPointColor(state) {
+  if (state === 'error') return '#ef4444';
+  if (state === 'warning') return '#f59e0b';
+  if (state === 'success') return '#22c55e';
+  if (state === 'mixed') return 'var(--text-primary)';
+  return 'var(--text-muted)';
+}
+
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   const point = payload[0]?.payload || {};
-  const state = getPointState(point);
-  const accent = state === 'error' ? '#ef4444' : state === 'warning' ? '#f59e0b' : '#60a5fa';
+  const status = getPointStatus(point);
+  const state = status.state;
+  const accent = getPointColor(state);
   return (
       <div style={{
-        background: '#0a1628',
-        border: `1px solid ${accent}99`,
+        background: 'color-mix(in srgb, var(--bg-elev-1) 94%, transparent)',
+        border: `1px solid ${accent}`,
         borderRadius: 10,
         padding: '10px 14px',
         fontFamily: 'inherit',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+        boxShadow: 'var(--shadow-soft)',
       }}>
-        <p style={{ margin: 0, fontSize: 12, color: '#64748b', marginBottom: 4 }}>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
           {formatTooltipTime(label)}
         </p>
         <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: accent }}>
           {payload[0].value?.toLocaleString()}
-          <span style={{ fontSize: 14, color: '#475569', fontWeight: 400, marginLeft: 4 }}>{payload[0].value === 1 ? "request" : "requests"}</span>
+          <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 4 }}>
+            {payload[0].value === 1 ? 'total request' : 'total requests'}
+          </span>
         </p>
         <p style={{ margin: '2px 0 0 0', fontSize: 11, color: accent, fontWeight: 600, textTransform: 'uppercase' }}>
           {state}
         </p>
+        {state === 'mixed' ? (
+            <p style={{ margin: '6px 0 0 0', fontSize: 13, fontWeight: 600 }}>
+              <span style={{ color: '#22c55e' }}>Success: {status.successCount}</span>
+              <span style={{ color: 'var(--text-muted)' }}> · </span>
+              <span style={{ color: '#f59e0b' }}>Warning: {status.warningCount}</span>
+              <span style={{ color: 'var(--text-muted)' }}> · </span>
+              <span style={{ color: '#ef4444' }}>Error: {status.errorCount}</span>
+            </p>
+        ) : ('')}
       </div>
   );
 };
@@ -101,18 +121,32 @@ const ToolBtn = ({ onClick, children, highlight }) => (
     </button>
 );
 
+const renderStatusDot = (props) => {
+  const { cx, cy, payload } = props || {};
+  if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null;
+  const fill = getPointColor(getPointStatus(payload).state);
+  return <circle cx={cx} cy={cy} r={3.5} fill={fill} />;
+};
+
+const renderStatusActiveDot = (props) => {
+  const { cx, cy, payload } = props || {};
+  if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null;
+  const fill = getPointColor(getPointStatus(payload).state);
+  return <circle cx={cx} cy={cy} r={5} fill={fill} stroke="var(--bg-elev-1)" strokeWidth={2} />;
+};
+
 export default function SystemHealth({
                                        data = [],
                                        loading = false,
                                        timeMode = 'today',
                                        onChangeTimeMode,
                                      }) {
-  const [mode, setMode]           = useState(timeMode);
+  const [mode, setMode] = useState(timeMode);
   const [viewRange, setViewRange] = useState(null);   // [startIdx, endIdx] | null
   const [zoomLeft,  setZoomLeft]  = useState(null);
   const [zoomRight, setZoomRight] = useState(null);
   const [selecting, setSelecting] = useState(false);
-  const [yZoom, setYZoom]         = useState(1);
+  const [yZoom, setYZoom] = useState(1);
   const [dragState, setDragState] = useState(null);
   const containerRef = useRef(null);
 
@@ -126,9 +160,10 @@ export default function SystemHealth({
         .map((point, index) => {
           const ts = parseTimestamp(point?.time);
           const value = Number(point?.value) || 0;
-          const successCount = Number(point?.successCount) || 0;
-          const warningCount = Number(point?.warningCount) || 0;
-          const errorCount = Number(point?.errorCount) || 0;
+          const statusGroup = point?.statusGroup || {};
+          const successCount = Number(point?.successCount ?? statusGroup?.success) || 0;
+          const warningCount = Number(point?.warningCount ?? statusGroup?.warning) || 0;
+          const errorCount = Number(point?.errorCount ?? statusGroup?.error) || 0;
           if (!Number.isFinite(ts)) return null;
           return { ts: ts + index, value, successCount, warningCount, errorCount };
         })
@@ -163,6 +198,15 @@ export default function SystemHealth({
     if (!vals.length) return { max: 0, avg: 0, total: 0 };
     const total = vals.reduce((a, b) => a + b, 0);
     return { max: Math.max(...vals), avg: Math.round(total / vals.length), total };
+  }, [visibleData]);
+
+  const statusStats = useMemo(() => {
+    return visibleData.reduce((acc, point) => {
+      acc.success += Number(point?.successCount) || 0;
+      acc.warning += Number(point?.warningCount) || 0;
+      acc.error += Number(point?.errorCount) || 0;
+      return acc;
+    }, { success: 0, warning: 0, error: 0 });
   }, [visibleData]);
 
   const zoomBy = (factor) => {
@@ -270,7 +314,6 @@ export default function SystemHealth({
   return (
       <div className={S.card}>
 
-        {/* ── Header ── */}
         <div className={S.header}>
           <div>
             <div className={S.titleRow}>
@@ -281,6 +324,22 @@ export default function SystemHealth({
               Request throughput · {MODE_META[mode]?.label} · {visibleData.length} pts
               {isZoomed && <span className={S.zoomedBadge}>● zoomed</span>}
             </p>
+            {!loading && (
+                <div className={S.statusGroup}>
+                  <div className={`${S.statusBadge} ${S.successStatusBadge}`}>
+                    <span className={S.successDot}></span>
+                    {statusStats.success.toLocaleString()} Success
+                  </div>
+                  <div className={`${S.statusBadge} ${S.warningStatusBadge}`}>
+                    <span className={S.warningDot}></span>
+                    {statusStats.warning.toLocaleString()} Warnings
+                  </div>
+                  <div className={`${S.statusBadge} ${S.errorStatusBadge}`}>
+                    <span className={S.errorDot}></span>
+                    {statusStats.error.toLocaleString()} Errors
+                  </div>
+                </div>
+            )}
           </div>
 
           <div className={S.controls}>
@@ -341,19 +400,19 @@ export default function SystemHealth({
                   >
                     <defs>
                       <linearGradient id="sh-areaFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.38} />
-                        <stop offset="85%" stopColor="#3b82f6" stopOpacity={0.02} />
+                        <stop offset="5%"  stopColor="var(--primary-color)" stopOpacity={0.38} />
+                        <stop offset="85%" stopColor="var(--primary-color)" stopOpacity={0.02} />
                       </linearGradient>
                       <linearGradient id="sh-strokeGrad" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%"   stopColor="#60a5fa" />
-                        <stop offset="50%"  stopColor="#3b82f6" />
-                        <stop offset="100%" stopColor="#818cf8" />
+                        <stop offset="0%"   stopColor="var(--primary-color)" />
+                        <stop offset="50%"  stopColor="var(--primary-color)" />
+                        <stop offset="100%" stopColor="var(--primary-color-strong)" />
                       </linearGradient>
                     </defs>
 
                     <CartesianGrid
                         strokeDasharray="3 6"
-                        stroke="rgba(255,255,255,0.04)"
+                        stroke="color-mix(in srgb, var(--text-primary) 12%, transparent)"
                         vertical={false}
                     />
 
@@ -364,15 +423,15 @@ export default function SystemHealth({
                         domain={['dataMin', 'dataMax']}
                         tickCount={tickCount}
                         tickFormatter={t => formatTickTime(t, mode)}
-                        tick={{ fill: '#475569', fontSize: 10, fontFamily: "'JetBrains Mono',monospace" }}
-                        axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+                        tick={{ fill: 'var(--text-muted)', fontSize: 13.5, fontFamily: "'JetBrains Mono',monospace" }}
+                        axisLine={{ stroke: 'color-mix(in srgb, var(--text-primary) 16%, transparent)' }}
                         tickLine={false}
                     />
 
                     <YAxis
                         tickFormatter={fmtV}
                         domain={[0, yMax]}
-                        tick={{ fill: '#475569', fontSize: 10, fontFamily: "'JetBrains Mono',monospace" }}
+                        tick={{ fill: 'var(--text-muted)', fontSize: 13.5, fontFamily: "'JetBrains Mono',monospace" }}
                         axisLine={false}
                         tickLine={false}
                         width={44}
@@ -380,7 +439,9 @@ export default function SystemHealth({
 
                     <Tooltip
                         content={<CustomTooltip />}
-                        cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                        cursor={{ stroke: 'color-mix(in srgb, var(--text-primary) 24%, transparent)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                        isAnimationActive={false}
+                        wrapperStyle={{ transition: 'none', pointerEvents: 'none' }}
                     />
 
                     <Area
@@ -389,8 +450,8 @@ export default function SystemHealth({
                         stroke="url(#sh-strokeGrad)"
                         strokeWidth={2.5}
                         fill="url(#sh-areaFill)"
-                        dot={{ r: 2.4, fill: '#2AAAF4', stroke: '#ffffff', strokeWidth: 1.2 }}
-                        activeDot={{ r: 5, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
+                        dot={renderStatusDot}
+                        activeDot={renderStatusActiveDot}
                         isAnimationActive={true}
                         animationDuration={1300}
                         animationEasing="ease-out"
@@ -401,9 +462,9 @@ export default function SystemHealth({
                         <ReferenceArea
                             x1={Math.min(zoomLeft, zoomRight)}
                             x2={Math.max(zoomLeft, zoomRight)}
-                            stroke="#3b82f6"
+                            stroke="var(--primary-color)"
                             strokeOpacity={0.6}
-                            fill="rgba(59,130,246,0.12)"
+                            fill="color-mix(in srgb, var(--primary-color) 16%, transparent)"
                         />
                     )}
 
@@ -411,8 +472,8 @@ export default function SystemHealth({
                     <Brush
                         dataKey="ts"
                         height={22}
-                        stroke="rgba(59,130,246,0.25)"
-                        fill="rgba(15,23,42,0.8)"
+                        stroke="color-mix(in srgb, var(--primary-color) 35%, transparent)"
+                        fill="color-mix(in srgb, var(--bg-elev-2) 75%, transparent)"
                         travellerWidth={6}
                         tickFormatter={t => formatTickTime(t, mode)}
                         onChange={(range) => {
@@ -463,12 +524,22 @@ export default function SystemHealth({
   );
 }
 
-function getPointState(point) {
-  const success = Number(point?.successCount) || 0;
-  const warning = Number(point?.warningCount) || 0;
-  const error = Number(point?.errorCount) || 0;
-  if (error > 0) return 'error';
-  if (warning > 0) return 'warning';
-  if (success > 0) return 'success';
-  return 'neutral';
+function getPointStatus(point) {
+  const successCount = Number(point?.successCount) || 0;
+  const warningCount = Number(point?.warningCount) || 0;
+  const errorCount = Number(point?.errorCount) || 0;
+  const nonZeroStatusKinds = [successCount, warningCount, errorCount].filter((count) => count > 0).length;
+
+  let state = 'neutral';
+  if (nonZeroStatusKinds > 1) {
+    state = 'mixed';
+  } else if (errorCount > 0) {
+    state = 'error';
+  } else if (warningCount > 0) {
+    state = 'warning';
+  } else if (successCount > 0) {
+    state = 'success';
+  }
+
+  return { state, successCount, warningCount, errorCount };
 }

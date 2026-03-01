@@ -33,7 +33,9 @@ public class JwtAuthFilter extends HttpFilter {
             chain.doFilter(req, resp);
             return;
         }
-        if (relative.startsWith("/user-auth/signup") || relative.startsWith("/user-auth/login")) {
+        if (relative.startsWith("/user-auth/signup")
+                || relative.startsWith("/user-auth/login")
+                || relative.startsWith("/user-auth/zoho")) {
             chain.doFilter(req, resp);
             return;
         }
