@@ -191,7 +191,11 @@ public class UserAuthServlet extends HttpServlet {
         String email = ServletUtil.getString(payload, "email", null);
         boolean ok = userAuthService.requestPasswordResetTotp(email);
         if (!ok) {
-            sendErrorResponse(resp, "Unable to send verification code. Please try again.", HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(
+                    resp,
+                    "Unable to send verification code. Check SMTP app password configuration (MCP_MAIL_ZOHO_PASSWORD) and retry.",
+                    HttpServletResponse.SC_BAD_REQUEST
+            );
             return;
         }
         sendSuccessResponse(resp, Map.of(

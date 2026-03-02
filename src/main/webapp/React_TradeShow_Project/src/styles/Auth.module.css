@@ -262,31 +262,36 @@
 .btnSecondary {
   min-height: 44px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--primary-color) 50%, transparent);
-  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
-  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 82%, transparent);
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-color-strong));
+  color: var(--text-inverse);
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
 .btnSecondary:hover {
-  background: color-mix(in srgb, var(--primary-color) 20%, transparent);
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--primary-color) 36%, transparent);
 }
 
 .btnSecondary:disabled {
   opacity: 0.72;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .btnReset {
   min-height: 46px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--success-color) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 74%, transparent);
   background:
     linear-gradient(130deg,
-      color-mix(in srgb, var(--success-color) 80%, #10b981 20%),
-      color-mix(in srgb, var(--primary-color-strong) 42%, var(--success-color) 58%)
+      color-mix(in srgb, var(--primary-color) 74%, #ffffff 26%),
+      color-mix(in srgb, var(--primary-color-strong) 88%, #082f49 12%)
     );
   color: #ffffff;
   font-size: 0.97rem;
@@ -302,7 +307,7 @@
 .btnReset:hover {
   transform: translateY(-1px);
   filter: brightness(1.05);
-  box-shadow: 0 10px 20px color-mix(in srgb, var(--success-color) 36%, transparent);
+  box-shadow: 0 12px 24px color-mix(in srgb, var(--primary-color) 40%, transparent);
 }
 
 .btnReset:active {
@@ -378,9 +383,9 @@
   gap: 0.55rem;
   min-height: 48px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--primary-color) 55%, transparent);
-  background: color-mix(in srgb, var(--primary-color) 10%, var(--bg-elev-1) 90%);
-  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 82%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 90%, #ffffff 10%), var(--primary-color-strong));
+  color: var(--text-inverse);
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
@@ -388,8 +393,8 @@
 
 .zohoBtn:hover {
   transform: translateY(-1px);
-  border-color: color-mix(in srgb, var(--primary-color) 80%, transparent);
-  background: color-mix(in srgb, var(--primary-color) 18%, var(--bg-elev-1) 82%);
+  border-color: color-mix(in srgb, var(--primary-color) 92%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 94%, #ffffff 6%), var(--primary-color-strong));
 }
 
 .zohoBtn:disabled {

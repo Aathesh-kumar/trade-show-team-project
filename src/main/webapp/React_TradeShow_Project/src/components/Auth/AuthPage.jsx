@@ -25,6 +25,7 @@ export default function AuthPage({ onAuthenticated }) {
   const [forgotOtp, setForgotOtp] = useState('');
   const [forgotNewPassword, setForgotNewPassword] = useState('');
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [forgotStep, setForgotStep] = useState('email');
   const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
   const [showForgotConfirmPassword, setShowForgotConfirmPassword] = useState(false);
   const [forgotMessage, setForgotMessage] = useState('');
@@ -55,6 +56,7 @@ export default function AuthPage({ onAuthenticated }) {
     setForgotOtp('');
     setForgotNewPassword('');
     setForgotConfirmPassword('');
+    setForgotStep('email');
     setShowForgotNewPassword(false);
     setShowForgotConfirmPassword(false);
     setForgotMessage('');
@@ -199,6 +201,7 @@ export default function AuthPage({ onAuthenticated }) {
       const body = await parseApiResponse(response);
       const data = unwrapData(body);
       setForgotMessage(data?.message || 'If this email is registered, a verification code has been sent.');
+      setForgotStep('reset');
     } catch (e) {
       setForgotMessage(e.message || 'Unable to send verification code at this time.');
     } finally {
@@ -238,6 +241,7 @@ export default function AuthPage({ onAuthenticated }) {
       setForgotOtp('');
       setForgotNewPassword('');
       setForgotConfirmPassword('');
+      setForgotStep('email');
       setMode('login');
     } catch (e) {
       setForgotMessage(e.message || 'Unable to reset password.');
@@ -265,14 +269,18 @@ export default function AuthPage({ onAuthenticated }) {
               ? 'Continue where you left off'
               : isSignupMode
                 ? 'Create Your Account'
-                : 'Forgot Password'}
+                : forgotStep === 'email'
+                  ? 'Forgot Password'
+                  : 'Reset Password'}
           </h2>
           <p>
             {isLoginMode
               ? 'Let\'s hear the pulse of your server'
               : isSignupMode
                 ? 'Experience the next generation of cloud management.'
-                : 'Recover your account using OTP verification.'}
+                : forgotStep === 'email'
+                  ? 'Enter your account email to receive a one-time verification code.'
+                  : 'Enter OTP and set your new password.'}
           </p>
         </div>
 
@@ -352,6 +360,7 @@ export default function AuthPage({ onAuthenticated }) {
                 className={AuthStyles.ghostLink}
                 onClick={() => {
                   setMode('forgot');
+                  setForgotStep('email');
                   setForgotMessage('');
                   if (!forgotEmail && loginForm.email) {
                     setForgotEmail(loginForm.email);
@@ -438,73 +447,84 @@ export default function AuthPage({ onAuthenticated }) {
 
           {isForgotMode ? (
             <div className={AuthStyles.recoveryPanel}>
-              <h4>Password Recovery</h4>
-              <p>Enter your account email to receive a one-time verification code.</p>
-              <div className={AuthStyles.recoveryGrid}>
-                <div className={AuthStyles.fieldWrap}>
-                  <MdMail className={AuthStyles.fieldIcon} />
-                  <input
-                    className={AuthStyles.input}
-                    type="email"
-                    placeholder="Account email"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                  />
-                </div>
-                <button type="button" className={AuthStyles.btnSecondary} onClick={sendForgotOtp} disabled={forgotLoading}>
-                  {forgotLoading ? 'Sending...' : 'Send Verification Code'}
-                </button>
-                <div className={AuthStyles.fieldWrap}>
-                  <MdSecurity className={AuthStyles.fieldIcon} />
-                  <input
-                    className={AuthStyles.input}
-                    type="text"
-                    maxLength={6}
-                    placeholder="TOTP Code"
-                    value={forgotOtp}
-                    onChange={(e) => setForgotOtp(e.target.value)}
-                  />
-                </div>
-                <div className={AuthStyles.fieldWrap}>
-                  <MdLock className={AuthStyles.fieldIcon} />
-                  <input
-                    className={AuthStyles.input}
-                    type={showForgotNewPassword ? 'text' : 'password'}
-                    placeholder="New password"
-                    value={forgotNewPassword}
-                    onChange={(e) => setForgotNewPassword(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className={AuthStyles.eyeBtn}
-                    onClick={() => setShowForgotNewPassword((prev) => !prev)}
-                    aria-label={showForgotNewPassword ? 'Hide new password' : 'Show new password'}
-                  >
-                    {showForgotNewPassword ? <MdVisibilityOff /> : <MdVisibility />}
+              {forgotStep === 'email' ? (
+                <div className={AuthStyles.recoveryGrid}>
+                  <div className={AuthStyles.fieldWrap}>
+                    <MdMail className={AuthStyles.fieldIcon} />
+                    <input
+                      className={AuthStyles.input}
+                      type="email"
+                      placeholder="Account email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                    />
+                  </div>
+                  <button type="button" className={AuthStyles.btnSecondary} onClick={sendForgotOtp} disabled={forgotLoading}>
+                    {forgotLoading ? 'Sending...' : 'Send Verification Code'}
                   </button>
                 </div>
-                <div className={AuthStyles.fieldWrap}>
-                  <MdSecurity className={AuthStyles.fieldIcon} />
-                  <input
-                    className={AuthStyles.input}
-                    type={showForgotConfirmPassword ? 'text' : 'password'}
-                    placeholder="Confirm new password"
-                    value={forgotConfirmPassword}
-                    onChange={(e) => setForgotConfirmPassword(e.target.value)}
-                  />
+              ) : (
+                <div className={AuthStyles.recoveryGrid}>
+                  <div className={AuthStyles.fieldWrap}>
+                    <MdSecurity className={AuthStyles.fieldIcon} />
+                    <input
+                      className={AuthStyles.input}
+                      type="text"
+                      maxLength={6}
+                      placeholder="TOTP Code"
+                      value={forgotOtp}
+                      onChange={(e) => setForgotOtp(e.target.value)}
+                    />
+                  </div>
+                  <div className={AuthStyles.fieldWrap}>
+                    <MdLock className={AuthStyles.fieldIcon} />
+                    <input
+                      className={AuthStyles.input}
+                      type={showForgotNewPassword ? 'text' : 'password'}
+                      placeholder="New password"
+                      value={forgotNewPassword}
+                      onChange={(e) => setForgotNewPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className={AuthStyles.eyeBtn}
+                      onClick={() => setShowForgotNewPassword((prev) => !prev)}
+                      aria-label={showForgotNewPassword ? 'Hide new password' : 'Show new password'}
+                    >
+                      {showForgotNewPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                    </button>
+                  </div>
+                  <div className={AuthStyles.fieldWrap}>
+                    <MdSecurity className={AuthStyles.fieldIcon} />
+                    <input
+                      className={AuthStyles.input}
+                      type={showForgotConfirmPassword ? 'text' : 'password'}
+                      placeholder="Confirm new password"
+                      value={forgotConfirmPassword}
+                      onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className={AuthStyles.eyeBtn}
+                      onClick={() => setShowForgotConfirmPassword((prev) => !prev)}
+                      aria-label={showForgotConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                    >
+                      {showForgotConfirmPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                    </button>
+                  </div>
+                  <button type="submit" className={AuthStyles.btnReset} disabled={forgotLoading}>
+                    {forgotLoading ? 'Please wait...' : 'Reset Password'}
+                  </button>
                   <button
                     type="button"
-                    className={AuthStyles.eyeBtn}
-                    onClick={() => setShowForgotConfirmPassword((prev) => !prev)}
-                    aria-label={showForgotConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                    className={AuthStyles.btnSecondary}
+                    onClick={() => setForgotStep('email')}
+                    disabled={forgotLoading}
                   >
-                    {showForgotConfirmPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                    Back to Email Step
                   </button>
                 </div>
-                <button type="submit" className={AuthStyles.btnReset} disabled={forgotLoading}>
-                  {forgotLoading ? 'Please wait...' : 'Reset Password'}
-                </button>
-              </div>
+              )}
               {forgotMessage ? <div className={AuthStyles.info}>{forgotMessage}</div> : null}
             </div>
           ) : null}
