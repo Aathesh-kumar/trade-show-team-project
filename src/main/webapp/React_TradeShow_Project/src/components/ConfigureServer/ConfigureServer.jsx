@@ -66,8 +66,8 @@ export default function ConfigureServer({ currentUser, onClose, onSuccess, canLo
             if (!data.accessToken || !String(data.accessToken).trim() || !data.refreshToken || !String(data.refreshToken).trim()) {
                 return 'Click Open OAuth and complete token generation before saving';
             }
-            if (!data.tokenEndpoint || !/^https?:\/\/.+/.test(data.tokenEndpoint)) {
-                return 'Token Endpoint is required and must be valid';
+            if (!isValidServerEndpoint(data.tokenEndpoint)) {
+                return 'Token Endpoint must be a valid URL or URI';
             }
             if (!isValidEmail(data.receiverEmail)) {
                 return 'Receiver email is required and must be valid';

@@ -105,6 +105,7 @@
         min-height: 340px;
         height: clamp(340px, 44vw, 420px);
         min-width: 0;
+        overflow: hidden;
     }
 
     .statCard {
@@ -875,6 +876,7 @@
         }
 
         .analyticsChartWrap {
+            min-height: 360px;
             height: 400px;
         }
     }
@@ -921,6 +923,7 @@
         }
 
         .analyticsChartWrap {
+            min-height: 340px;
             height: 360px;
         }
     }

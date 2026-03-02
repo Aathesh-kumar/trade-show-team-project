@@ -221,16 +221,17 @@ function ToolLegend({ items = [], compact = false }) {
             alignItems: 'center',
             gap: 6,
             color: TOOL_COLORS[index % TOOL_COLORS.length],
-            maxWidth: compact ? '100%' : 260,
+            maxWidth: compact ? '100%' : 240,
             minWidth: 0
           }}
         >
           <span style={{ width: 12, height: 10, background: TOOL_COLORS[index % TOOL_COLORS.length], display: 'inline-block', flex: '0 0 auto' }} />
           <span style={{
-            fontSize: compact ? 18 : 20,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
+            fontSize: compact ? 14 : 16,
+            whiteSpace: 'normal',
+            overflowWrap: 'anywhere',
+            wordBreak: 'break-word',
+            lineHeight: 1.25,
             display: 'block',
             minWidth: 0
           }}>
@@ -303,7 +304,7 @@ function RequestLegend({ items = [], compact = false }) {
         {ordered.map((item) => (
             <li key={item.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: REQUEST_COLORS[item.name], marginRight: compact ? 12 : 0 }}>
               <span style={{ width: 12, height: 10, background: REQUEST_COLORS[item.name], display: 'inline-block' }} />
-              <span style={{ fontSize: compact ? 18 : 20 }}>{item.name}</span>
+              <span style={{ fontSize: compact ? 14 : 16 }}>{item.name}</span>
             </li>
         ))}
       </ul>

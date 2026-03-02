@@ -430,6 +430,9 @@ public class DBQueries {
         public static final String UPDATE_USER_PASSWORD_HASH =
                 "UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
 
+        public static final String UPDATE_USER_EMAIL =
+                "UPDATE users SET email = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+
         private DBQueries() {
         }
 }

@@ -272,7 +272,7 @@
         bottom: 10px;
         transform: translateX(-50%);
         width: min(400px, calc(100vw - 12px));
-        --nav-width: min(600px, calc(100vw - 12px));
+        --nav-width: min(400px, calc(100vw - 12px));
         --nav-height: 70px;
         --item-size: calc(var(--nav-width) / 5);
         --indicator-size: 70px;
@@ -291,7 +291,7 @@
         height: var(--nav-height);
         --dark: var(--text-primary);
         --green: var(--primary-color);
-        background: var(--bg-elev-1);
+        background: #ffffff;
         border-radius: 20px;
         display: flex;
         justify-content: center;
@@ -306,6 +306,7 @@
         margin: 0;
         padding: 0;
         position: relative;
+        height: 100%;
     }
 
     .navigation ul li {
@@ -341,7 +342,7 @@
         line-height: 1;
         transition: 0.5s;
         color: currentColor;
-        z-index: 2;
+        z-index: 3;
     }
 
     .icon svg {
@@ -379,9 +380,9 @@
         height: var(--indicator-size);
         background: var(--green);
         border-radius: 50%;
-        border: 6px solid var(--bg-app);
+        border: 6px solid var(--page-bg);
         transition: 0.5s;
-        z-index: 0;
+        z-index: 1;
         pointer-events: none;
     }
 
@@ -394,7 +395,7 @@
         height: 20px;
         background: transparent;
         border-top-right-radius: 15px;
-        box-shadow: 1px -10px 0 0 var(--bg-app);
+        box-shadow: 1px -10px 0 0 var(--page-bg);
     }
 
     .indicator::after {
@@ -406,7 +407,7 @@
         height: 20px;
         background: transparent;
         border-top-left-radius: 15px;
-        box-shadow: -1px -10px 0 0 var(--bg-app);
+        box-shadow: -1px -10px 0 0 var(--page-bg);
     }
 
     .navigation ul li a:focus-visible {

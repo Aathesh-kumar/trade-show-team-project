@@ -56,6 +56,14 @@ public class UserAuthServlet extends HttpServlet {
             handleForgotPasswordReset(req, resp);
             return;
         }
+        if ("/email-change/send-otp".equals(pathInfo)) {
+            handleEmailChangeSendOtp(req, resp);
+            return;
+        }
+        if ("/email-change/confirm".equals(pathInfo)) {
+            handleEmailChangeConfirm(req, resp);
+            return;
+        }
         sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
     }
 
@@ -129,7 +137,7 @@ public class UserAuthServlet extends HttpServlet {
         String password = ServletUtil.getString(payload, "password", null);
         User user = userAuthService.signup(fullName, email, password);
         if (user == null) {
-            sendErrorResponse(resp, "Signup failed. Email may already exist or input invalid.", HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp, "Signup failed. Password must be at least 8 chars with uppercase, lowercase, and special character.", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
         String token = JwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole(), 8 * 3600L);
@@ -210,10 +218,50 @@ public class UserAuthServlet extends HttpServlet {
         String newPassword = ServletUtil.getString(payload, "newPassword", null);
         boolean reset = userAuthService.resetPasswordWithTotp(email, otpCode, newPassword);
         if (!reset) {
-            sendErrorResponse(resp, "Invalid or expired verification code, or password policy not met.", HttpServletResponse.SC_BAD_REQUEST);
+            sendErrorResponse(resp, "Invalid/expired verification code or weak password. Use at least 8 chars with uppercase, lowercase, and special character.", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
         sendSuccessResponse(resp, Map.of("message", "Password reset successful. Please sign in with your new password."));
+    }
+
+    private void handleEmailChangeSendOtp(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Object uid = req.getAttribute("userId");
+        if (!(uid instanceof Long userId)) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        String currentPassword = ServletUtil.getString(payload, "currentPassword", null);
+        String newEmail = ServletUtil.getString(payload, "newEmail", null);
+        boolean ok = userAuthService.requestEmailChangeTotp(userId, currentPassword, newEmail);
+        if (!ok) {
+            sendErrorResponse(resp, "Unable to send verification code. Check credentials and new email.", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        sendSuccessResponse(resp, Map.of(
+                "message", "Verification code has been sent to your new email."
+        ));
+    }
+
+    private void handleEmailChangeConfirm(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Object uid = req.getAttribute("userId");
+        if (!(uid instanceof Long userId)) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        String newEmail = ServletUtil.getString(payload, "newEmail", null);
+        String otpCode = ServletUtil.getString(payload, "otpCode", null);
+        User updatedUser = userAuthService.confirmEmailChange(userId, newEmail, otpCode);
+        if (updatedUser == null) {
+            sendErrorResponse(resp, "Invalid or expired verification code.", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        String token = JwtUtil.generateToken(updatedUser.getId(), updatedUser.getEmail(), updatedUser.getRole(), 8 * 3600L);
+        Map<String, Object> response = new HashMap<>();
+        response.put("token", token);
+        response.put("user", toSafeUser(updatedUser));
+        sendSuccessResponse(resp, response);
     }
 
     private Map<String, Object> toSafeUser(User user) {

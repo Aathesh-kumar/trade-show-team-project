@@ -1,9 +1,9 @@
-2026-03-02 14:36:10,975 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO Initializing MCP Monitor Scheduler 
-2026-03-02 14:36:11,007 [org.quartz.impl.StdSchedulerFactory] INFO Using default implementation for ThreadExecutor 
-2026-03-02 14:36:11,016 [org.quartz.core.SchedulerSignalerImpl] INFO Initialized Scheduler Signaller of type: class org.quartz.core.SchedulerSignalerImpl 
-2026-03-02 14:36:11,016 [org.quartz.core.QuartzScheduler] INFO Quartz Scheduler v.2.3.2 created. 
-2026-03-02 14:36:11,017 [org.quartz.simpl.RAMJobStore] INFO RAMJobStore initialized. 
-2026-03-02 14:36:11,018 [org.quartz.core.QuartzScheduler] INFO Scheduler meta-data: Quartz Scheduler (v2.3.2) 'Pulse24x7Scheduler' with instanceId 'NON_CLUSTERED'
+2026-03-03 00:01:14,153 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO Initializing MCP Monitor Scheduler 
+2026-03-03 00:01:14,204 [org.quartz.impl.StdSchedulerFactory] INFO Using default implementation for ThreadExecutor 
+2026-03-03 00:01:14,216 [org.quartz.core.SchedulerSignalerImpl] INFO Initialized Scheduler Signaller of type: class org.quartz.core.SchedulerSignalerImpl 
+2026-03-03 00:01:14,216 [org.quartz.core.QuartzScheduler] INFO Quartz Scheduler v.2.3.2 created. 
+2026-03-03 00:01:14,217 [org.quartz.simpl.RAMJobStore] INFO RAMJobStore initialized. 
+2026-03-03 00:01:14,218 [org.quartz.core.QuartzScheduler] INFO Scheduler meta-data: Quartz Scheduler (v2.3.2) 'Pulse24x7Scheduler' with instanceId 'NON_CLUSTERED'
   Scheduler class: 'org.quartz.core.QuartzScheduler' - running locally.
   NOT STARTED.
   Currently in standby mode.
@@ -11,14 +11,25 @@
   Using thread pool 'org.quartz.simpl.SimpleThreadPool' - with 1 threads.
   Using job-store 'org.quartz.simpl.RAMJobStore' - which does not support persistence. and is not clustered.
  
-2026-03-02 14:36:11,018 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler 'Pulse24x7Scheduler' initialized from an externally provided properties instance. 
-2026-03-02 14:36:11,018 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler version: 2.3.2 
-2026-03-02 14:36:11,025 [org.quartz.core.QuartzScheduler] INFO Scheduler Pulse24x7Scheduler_$_NON_CLUSTERED started. 
-2026-03-02 14:36:11,027 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO MCP Monitor Scheduler started successfully. Monitoring interval: 30 minutes 
-2026-03-02 14:36:11,029 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Starting scheduled server monitoring ===== 
-2026-03-02 14:36:11,033 [com.tradeshow.pulse24x7.mcp.filter.CORSFilter] INFO CORSFilter initialized 
-2026-03-02 14:36:11,037 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting monitoring for all servers 
-2026-03-02 14:36:11,041 [com.tradeshow.pulse24x7.mcp.db.DBConnection] INFO MySQL JDBC driver loaded 
-2026-03-02 14:36:11,368 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Found 2 servers to monitor 
-2026-03-02 14:36:11,403 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Completed monitoring for all servers 
-2026-03-02 14:36:11,403 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Scheduled server monitoring completed in 374 ms ===== 
+2026-03-03 00:01:14,218 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler 'Pulse24x7Scheduler' initialized from an externally provided properties instance. 
+2026-03-03 00:01:14,218 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler version: 2.3.2 
+2026-03-03 00:01:14,227 [org.quartz.core.QuartzScheduler] INFO Scheduler Pulse24x7Scheduler_$_NON_CLUSTERED started. 
+2026-03-03 00:01:14,229 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO MCP Monitor Scheduler started successfully. Monitoring interval: 30 minutes 
+2026-03-03 00:01:14,235 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Starting scheduled server monitoring ===== 
+2026-03-03 00:01:14,240 [com.tradeshow.pulse24x7.mcp.filter.CORSFilter] INFO CORSFilter initialized 
+2026-03-03 00:01:14,248 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting monitoring for all servers 
+2026-03-03 00:01:14,253 [com.tradeshow.pulse24x7.mcp.db.DBConnection] INFO MySQL JDBC driver loaded 
+2026-03-03 00:01:14,774 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Found 2 servers to monitor 
+2026-03-03 00:01:14,836 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Completed monitoring for all servers 
+2026-03-03 00:01:14,836 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Scheduled server monitoring completed in 601 ms ===== 
+2026-03-03 00:01:17,957 [com.tradeshow.pulse24x7.mcp.controller.ServerServlet] INFO ServerServlet initialized 
+2026-03-03 00:01:18,009 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-03-03 00:01:18,108 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-03-03 00:01:18,124 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 1 because configured interval (30 minutes) has not elapsed 
+2026-03-03 00:01:22,140 [com.tradeshow.pulse24x7.mcp.controller.AuthTokenServlet] INFO AuthTokenServlet initialized 
+2026-03-03 00:01:48,874 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-03-03 00:01:48,890 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 1 because configured interval (30 minutes) has not elapsed 
+2026-03-03 00:01:57,284 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-03-03 00:01:59,168 [com.tradeshow.pulse24x7.mcp.controller.RequestLogServlet] INFO RequestLogServlet initialized 
+2026-03-03 00:06:48,872 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 1 because configured interval (30 minutes) has not elapsed 
+2026-03-03 00:16:55,713 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 

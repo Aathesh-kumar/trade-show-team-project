@@ -1,8 +1,7 @@
 .authPage {
   min-height: 100vh;
   display: grid;
-  justify-content: center;
-  align-items: center;
+  place-items: center;
   padding: 1.5rem;
   color: var(--text-primary);
   background:
@@ -61,6 +60,14 @@
   border-radius: 18px;
   box-shadow: var(--shadow-soft);
   padding: 2rem;
+}
+
+.forgotCard {
+  width: min(640px, 100%);
+  border-color: color-mix(in srgb, var(--primary-color) 42%, transparent);
+  background:
+    radial-gradient(750px 260px at 15% -10%, color-mix(in srgb, var(--primary-color) 14%, transparent), transparent 72%),
+    color-mix(in srgb, var(--bg-elev-1) 97%, transparent);
 }
 
 .header h2 {
@@ -192,6 +199,12 @@
   padding-left: 0.3rem;
 }
 
+.passwordRuleHint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
 .termsRow {
   display: flex;
   align-items: flex-start;
@@ -237,10 +250,30 @@
 .recoveryPanel {
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--primary-color) 30%, transparent);
-  background: color-mix(in srgb, var(--primary-color) 8%, transparent);
-  padding: 0.9rem;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--primary-color) 10%, transparent), color-mix(in srgb, var(--info-color) 8%, transparent)),
+    color-mix(in srgb, var(--primary-color) 8%, transparent);
+  padding: 1rem;
   display: grid;
-  gap: 0.55rem;
+  gap: 0.7rem;
+}
+
+.forgotHero {
+  border: 1px solid color-mix(in srgb, var(--primary-color) 32%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-elev-1) 90%, transparent);
+  padding: 0.75rem 0.85rem;
+}
+
+.forgotHero h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.forgotHero p {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 .recoveryPanel h4 {
@@ -256,7 +289,29 @@
 
 .recoveryGrid {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.6rem;
+}
+
+.forgotSteps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.forgotStepBtn {
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--primary-color) 42%, transparent);
+  background: color-mix(in srgb, var(--bg-elev-1) 84%, transparent);
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.forgotStepBtnActive {
+  color: var(--text-inverse);
+  background: linear-gradient(140deg, var(--primary-color), var(--primary-color-strong));
+  border-color: color-mix(in srgb, var(--primary-color) 80%, transparent);
 }
 
 .btnSecondary {
@@ -383,9 +438,9 @@
   gap: 0.55rem;
   min-height: 48px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--primary-color) 82%, transparent);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--primary-color) 90%, #ffffff 10%), var(--primary-color-strong));
-  color: var(--text-inverse);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 55%, transparent);
+  background: color-mix(in srgb, var(--primary-color) 10%, var(--bg-elev-1) 90%);
+  color: var(--text-primary);
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
@@ -427,7 +482,6 @@
 }
 
 .footerBadges {
-  width: 100%;
   margin-top: 1.2rem;
   display: flex;
   justify-content: center;
@@ -474,6 +528,10 @@
   }
 
   .passwordGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .forgotSteps {
     grid-template-columns: 1fr;
   }
 

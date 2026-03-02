@@ -55,18 +55,6 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
         params: { serverId },
         dependencies: [showNotifications, serverId, reloadTick]
     });
-    const [dismissedHighAlerts, setDismissedHighAlerts] = useState(() => new Set());
-
-    const recentNotification = useMemo(() => {
-        const list = Array.isArray(notificationsData) ? notificationsData : [];
-        const ranked = list
-            .filter((item) => !dismissedHighAlerts.has(item?.id))
-            .filter((item) => isRecentAlert(item?.createdAt, 5))
-            .sort((a, b) => new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime());
-        return ranked[0] || null;
-    }, [notificationsData, dismissedHighAlerts]);
-    const toastNotification = recentNotification;
-    const toastSeverityClass = toastNotification ? getAlertClass(toastNotification.severity) : '';
 
     useEffect(() => {
         if (!serverId) {
@@ -102,20 +90,6 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
         const id = setInterval(refreshNotifications, 30_000);
         return () => clearInterval(id);
     }, [serverId, refetchNotifications, refetchUnread]);
-
-    useEffect(() => {
-        if (!toastNotification?.id) {
-            return;
-        }
-        const id = setTimeout(() => {
-            setDismissedHighAlerts((prev) => {
-                const next = new Set(prev);
-                next.add(toastNotification.id);
-                return next;
-            });
-        }, 8000);
-        return () => clearTimeout(id);
-    }, [toastNotification?.id]);
 
     useEffect(() => {
         if (!dashboardReloading) {
@@ -265,31 +239,6 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
             </div>
 
             {metricsLoading ? <LoadingSkeleton type="table" lines={4} /> : <TopPerformingTools tools={metrics?.topTools || []} />}
-            {toastNotification ? (
-                <div className={`${DashboardStyles.alertToast} ${toastSeverityClass ? DashboardStyles[toastSeverityClass] : ''}`} role="alert">
-                    <div className={DashboardStyles.alertMeta}>
-                        <span className={DashboardStyles.alertBadge}>{String(toastNotification.severity || 'alert')}</span>
-                        <strong>{toastNotification.title || 'Alert'}</strong>
-                    </div>
-                    <p className={DashboardStyles.alertMessage}>{toastNotification.message}</p>
-                    <div className={DashboardStyles.alertFooter}>
-                        <small className={DashboardStyles.alertTime}>{formatTime(toastNotification.createdAt)}</small>
-                        <button
-                            type="button"
-                            className={DashboardStyles.alertDismiss}
-                            onClick={() => {
-                                setDismissedHighAlerts((prev) => {
-                                    const next = new Set(prev);
-                                    next.add(toastNotification.id);
-                                    return next;
-                                });
-                            }}
-                        >
-                            Dismiss
-                        </button>
-                    </div>
-                </div>
-            ) : null}
             {showNotifications ? (
                 <NotificationPanel
                     isOpen={showNotifications}
@@ -337,42 +286,4 @@ function isInternalToolName(name) {
         || lower.includes('ping')
         || lower.includes('refresh')
         || lower.includes('token');
-}
-
-function getAlertClass(severity) {
-    const level = String(severity || '').toLowerCase();
-    if (level === 'success') return 'alertSuccess';
-    if (level === 'warning') return 'alertWarning';
-    if (level === 'error' || level === 'critical' || level === 'high') return 'alertError';
-    return 'alertInfo';
-}
-
-function isRecentAlert(raw, minutes) {
-    if (!raw) {
-        return false;
-    }
-    const ts = new Date(String(raw).replace(' ', 'T'));
-    if (Number.isNaN(ts.getTime())) {
-        return false;
-    }
-    const diffMs = Date.now() - ts.getTime();
-    return diffMs >= 0 && diffMs <= minutes * 60_000;
-}
-
-function formatTime(raw) {
-    if (!raw) {
-        return '-';
-    }
-    const ts = new Date(String(raw).replace(' ', 'T'));
-    if (Number.isNaN(ts.getTime())) {
-        return String(raw);
-    }
-    return ts.toLocaleString([], {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-    });
 }
