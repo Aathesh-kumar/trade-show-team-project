@@ -81,6 +81,20 @@ export default function RequestLogs({ selectedServer }) {
         window.addEventListener('pulse24x7-request-log-refresh', onRefresh);
         return () => window.removeEventListener('pulse24x7-request-log-refresh', onRefresh);
     }, [serverId, refetch]);
+
+    useEffect(() => {
+        const onEscape = () => {
+            if (showExportModal) {
+                setShowExportModal(false);
+                return;
+            }
+            if (selectedRequest) {
+                setSelectedRequest(null);
+            }
+        };
+        window.addEventListener('pulse24x7-escape', onEscape);
+        return () => window.removeEventListener('pulse24x7-escape', onEscape);
+    }, [showExportModal, selectedRequest]);
     const totalItems = data?.pagination?.totalItems || 0;
     const totalPages = Math.max(1, data?.pagination?.totalPages || 1);
     const handleFilterChange = (next) => {

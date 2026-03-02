@@ -34,8 +34,13 @@ public class AuthTokenService {
             return false;
         }
 
+        Timestamp safeExpiresAt = expiresAt;
+        if (safeExpiresAt == null) {
+            safeExpiresAt = Timestamp.from(Instant.now().plusSeconds(3600L));
+        }
+
         return authTokenDAO.insertOrUpdateToken(
-                serverId, headerType, accessToken, refreshToken, expiresAt, clientId, clientSecret, tokenEndpoint, oauthTokenLink
+                serverId, headerType, accessToken, refreshToken, safeExpiresAt, clientId, clientSecret, tokenEndpoint, oauthTokenLink
         );
     }
 

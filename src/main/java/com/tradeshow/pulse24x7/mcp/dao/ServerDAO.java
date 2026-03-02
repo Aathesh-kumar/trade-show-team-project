@@ -161,22 +161,58 @@ public class ServerDAO {
     public boolean deleteServer(Integer serverId, Long userId) {
         logger.info("Deleting server ID={} for userId={}", serverId, userId);
 
-        try (Connection con = DBConnection.getInstance().getConnection();
-             PreparedStatement ps = con.prepareStatement(DBQueries.DELETE_SERVER)) {
+        try (Connection con = DBConnection.getInstance().getConnection()) {
+            con.setAutoCommit(false);
+            try {
+                // Hard-delete all records that belong to this server to avoid orphan/null references.
+                deleteByServerId(con, DBQueries.DELETE_REQUEST_LOG_PAYLOADS_BY_SERVER, serverId);
+                deleteByServerId(con, DBQueries.DELETE_REQUEST_LOGS_BY_SERVER, serverId);
+                deleteByServerId(con, DBQueries.DELETE_TOOLS_HISTORY_BY_SERVER, serverId);
+                deleteByServerId(con, DBQueries.DELETE_TOOLS_BY_SERVER, serverId);
+                deleteByServerId(con, DBQueries.DELETE_SERVER_HISTORY_BY_SERVER, serverId);
+                deleteByServerId(con, DBQueries.DELETE_AUTH_TOKEN_BY_SERVER, serverId);
+                deleteByServerId(con, DBQueries.DELETE_NOTIFICATIONS_BY_SERVER, serverId);
+                deleteOrphanNotifications(con);
 
-            ps.setInt(1, serverId);
-            ps.setLong(2, userId);
+                int affectedRows;
+                try (PreparedStatement ps = con.prepareStatement(DBQueries.DELETE_SERVER)) {
+                    ps.setInt(1, serverId);
+                    ps.setLong(2, userId);
+                    affectedRows = ps.executeUpdate();
+                }
 
-            int affectedRows = ps.executeUpdate();
+                if (affectedRows <= 0) {
+                    con.rollback();
+                    logger.warn("Server not deleted (not found/unauthorized) serverId={} userId={}", serverId, userId);
+                    return false;
+                }
 
-            if (affectedRows > 0) {
-                logger.info("Server deleted successfully: {}", serverId);
+                con.commit();
+                logger.info("Server deleted successfully with all dependent records: {}", serverId);
                 return true;
+            } catch (SQLException e) {
+                con.rollback();
+                throw e;
+            } finally {
+                con.setAutoCommit(true);
             }
         } catch (SQLException e) {
             logger.error("Failed to delete server: {}", serverId, e);
         }
         return false;
+    }
+
+    private void deleteByServerId(Connection con, String sql, int serverId) throws SQLException {
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, serverId);
+            ps.executeUpdate();
+        }
+    }
+
+    private void deleteOrphanNotifications(Connection con) throws SQLException {
+        try (PreparedStatement ps = con.prepareStatement(DBQueries.DELETE_ORPHAN_NOTIFICATIONS)) {
+            ps.executeUpdate();
+        }
     }
 
     public boolean serverExists(String serverUrl, Long userId) {

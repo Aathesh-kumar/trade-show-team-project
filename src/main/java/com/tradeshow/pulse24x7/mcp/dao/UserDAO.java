@@ -1,7 +1,9 @@
 package com.tradeshow.pulse24x7.mcp.dao;
 
 import com.tradeshow.pulse24x7.mcp.db.DBConnection;
+import com.tradeshow.pulse24x7.mcp.model.NotificationRecipient;
 import com.tradeshow.pulse24x7.mcp.model.User;
+import com.tradeshow.pulse24x7.mcp.utils.DBQueries;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -66,6 +68,43 @@ public class UserDAO {
             logger.error("Failed to create user", e);
         }
         return null;
+    }
+
+    public NotificationRecipient findNotificationRecipientByServerId(Integer serverId) {
+        if (serverId == null || serverId <= 0) {
+            return null;
+        }
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.SELECT_NOTIFICATION_OWNER_BY_SERVER)) {
+            ps.setInt(1, serverId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    NotificationRecipient recipient = new NotificationRecipient();
+                    recipient.setUserId(rs.getLong("user_id"));
+                    recipient.setFullName(rs.getString("full_name"));
+                    recipient.setEmail(rs.getString("email"));
+                    return recipient;
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to resolve notification owner for serverId={}", serverId, e);
+        }
+        return null;
+    }
+
+    public boolean updatePasswordHash(Long userId, String passwordHash) {
+        if (userId == null || userId <= 0 || passwordHash == null || passwordHash.isBlank()) {
+            return false;
+        }
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.UPDATE_USER_PASSWORD_HASH)) {
+            ps.setString(1, passwordHash);
+            ps.setLong(2, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            logger.error("Failed to update password hash for userId={}", userId, e);
+            return false;
+        }
     }
 
     private User mapUser(ResultSet rs) throws SQLException {

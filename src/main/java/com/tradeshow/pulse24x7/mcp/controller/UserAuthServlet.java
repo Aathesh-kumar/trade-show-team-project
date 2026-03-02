@@ -2,7 +2,9 @@ package com.tradeshow.pulse24x7.mcp.controller;
 
 import com.google.gson.JsonObject;
 import com.tradeshow.pulse24x7.mcp.model.User;
+import com.tradeshow.pulse24x7.mcp.model.UserEmailSettings;
 import com.tradeshow.pulse24x7.mcp.service.UserAuthService;
+import com.tradeshow.pulse24x7.mcp.service.UserEmailSettingsService;
 import com.tradeshow.pulse24x7.mcp.utils.JsonUtil;
 import com.tradeshow.pulse24x7.mcp.utils.JwtUtil;
 import com.tradeshow.pulse24x7.mcp.utils.ServletUtil;
@@ -21,11 +23,13 @@ import java.util.Map;
 @WebServlet("/user-auth/*")
 public class UserAuthServlet extends HttpServlet {
     private UserAuthService userAuthService;
+    private UserEmailSettingsService userEmailSettingsService;
 
     @Override
     public void init() throws ServletException {
         super.init();
         userAuthService = new UserAuthService();
+        userEmailSettingsService = new UserEmailSettingsService();
     }
 
     @Override
@@ -44,6 +48,14 @@ public class UserAuthServlet extends HttpServlet {
             handleZohoLogin(req, resp);
             return;
         }
+        if ("/forgot-password/send-otp".equals(pathInfo)) {
+            handleForgotPasswordSendOtp(req, resp);
+            return;
+        }
+        if ("/forgot-password/reset".equals(pathInfo)) {
+            handleForgotPasswordReset(req, resp);
+            return;
+        }
         sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
     }
 
@@ -51,6 +63,10 @@ public class UserAuthServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         initResponse(resp);
         String pathInfo = req.getPathInfo();
+        if ("/email-settings".equals(pathInfo)) {
+            handleGetEmailSettings(req, resp);
+            return;
+        }
         if (!"/me".equals(pathInfo)) {
             sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
             return;
@@ -66,6 +82,44 @@ public class UserAuthServlet extends HttpServlet {
             return;
         }
         sendSuccessResponse(resp, toSafeUser(user));
+    }
+
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        initResponse(resp);
+        String pathInfo = req.getPathInfo();
+        if (!"/email-settings".equals(pathInfo)) {
+            sendErrorResponse(resp, "Invalid endpoint", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        Object uid = req.getAttribute("userId");
+        if (!(uid instanceof Long userId)) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        User currentUser = userAuthService.findById(userId);
+        if (currentUser == null) {
+            sendErrorResponse(resp, "User not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+
+        UserEmailSettings settings = new UserEmailSettings();
+        settings.setUserId(userId);
+        settings.setAlertsEnabled(ServletUtil.getBoolean(payload, "alertsEnabled", true));
+        settings.setReceiverEmail(ServletUtil.getString(payload, "receiverEmail", currentUser.getEmail()));
+        settings.setMinSeverity(ServletUtil.getString(payload, "minSeverity", "warning"));
+        settings.setIncludeServerAlerts(ServletUtil.getBoolean(payload, "includeServerAlerts", true));
+        settings.setIncludeToolAlerts(ServletUtil.getBoolean(payload, "includeToolAlerts", true));
+        settings.setIncludeSystemAlerts(ServletUtil.getBoolean(payload, "includeSystemAlerts", true));
+
+        boolean saved = userEmailSettingsService.save(settings);
+        if (!saved) {
+            sendErrorResponse(resp, "Failed to save email settings", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            return;
+        }
+        sendSuccessResponse(resp, userEmailSettingsService.getByUserId(userId));
     }
 
     private void handleSignup(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -116,6 +170,46 @@ public class UserAuthServlet extends HttpServlet {
         response.put("token", token);
         response.put("user", toSafeUser(user));
         sendSuccessResponse(resp, response);
+    }
+
+    private void handleGetEmailSettings(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        Object uid = req.getAttribute("userId");
+        if (!(uid instanceof Long userId)) {
+            sendErrorResponse(resp, "Unauthorized", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+        UserEmailSettings settings = userEmailSettingsService.getByUserId(userId);
+        if (settings == null) {
+            sendErrorResponse(resp, "Settings not found", HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        sendSuccessResponse(resp, settings);
+    }
+
+    private void handleForgotPasswordSendOtp(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        String email = ServletUtil.getString(payload, "email", null);
+        boolean ok = userAuthService.requestPasswordResetTotp(email);
+        if (!ok) {
+            sendErrorResponse(resp, "Unable to send verification code. Please try again.", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        sendSuccessResponse(resp, Map.of(
+                "message", "If this email is registered, a verification code has been sent."
+        ));
+    }
+
+    private void handleForgotPasswordReset(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        JsonObject payload = ServletUtil.readJsonBody(req);
+        String email = ServletUtil.getString(payload, "email", null);
+        String otpCode = ServletUtil.getString(payload, "otpCode", null);
+        String newPassword = ServletUtil.getString(payload, "newPassword", null);
+        boolean reset = userAuthService.resetPasswordWithTotp(email, otpCode, newPassword);
+        if (!reset) {
+            sendErrorResponse(resp, "Invalid or expired verification code, or password policy not met.", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+        sendSuccessResponse(resp, Map.of("message", "Password reset successful. Please sign in with your new password."));
     }
 
     private Map<String, Object> toSafeUser(User user) {

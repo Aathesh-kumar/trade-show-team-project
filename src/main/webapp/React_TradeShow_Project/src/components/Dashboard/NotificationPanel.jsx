@@ -4,7 +4,7 @@ import PaginationControls from '../Common/PaginationControls';
 import LoadingSkeleton from '../Loading/LoadingSkeleton';
 import { buildUrl, getAuthHeaders, parseApiResponse } from '../../services/api';
 
-export default function NotificationPanel({ isOpen, onClose, notificationsData = [], loading = false, onNotificationsChanged, openCycle = 0 }) {
+export default function NotificationPanel({ isOpen, onClose, notificationsData = [], loading = false, onNotificationsChanged, openCycle = 0, serverId = null }) {
   const [page, setPage] = useState(1);
   const [panelLoading, setPanelLoading] = useState(true);
   const [displayNotifications, setDisplayNotifications] = useState([]);
@@ -47,7 +47,8 @@ export default function NotificationPanel({ isOpen, onClose, notificationsData =
       headers: {
         'Content-Type': 'application/json',
         ...getAuthHeaders()
-      }
+      },
+      body: JSON.stringify({ serverId })
     }).then(parseApiResponse).catch(() => null);
     onNotificationsChanged?.();
   };
@@ -86,7 +87,7 @@ export default function NotificationPanel({ isOpen, onClose, notificationsData =
   const showLoading = panelLoading || loading;
 
   const clearAll = async () => {
-    await fetch(buildUrl('/notification/all'), {
+    await fetch(buildUrl('/notification/all', { serverId }), {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

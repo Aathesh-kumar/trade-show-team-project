@@ -1,6 +1,8 @@
 package com.tradeshow.pulse24x7.mcp.service;
 
 import com.tradeshow.pulse24x7.mcp.dao.UserDAO;
+import com.tradeshow.pulse24x7.mcp.dao.PasswordResetCodeDAO;
+import com.tradeshow.pulse24x7.mcp.model.PasswordResetCode;
 import com.tradeshow.pulse24x7.mcp.model.User;
 import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
 import com.google.gson.JsonObject;
@@ -18,14 +20,26 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.security.SecureRandom;
+import java.sql.Timestamp;
+import java.time.Instant;
 
 public class UserAuthService {
     private static final Logger logger = LogManager.getLogger(UserAuthService.class);
     private static final Properties localZohoConfig = loadLocalZohoConfig();
+    private static final int PASSWORD_RESET_CODE_LENGTH = 6;
+    private static final int PASSWORD_RESET_EXPIRY_MINUTES = 10;
+    private static final int MAX_PASSWORD_RESET_ATTEMPTS = 5;
     private final UserDAO userDAO;
+    private final PasswordResetCodeDAO passwordResetCodeDAO;
+    private final NotificationEmailService notificationEmailService;
+    private final SecureRandom secureRandom;
 
     public UserAuthService() {
         this.userDAO = new UserDAO();
+        this.passwordResetCodeDAO = new PasswordResetCodeDAO();
+        this.notificationEmailService = new NotificationEmailService();
+        this.secureRandom = new SecureRandom();
     }
 
     public User signup(String fullName, String email, String password) {
@@ -52,6 +66,65 @@ public class UserAuthService {
 
     public User findById(long userId) {
         return userDAO.findById(userId);
+    }
+
+    public boolean requestPasswordResetTotp(String email) {
+        String normalizedEmail = normalize(email);
+        if (normalizedEmail == null) {
+            return true;
+        }
+        User user = userDAO.findByEmail(normalizedEmail.toLowerCase(Locale.ROOT));
+        if (user == null) {
+            return true;
+        }
+        String code = generateNumericCode(PASSWORD_RESET_CODE_LENGTH);
+        String codeHash = BCrypt.hashpw(code, BCrypt.gensalt(10));
+        Timestamp expiresAt = Timestamp.from(Instant.now().plusSeconds(PASSWORD_RESET_EXPIRY_MINUTES * 60L));
+        boolean saved = passwordResetCodeDAO.upsertCode(user.getId(), codeHash, expiresAt);
+        if (!saved) {
+            return false;
+        }
+        return notificationEmailService.sendPasswordResetTotp(
+                user.getEmail(),
+                user.getFullName(),
+                code,
+                PASSWORD_RESET_EXPIRY_MINUTES
+        );
+    }
+
+    public boolean resetPasswordWithTotp(String email, String totpCode, String newPassword) {
+        String normalizedEmail = normalize(email);
+        String normalizedCode = normalize(totpCode);
+        if (normalizedEmail == null || normalizedCode == null || newPassword == null || newPassword.length() < 8) {
+            return false;
+        }
+
+        User user = userDAO.findByEmail(normalizedEmail.toLowerCase(Locale.ROOT));
+        if (user == null) {
+            return false;
+        }
+        PasswordResetCode activeCode = passwordResetCodeDAO.findByUserId(user.getId());
+        if (activeCode == null || Boolean.TRUE.equals(activeCode.getConsumed()) || activeCode.getExpiresAt() == null) {
+            return false;
+        }
+        if (activeCode.getExpiresAt().before(Timestamp.from(Instant.now()))) {
+            return false;
+        }
+        if (activeCode.getAttempts() != null && activeCode.getAttempts() >= MAX_PASSWORD_RESET_ATTEMPTS) {
+            return false;
+        }
+        if (activeCode.getCodeHash() == null || !BCrypt.checkpw(normalizedCode, activeCode.getCodeHash())) {
+            passwordResetCodeDAO.incrementAttempts(user.getId());
+            return false;
+        }
+
+        String newHash = BCrypt.hashpw(newPassword, BCrypt.gensalt(12));
+        boolean passwordUpdated = userDAO.updatePasswordHash(user.getId(), newHash);
+        if (!passwordUpdated) {
+            return false;
+        }
+        passwordResetCodeDAO.consume(user.getId());
+        return true;
     }
 
     public User loginWithZoho(String code, String redirectUri, String zohoBaseUrl) {
@@ -251,5 +324,13 @@ public class UserAuthService {
             logger.warn("Failed to load zoho-login.properties", ex);
         }
         return props;
+    }
+
+    private String generateNumericCode(int length) {
+        StringBuilder code = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            code.append(secureRandom.nextInt(10));
+        }
+        return code.toString();
     }
 }

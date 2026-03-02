@@ -112,7 +112,29 @@ CREATE TABLE notifications (
     message TEXT NOT NULL,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_notifications_server FOREIGN KEY (server_id) REFERENCES servers(server_id) ON DELETE SET NULL,
+    CONSTRAINT fk_notifications_server FOREIGN KEY (server_id) REFERENCES servers(server_id) ON DELETE CASCADE,
     INDEX idx_notifications_created (created_at DESC),
     INDEX idx_notifications_read (is_read)
+);
+
+CREATE TABLE user_email_settings (
+    user_id BIGINT PRIMARY KEY,
+    alerts_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    receiver_email VARCHAR(180) NULL,
+    min_severity VARCHAR(20) NOT NULL DEFAULT 'warning',
+    include_server_alerts BOOLEAN NOT NULL DEFAULT TRUE,
+    include_tool_alerts BOOLEAN NOT NULL DEFAULT TRUE,
+    include_system_alerts BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_user_email_settings_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE password_reset_codes (
+    user_id BIGINT PRIMARY KEY,
+    code_hash VARCHAR(255) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    attempts INT NOT NULL DEFAULT 0,
+    consumed BOOLEAN NOT NULL DEFAULT FALSE,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_password_reset_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

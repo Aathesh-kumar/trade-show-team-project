@@ -10,6 +10,7 @@ import { SelectField } from '../ConfigureServer/FormFields';
 const DEFAULT_TOKEN_ENDPOINT = 'https://accounts.zoho.in/oauth/v2/token';
 const DEFAULT_MONITOR_INTERVAL = 30;
 const MONITOR_INTERVAL_CHOICES = [5, 10, 15, 30, 60, 120, 240, 720, 1440];
+const SEVERITY_CHOICES = ['info', 'warning', 'error', 'critical'];
 
 export default function Settings({
   selectedServer,
@@ -56,6 +57,20 @@ export default function Settings({
     clientSecret: '',
     tokenEndpoint: DEFAULT_TOKEN_ENDPOINT,
     oauthTokenLink: ''
+  });
+  const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [receiverEmail, setReceiverEmail] = useState('');
+  const [minSeverity, setMinSeverity] = useState('warning');
+  const [includeServerAlerts, setIncludeServerAlerts] = useState(true);
+  const [includeToolAlerts, setIncludeToolAlerts] = useState(true);
+  const [includeSystemAlerts, setIncludeSystemAlerts] = useState(true);
+  const [initialEmailSettings, setInitialEmailSettings] = useState({
+    alertsEnabled: true,
+    receiverEmail: '',
+    minSeverity: 'warning',
+    includeServerAlerts: true,
+    includeToolAlerts: true,
+    includeSystemAlerts: true
   });
   const authDirtyRef = useRef(false);
   const savePendingChangesRef = useRef(async () => true);
@@ -133,6 +148,19 @@ export default function Settings({
   });
   const { execute: saveAuth, loading: savingAuth } = usePost(buildUrl('/auth'));
   const { execute: refreshAuth, loading: refreshingAuth } = usePost(buildUrl('/auth/refresh'));
+  const { refetch: refetchEmailSettings } = useGet('/user-auth/email-settings', {
+    immediate: true,
+    onSuccess: (emailSettingsData) => {
+      const next = mapEmailSettings(emailSettingsData, receiverEmail);
+      setAlertsEnabled(next.alertsEnabled);
+      setReceiverEmail(next.receiverEmail);
+      setMinSeverity(next.minSeverity);
+      setIncludeServerAlerts(next.includeServerAlerts);
+      setIncludeToolAlerts(next.includeToolAlerts);
+      setIncludeSystemAlerts(next.includeSystemAlerts);
+      setInitialEmailSettings(next);
+    }
+  });
 
   useEffect(() => {
     if (!serverId) {
@@ -185,7 +213,16 @@ export default function Settings({
       || normalize(oauthTokenLink) !== normalize(initialAuth.oauthTokenLink);
   }, [headerType, accessToken, refreshToken, expiresAt, clientId, clientSecret, tokenEndpoint, oauthTokenLink, initialAuth]);
 
-  const hasUnsavedChanges = serverDirty || authDirty;
+  const emailDirty = useMemo(() => {
+    return boolNormalize(alertsEnabled) !== boolNormalize(initialEmailSettings.alertsEnabled)
+      || normalize(receiverEmail) !== normalize(initialEmailSettings.receiverEmail)
+      || normalize(minSeverity) !== normalize(initialEmailSettings.minSeverity)
+      || boolNormalize(includeServerAlerts) !== boolNormalize(initialEmailSettings.includeServerAlerts)
+      || boolNormalize(includeToolAlerts) !== boolNormalize(initialEmailSettings.includeToolAlerts)
+      || boolNormalize(includeSystemAlerts) !== boolNormalize(initialEmailSettings.includeSystemAlerts);
+  }, [alertsEnabled, receiverEmail, minSeverity, includeServerAlerts, includeToolAlerts, includeSystemAlerts, initialEmailSettings]);
+
+  const hasUnsavedChanges = serverDirty || authDirty || emailDirty;
   useEffect(() => {
     authDirtyRef.current = authDirty;
   }, [authDirty]);
@@ -292,6 +329,48 @@ export default function Settings({
     }
   }, [accessToken, clientId, clientSecret, expiresAt, headerType, oauthTokenLink, refreshToken, refetchToken, saveAuth, serverId, tokenEndpoint]);
 
+  const saveEmailSettings = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) {
+      setMessage(null);
+    }
+    try {
+      const response = await fetch(buildUrl('/user-auth/email-settings'), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({
+          alertsEnabled,
+          receiverEmail,
+          minSeverity,
+          includeServerAlerts,
+          includeToolAlerts,
+          includeSystemAlerts
+        })
+      });
+      const body = await parseApiResponse(response);
+      const saved = mapEmailSettings(unwrapData(body), receiverEmail);
+      setAlertsEnabled(saved.alertsEnabled);
+      setReceiverEmail(saved.receiverEmail);
+      setMinSeverity(saved.minSeverity);
+      setIncludeServerAlerts(saved.includeServerAlerts);
+      setIncludeToolAlerts(saved.includeToolAlerts);
+      setIncludeSystemAlerts(saved.includeSystemAlerts);
+      setInitialEmailSettings(saved);
+      refetchEmailSettings();
+      if (!silent) {
+        setMessage({ type: 'success', text: 'Email alert settings saved.' });
+      }
+      return true;
+    } catch (e) {
+      if (!silent) {
+        setMessage({ type: 'error', text: e.message });
+      }
+      return false;
+    }
+  }, [alertsEnabled, includeServerAlerts, includeSystemAlerts, includeToolAlerts, minSeverity, receiverEmail, refetchEmailSettings]);
+
   const savePendingChanges = useCallback(async () => {
     let ok = true;
     let attempted = false;
@@ -304,15 +383,24 @@ export default function Settings({
       attempted = true;
       ok = (await saveToken({ silent: true })) && ok;
     }
+    if (emailDirty) {
+      attempted = true;
+      ok = (await saveEmailSettings({ silent: true })) && ok;
+    }
 
     if (attempted) {
       setMessage({
         type: ok ? 'success' : 'error',
         text: ok ? 'Settings saved.' : 'Failed to save some settings.'
       });
+      if (ok) {
+        onUnsavedStateChange?.(false);
+      }
+    } else {
+      setMessage({ type: 'success', text: 'No changes to save.' });
     }
     return ok;
-  }, [authDirty, saveServer, saveToken, serverDirty]);
+  }, [authDirty, emailDirty, onUnsavedStateChange, saveEmailSettings, saveServer, saveToken, serverDirty]);
 
   useEffect(() => {
     savePendingChangesRef.current = savePendingChanges;
@@ -354,6 +442,7 @@ export default function Settings({
 
   const canDeleteServer = Number(deleteServerId) > 0 && deleteConfirmText.trim().toUpperCase() === 'DELETE';
   const selectedDeleteServer = ownedServers.find((item) => Number(item.serverId) === Number(deleteServerId)) || null;
+  const canSaveAll = (!serverDirty || canSaveServer) && !savingAuth && !refreshingAuth;
 
   const deleteServerNow = async () => {
     if (!canDeleteServer || deletingServer) {
@@ -444,9 +533,6 @@ export default function Settings({
                 />
               </div>
             </div>
-          </div>
-          <div className={SettingsStyles.actions}>
-            <button className={SettingsStyles.btnPrimary} disabled={!canSaveServer} onClick={() => saveServer()}>Save Server</button>
           </div>
         </section>
         <section className={SettingsStyles.card}>
@@ -554,8 +640,71 @@ export default function Settings({
         />
 
         <div className={SettingsStyles.actions}>
-          <button className={SettingsStyles.btnPrimary} onClick={() => saveToken()} disabled={savingAuth}>Save Auth</button>
           <button className={SettingsStyles.btnSecondary} onClick={refreshTokenNow} disabled={refreshingAuth}>Refresh Access Token</button>
+        </div>
+      </section>
+
+      <section className={`${SettingsStyles.cardWide} ${SettingsStyles.emailAlertsCard}`}>
+        <h2>Email Alerts</h2>
+        <p className={SettingsStyles.cardHint}>Control receiver delivery, alert threshold, and category-level notifications.</p>
+
+        <div className={SettingsStyles.fieldStack}>
+          <div className={SettingsStyles.switchRow}>
+            <span>Email Alerts Enabled</span>
+            <label className={SettingsStyles.toggle}>
+              <input
+                type="checkbox"
+                checked={alertsEnabled}
+                onChange={(event) => setAlertsEnabled(event.target.checked)}
+              />
+              <span className={SettingsStyles.toggleTrack} />
+            </label>
+          </div>
+
+          <InputField
+            label="Receiver Email"
+            placeholder="receiver@example.com"
+            value={receiverEmail}
+            onChange={setReceiverEmail}
+            type="email"
+            required={true}
+            readOnly={true}
+            tooltip="Receiver email is always your account email"
+          />
+
+          <SelectField
+            label="Minimum Alert Severity"
+            value={minSeverity}
+            onChange={setMinSeverity}
+            options={SEVERITY_CHOICES}
+          />
+
+          <div className={SettingsStyles.checkGrid}>
+            <label className={SettingsStyles.checkItem}>
+              <input
+                type="checkbox"
+                checked={includeServerAlerts}
+                onChange={(event) => setIncludeServerAlerts(event.target.checked)}
+              />
+              <span>Include server status alerts</span>
+            </label>
+            <label className={SettingsStyles.checkItem}>
+              <input
+                type="checkbox"
+                checked={includeToolAlerts}
+                onChange={(event) => setIncludeToolAlerts(event.target.checked)}
+              />
+              <span>Include tool change alerts</span>
+            </label>
+            <label className={SettingsStyles.checkItem}>
+              <input
+                type="checkbox"
+                checked={includeSystemAlerts}
+                onChange={(event) => setIncludeSystemAlerts(event.target.checked)}
+              />
+              <span>Include system alerts</span>
+            </label>
+          </div>
         </div>
       </section>
 
@@ -613,12 +762,27 @@ export default function Settings({
           </div>
         </div>
       </section>
+
+      <section className={SettingsStyles.saveBar}>
+        <button
+          type="button"
+          className={SettingsStyles.btnPrimary}
+          disabled={!canSaveAll}
+          onClick={savePendingChanges}
+        >
+          Save Settings
+        </button>
+      </section>
     </div>
   );
 }
 
 function normalize(value) {
   return value == null ? '' : String(value).trim();
+}
+
+function boolNormalize(value) {
+  return Boolean(value);
 }
 
 function mapAuthState(tokenData) {
@@ -649,4 +813,15 @@ function formatTimestampInput(value) {
   }
   const pad = (n) => String(n).padStart(2, '0');
   return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
+}
+
+function mapEmailSettings(raw, fallbackEmail = '') {
+  return {
+    alertsEnabled: raw?.alertsEnabled ?? true,
+    receiverEmail: normalize(raw?.receiverEmail) || normalize(fallbackEmail),
+    minSeverity: normalize(raw?.minSeverity).toLowerCase() || 'warning',
+    includeServerAlerts: raw?.includeServerAlerts ?? true,
+    includeToolAlerts: raw?.includeToolAlerts ?? true,
+    includeSystemAlerts: raw?.includeSystemAlerts ?? true
+  };
 }

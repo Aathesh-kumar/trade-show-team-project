@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ToolsStyles from '../../styles/Tools.module.css';
 import ToolsHeader from './ToolsHeader';
 import ToolsTable from './ToolsTable';
@@ -128,6 +128,20 @@ export default function ToolsInventory({ selectedServer }) {
         setCustomMinutes(value);
         setPage(1);
     };
+
+    useEffect(() => {
+        const onEscape = () => {
+            if (isTestOpen) {
+                setIsTestOpen(false);
+                return;
+            }
+            if (selectedTool) {
+                setSelectedTool(null);
+            }
+        };
+        window.addEventListener('pulse24x7-escape', onEscape);
+        return () => window.removeEventListener('pulse24x7-escape', onEscape);
+    }, [isTestOpen, selectedTool]);
 
     const resolvedSelectedTool = selectedTool && mappedTools.some((tool) => tool.id === selectedTool.id)
         ? selectedTool

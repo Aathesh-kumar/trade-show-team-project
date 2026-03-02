@@ -153,6 +153,24 @@ function App() {
     prevServersLengthRef.current = servers.length;
   }, [servers.length, currentPage]);
 
+  useEffect(() => {
+    const onGlobalKeyDown = (event) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+      if (isSidebarOpen) {
+        setIsSidebarOpen(false);
+      }
+      if (showLeaveSettingsModal) {
+        setShowLeaveSettingsModal(false);
+        setPendingPage(null);
+      }
+      window.dispatchEvent(new CustomEvent('pulse24x7-escape'));
+    };
+    window.addEventListener('keydown', onGlobalKeyDown);
+    return () => window.removeEventListener('keydown', onGlobalKeyDown);
+  }, [isSidebarOpen, showLeaveSettingsModal]);
+
   const navigateTo = (nextPage) => {
     if (currentPage === 'settings' && nextPage !== 'settings' && settingsHasUnsavedChanges) {
       setPendingPage(nextPage);
@@ -175,6 +193,21 @@ function App() {
     }
     refetchServers();
     setCurrentPage('dashboard');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('mcp_jwt');
+    localStorage.removeItem('pulse24x7_selected_server_id');
+    setIsSidebarOpen(false);
+    setCurrentUser(null);
+    setCurrentPage('dashboard');
+    setSelectedServerId(null);
+    setHasConfiguredServer(false);
+    setSettingsHasUnsavedChanges(false);
+    setSettingsSaveHandler(null);
+    setShowLeaveSettingsModal(false);
+    setPendingPage(null);
+    prevServersLengthRef.current = 0;
   };
 
   const handleSaveAndLeaveSettings = async () => {
@@ -244,6 +277,8 @@ function App() {
               }
             }}
             onSuccess={handleServerConfigured}
+            canLogout={servers.length === 0}
+            onLogout={handleLogout}
           />
         );
       case 'settings':
@@ -274,6 +309,8 @@ function App() {
               }
             }}
             onSuccess={handleServerConfigured}
+            canLogout={servers.length === 0}
+            onLogout={handleLogout}
           />
         );
     }
@@ -313,20 +350,7 @@ function App() {
               currentPage={currentPage}
               onNavigate={navigateTo}
               activeServer={activeServer}
-              onLogout={() => {
-                localStorage.removeItem('mcp_jwt');
-                localStorage.removeItem('pulse24x7_selected_server_id');
-                setIsSidebarOpen(false);
-                setCurrentUser(null);
-                setCurrentPage('dashboard');
-                setSelectedServerId(null);
-                setHasConfiguredServer(false);
-                setSettingsHasUnsavedChanges(false);
-                setSettingsSaveHandler(null);
-                setShowLeaveSettingsModal(false);
-                setPendingPage(null);
-                prevServersLengthRef.current = 0;
-              }}
+              onLogout={handleLogout}
             />
           ) : null}
           {renderPage()}

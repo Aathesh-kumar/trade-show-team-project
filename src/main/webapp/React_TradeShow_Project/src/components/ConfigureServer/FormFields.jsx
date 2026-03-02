@@ -1,5 +1,5 @@
 import ConfigureServerStyles from '../../styles/ConfigureServer.module.css';
-import { MdInfoOutline, MdCheck, MdClose, MdCheckCircle, MdErrorOutline } from 'react-icons/md';
+import { MdInfoOutline, MdClose, MdCheckCircle, MdErrorOutline } from 'react-icons/md';
 import { useEffect, useMemo, useState } from 'react';
 import CustomDropdown from '../Common/CustomDropdown';
 
@@ -108,11 +108,8 @@ export function SliderField({ label, value, onChange, min, max, step, unit, tool
 
 export function ToggleField({ label, description, checked, onChange }) {
     return (
-        <div className={ConfigureServerStyles.toggleField}>
+        <div className={`${ConfigureServerStyles.toggleField} ${checked ? ConfigureServerStyles.toggleFieldEnabled : ''}`}>
             <div className={ConfigureServerStyles.toggleInfo}>
-                <div className={ConfigureServerStyles.toggleCheck}>
-                    <MdCheck />
-                </div>
                 <div>
                     <strong>{label}</strong>
                     <p>{description}</p>

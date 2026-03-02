@@ -44,7 +44,7 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
     const metricsLoading = useBufferedLoading(metricsRawLoading || dashboardReloading, 1500);
     const { data: notificationsData, loading: notificationsLoading, refetch: refetchNotifications } = useGet('/notification', {
         immediate: true,
-        params: { limit: 300, offset: 0 },
+        params: { limit: 300, offset: 0, serverId },
         dependencies: [serverId, reloadTick]
     });
     const notificationsBufferedLoading = useBufferedLoading(notificationsLoading, 280);
@@ -52,30 +52,21 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
     const notificationsLoadingView = notificationsBufferedLoading || !notificationsReady;
     const { data: unread, loading: unreadLoading, refetch: refetchUnread } = useGet('/notification/unread-count', {
         immediate: true,
+        params: { serverId },
         dependencies: [showNotifications, serverId, reloadTick]
     });
     const [dismissedHighAlerts, setDismissedHighAlerts] = useState(() => new Set());
+    const [toastShownOnce, setToastShownOnce] = useState(false);
 
-    const highSeverityNotification = useMemo(() => {
+    const recentNotification = useMemo(() => {
         const list = Array.isArray(notificationsData) ? notificationsData : [];
         const ranked = list
-            .filter((item) => isHighSeverity(item?.severity))
             .filter((item) => !dismissedHighAlerts.has(item?.id))
-            .filter((item) => isRecentAlert(item?.createdAt, 2))
+            .filter((item) => isRecentAlert(item?.createdAt, 5))
             .sort((a, b) => new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime());
         return ranked[0] || null;
     }, [notificationsData, dismissedHighAlerts]);
-    const statusNotification = useMemo(() => {
-        const list = Array.isArray(notificationsData) ? notificationsData : [];
-        const ranked = list
-            .filter((item) => String(item?.category || '').toLowerCase() === 'server')
-            .filter((item) => String(item?.title || '').toLowerCase() === 'server status')
-            .filter((item) => !dismissedHighAlerts.has(item?.id))
-            .filter((item) => isRecentAlert(item?.createdAt, 1))
-            .sort((a, b) => new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime());
-        return ranked[0] || null;
-    }, [notificationsData, dismissedHighAlerts]);
-    const toastNotification = highSeverityNotification || statusNotification;
+    const toastNotification = toastShownOnce ? null : recentNotification;
     const toastSeverityClass = toastNotification ? getAlertClass(toastNotification.severity) : '';
 
     useEffect(() => {
@@ -117,6 +108,7 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
         if (!toastNotification?.id) {
             return;
         }
+        setToastShownOnce(true);
         const id = setTimeout(() => {
             setDismissedHighAlerts((prev) => {
                 const next = new Set(prev);
@@ -135,6 +127,14 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
             setDashboardReloading(false);
         }
     }, [dashboardReloading, metricsRawLoading, notificationsLoading, serversLoading, serverStatusesLoading, unreadLoading]);
+
+    useEffect(() => {
+        const onEscape = () => {
+            setShowNotifications(false);
+        };
+        window.addEventListener('pulse24x7-escape', onEscape);
+        return () => window.removeEventListener('pulse24x7-escape', onEscape);
+    }, []);
 
     const refreshDashboardData = () => {
         if (!serverId) {
@@ -299,6 +299,7 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
                     notificationsData={notificationsReady ? notificationsData : []}
                     loading={notificationsLoadingView}
                     openCycle={notificationOpenCycle}
+                    serverId={serverId}
                     onNotificationsChanged={() => {
                         refetchNotifications();
                         refetchUnread();
@@ -338,11 +339,6 @@ function isInternalToolName(name) {
         || lower.includes('ping')
         || lower.includes('refresh')
         || lower.includes('token');
-}
-
-function isHighSeverity(severity) {
-    const level = String(severity || '').toLowerCase();
-    return level === 'error' || level === 'critical' || level === 'high';
 }
 
 function getAlertClass(severity) {
