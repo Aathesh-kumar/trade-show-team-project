@@ -14,6 +14,7 @@ const SEVERITY_CHOICES = ['info', 'warning', 'error', 'critical'];
 
 export default function Settings({
   selectedServer,
+  currentUser,
   servers = [],
   onSelectServer,
   onServerUpdated,
@@ -74,6 +75,14 @@ export default function Settings({
   });
   const authDirtyRef = useRef(false);
   const savePendingChangesRef = useRef(async () => true);
+  const accountName = useMemo(
+    () => normalize(currentUser?.fullName) || normalize(currentUser?.name) || normalize(currentUser?.username) || normalize(currentUser?.email),
+    [currentUser]
+  );
+  const accountEmail = useMemo(
+    () => normalize(currentUser?.email),
+    [currentUser]
+  );
 
   useEffect(() => {
     const nextName = selectedServer?.serverName || '';
@@ -151,7 +160,7 @@ export default function Settings({
   const { refetch: refetchEmailSettings } = useGet('/user-auth/email-settings', {
     immediate: true,
     onSuccess: (emailSettingsData) => {
-      const next = mapEmailSettings(emailSettingsData, receiverEmail);
+      const next = mapEmailSettings(emailSettingsData, currentUser?.email || receiverEmail);
       setAlertsEnabled(next.alertsEnabled);
       setReceiverEmail(next.receiverEmail);
       setMinSeverity(next.minSeverity);
@@ -484,6 +493,27 @@ export default function Settings({
       )}
 
       <div className={SettingsStyles.grid}>
+        <section className={SettingsStyles.card}>
+          <h2>Account</h2>
+          <p className={SettingsStyles.cardHint}>Signed-in user details for Pulse24x7.</p>
+          <div className={SettingsStyles.fieldStack}>
+            <InputField
+              label="Username"
+              placeholder="Username"
+              value={accountName}
+              onChange={() => {}}
+              readOnly={true}
+            />
+            <InputField
+              label="Email"
+              type="email"
+              placeholder="Email"
+              value={accountEmail}
+              onChange={() => {}}
+              readOnly={true}
+            />
+          </div>
+        </section>
         <section className={SettingsStyles.card}>
           <h2>Server Profile</h2>
           <p className={SettingsStyles.cardHint}>Update the connected Pulse24x7 source server details.</p>

@@ -95,6 +95,18 @@
         margin-bottom: 2rem;
     }
 
+    .analyticsGrid {
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        align-items: stretch;
+    }
+
+    .analyticsChartWrap {
+        width: 100%;
+        min-height: 340px;
+        height: clamp(340px, 44vw, 420px);
+        min-width: 0;
+    }
+
     .statCard {
         background-color: var(--primary-bg);
         border: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
@@ -852,6 +864,19 @@
     }
 }
 
+@media (max-width: 1200px) {
+    .dashboard {
+        .analyticsGrid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .analyticsChartWrap {
+            height: 400px;
+        }
+    }
+}
+
 @media (max-width: 640px) {
     .dashboard {
         padding: 1rem;
@@ -885,6 +910,15 @@
 
         .quickActions .actionsGrid {
             grid-template-columns: 1fr;
+        }
+
+        .analyticsGrid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .analyticsChartWrap {
+            height: 360px;
         }
     }
 }

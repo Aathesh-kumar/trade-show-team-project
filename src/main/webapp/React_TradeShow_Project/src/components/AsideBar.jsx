@@ -11,8 +11,6 @@ export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate, ac
         { key: 'analytics', label: 'Analytics', icon: <MdDonutLarge /> },
         { key: 'settings', label: 'Settings', icon: <MdSettings /> }
     ];
-    const activeMobileIndex = Math.max(0, navItems.findIndex((item) => item.key === currentPage));
-
     return (
         <>
             <aside className={`${AsideStyles.asideBar} ${isOpen ? AsideStyles.open : ''}`}>
@@ -83,26 +81,28 @@ export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate, ac
 
             <nav className={AsideStyles.mobileNav} aria-label="Mobile navigation">
                 <div className={AsideStyles.mobileNavShell}>
-                    <div className={AsideStyles.navigation} style={{ '--mobile-active-index': String(activeMobileIndex) }}>
+                    <div className={AsideStyles.navigation}>
                         <ul>
                             {navItems.map((item) => {
                                 const active = currentPage === item.key;
                                 return (
-                                    <li key={item.key} className={active ? AsideStyles.active : ''}>
-                                        <button
-                                            type="button"
-                                            onClick={() => onNavigate(item.key)}
+                                    <li key={item.key} className={`${AsideStyles.list} ${active ? AsideStyles.active : ''}`}>
+                                        <a
+                                            href="#"
                                             aria-label={item.label}
-                                            className={AsideStyles.navButton}
+                                            onClick={(event) => {
+                                                event.preventDefault();
+                                                onNavigate(item.key);
+                                            }}
                                         >
                                             <span className={AsideStyles.icon}>{item.icon}</span>
                                             <span className={AsideStyles.text}>{item.label}</span>
-                                        </button>
+                                        </a>
                                     </li>
                                 );
                             })}
+                            <div className={AsideStyles.indicator}></div>
                         </ul>
-                        <span className={AsideStyles.indicator}></span>
                     </div>
                 </div>
             </nav>
