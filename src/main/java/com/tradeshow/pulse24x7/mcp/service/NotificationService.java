@@ -92,7 +92,12 @@ public class NotificationService {
     }
 
     public boolean clearByIdForUser(long id, long userId) {
-        return notificationDAO.deleteByIdForUser(id, userId);
+        Notification target = notificationDAO.getByIdForUser(id, userId);
+        boolean deleted = notificationDAO.deleteByIdForUser(id, userId);
+        if (deleted) {
+            dispatchDeleteEmailIfEligible(target);
+        }
+        return deleted;
     }
 
     public int clearAll() {
@@ -104,25 +109,53 @@ public class NotificationService {
     }
 
     public int clearAllByUser(Long userId, Integer serverId) {
-        return notificationDAO.deleteAllByUser(userId, serverId);
+        List<Notification> toDelete = notificationDAO.getAllByUser(userId, serverId);
+        int deleted = notificationDAO.deleteAllByUser(userId, serverId);
+        if (deleted > 0 && toDelete != null && !toDelete.isEmpty()) {
+            for (Notification notification : toDelete) {
+                dispatchDeleteEmailIfEligible(notification);
+            }
+        }
+        return deleted;
     }
 
     private void dispatchEmailIfEligible(Notification notification) {
         try {
-            if (notification.getServerId() == null) {
-                return;
-            }
-            NotificationRecipient recipient = userDAO.findNotificationRecipientByServerId(notification.getServerId());
-            if (recipient == null || recipient.getUserId() == null) {
-                return;
-            }
-            UserEmailSettings settings = userEmailSettingsService.getByUserId(recipient.getUserId());
-            if (settings == null) {
-                return;
-            }
+            NotificationRecipient recipient = resolveRecipient(notification);
+            UserEmailSettings settings = resolveSettings(recipient);
+            if (recipient == null || settings == null) return;
             notificationEmailService.send(notification, recipient, settings);
         } catch (Exception e) {
             logger.error("Failed to dispatch notification email for notificationId={}", notification.getId(), e);
         }
+    }
+
+    private void dispatchDeleteEmailIfEligible(Notification notification) {
+        try {
+            NotificationRecipient recipient = resolveRecipient(notification);
+            UserEmailSettings settings = resolveSettings(recipient);
+            if (recipient == null || settings == null) return;
+            notificationEmailService.sendNotificationDeleted(notification, recipient, settings);
+        } catch (Exception e) {
+            logger.error("Failed to dispatch deletion email for notificationId={}", notification == null ? null : notification.getId(), e);
+        }
+    }
+
+    private NotificationRecipient resolveRecipient(Notification notification) {
+        if (notification == null || notification.getServerId() == null) {
+            return null;
+        }
+        NotificationRecipient recipient = userDAO.findNotificationRecipientByServerId(notification.getServerId());
+        if (recipient == null || recipient.getUserId() == null) {
+            return null;
+        }
+        return recipient;
+    }
+
+    private UserEmailSettings resolveSettings(NotificationRecipient recipient) {
+        if (recipient == null || recipient.getUserId() == null) {
+            return null;
+        }
+        return userEmailSettingsService.getByUserId(recipient.getUserId());
     }
 }

@@ -9,6 +9,9 @@ import { useGet } from '../Hooks/useGet';
 import JsonCodeEditor from '../Common/JsonCodeEditor';
 
 const DEFAULT_SCOPE = 'ZohoMCP.tool.execute';
+const SCOPE_OPTIONS = [
+    { value: 'ZohoMCP.tool.execute', label: 'Zoho MCP Tool Execute' }
+];
 
 export default function TestToolModal({ tool, serverId, onClose, onCompleted }) {
     const schema = getSchema(tool);
@@ -20,9 +23,10 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
     const [payloadCopied, setPayloadCopied] = useState(false);
     const [scopeRecovery, setScopeRecovery] = useState({
         active: false,
-        requiredScope: DEFAULT_SCOPE,
-        additionalScopes: '',
-        oauthBaseUrl: '',
+        selectedScopes: [DEFAULT_SCOPE],
+        customScopes: '',
+        oauthAuthUrl: '',
+        tokenEndpoint: '',
         message: '',
         oauthState: ''
     });
@@ -90,7 +94,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                 setScopeRecovery((prev) => ({
                     ...prev,
                     active: true,
-                    requiredScope: payload?.requiredScope || DEFAULT_SCOPE,
+                    ...parseScopeBreakdown(payload?.requiredScope || DEFAULT_SCOPE),
                     message: payload?.actionMessage || error.message
                 }));
             }
@@ -148,27 +152,40 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
         setErrors({});
     };
 
-    const oauthBaseUrl = useMemo(() => {
-        const endpoint = String(authData?.tokenEndpoint || '').trim();
-        const derivedBase = endpoint ? endpoint.replace(/\/oauth\/v2\/token.*$/i, '') : '';
-        return scopeRecovery.oauthBaseUrl || derivedBase || 'https://accounts.zoho.in';
-    }, [authData?.tokenEndpoint, scopeRecovery.oauthBaseUrl]);
+    const oauthAuthUrl = useMemo(() => {
+        return String(scopeRecovery.oauthAuthUrl || authData?.oauthTokenLink || 'https://accounts.zoho.in/oauth/v2/auth').trim();
+    }, [authData?.oauthTokenLink, scopeRecovery.oauthAuthUrl]);
+
+    const tokenEndpoint = useMemo(() => {
+        return String(scopeRecovery.tokenEndpoint || authData?.tokenEndpoint || 'https://accounts.zoho.in/oauth/v2/token').trim();
+    }, [authData?.tokenEndpoint, scopeRecovery.tokenEndpoint]);
 
     const finalScope = useMemo(
-        () => buildScopeString(scopeRecovery.requiredScope || DEFAULT_SCOPE, scopeRecovery.additionalScopes),
-        [scopeRecovery.requiredScope, scopeRecovery.additionalScopes]
+        () => buildScopeString(scopeRecovery.selectedScopes, scopeRecovery.customScopes),
+        [scopeRecovery.selectedScopes, scopeRecovery.customScopes]
     );
 
     const oauthUrl = useMemo(() => {
         const state = oauthState || scopeRecovery.oauthState;
         return buildOAuthUrl({
-            baseUrl: oauthBaseUrl,
+            authUrl: oauthAuthUrl,
             scope: finalScope,
             clientId: authData?.clientId,
             serverId,
             state
         });
-    }, [finalScope, scopeRecovery.oauthState, authData?.clientId, serverId, oauthState, oauthBaseUrl]);
+    }, [finalScope, scopeRecovery.oauthState, authData?.clientId, serverId, oauthState, oauthAuthUrl]);
+
+    const toggleScope = (scope) => {
+        setScopeRecovery((prev) => {
+            const selected = Array.isArray(prev.selectedScopes) ? prev.selectedScopes : [];
+            const has = selected.includes(scope);
+            return {
+                ...prev,
+                selectedScopes: has ? selected.filter((item) => item !== scope) : [...selected, scope]
+            };
+        });
+    };
 
     const handleStartOAuth = () => {
         setSaveMessage(null);
@@ -177,7 +194,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
         setScopeRecovery((prev) => ({ ...prev, oauthState: nextState }));
         const redirectUri = `${window.location.origin}/trade-show-team-project/oauth-callback.html`;
         const url = buildOAuthUrl({
-            baseUrl: oauthBaseUrl,
+            authUrl: oauthAuthUrl,
             scope: finalScope,
             clientId: authData?.clientId,
             serverId,
@@ -263,7 +280,9 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
             return;
         }
         try {
-            const tokenEndpoint = `${oauthBaseUrl.replace(/\/$/, '')}/oauth/v2/token`;
+            if (!isValidHttpUrl(tokenEndpoint)) {
+                throw new Error('Token endpoint is invalid.');
+            }
             await exchangeCode({
                 serverId: Number(serverId),
                 code,
@@ -433,26 +452,40 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                             <p className={ToolsStyles.scopeHint}>
                                 {scopeRecovery.message || 'Scope mismatch detected. Enter correct scope and regenerate OAuth tokens.'}
                             </p>
+                            <div className={ToolsStyles.scopeSelector}>
+                                {SCOPE_OPTIONS.map((scope) => {
+                                    const checked = Array.isArray(scopeRecovery.selectedScopes) && scopeRecovery.selectedScopes.includes(scope.value);
+                                    return (
+                                        <label key={scope.value} className={ToolsStyles.scopeOption}>
+                                            <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() => toggleScope(scope.value)}
+                                            />
+                                            <span>{scope.label}</span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
                             <InputField
-                                label="Required Scope"
-                                value={scopeRecovery.requiredScope}
-                                onChange={() => null}
-                                placeholder="ZohoMCP.tool.execute"
-                                tooltip="Default scope (fixed)"
-                                readOnly={true}
-                            />
-                            <InputField
-                                label="Additional Scopes (comma separated)"
-                                value={scopeRecovery.additionalScopes}
-                                onChange={(value) => setScopeRecovery((prev) => ({ ...prev, additionalScopes: value }))}
+                                label="Custom Scopes (comma separated)"
+                                value={scopeRecovery.customScopes}
+                                onChange={(value) => setScopeRecovery((prev) => ({ ...prev, customScopes: value }))}
                                 placeholder="scope.one,scope.two"
-                                tooltip="These scopes will be appended after default scope with comma"
+                                tooltip="Optional custom scopes for third-party providers"
                             />
                             <InputField
-                                label="OAuth Base URL"
-                                value={oauthBaseUrl}
-                                onChange={(value) => setScopeRecovery((prev) => ({ ...prev, oauthBaseUrl: value }))}
-                                placeholder="https://accounts.zoho.in"
+                                label="OAuth Authorization URL"
+                                value={oauthAuthUrl}
+                                onChange={(value) => setScopeRecovery((prev) => ({ ...prev, oauthAuthUrl: value }))}
+                                placeholder="https://accounts.zoho.in/oauth/v2/auth"
+                                tooltip="Enter full authorization URL. The app will not append any endpoint."
+                            />
+                            <InputField
+                                label="Token Endpoint"
+                                value={tokenEndpoint}
+                                onChange={(value) => setScopeRecovery((prev) => ({ ...prev, tokenEndpoint: value }))}
+                                placeholder="https://accounts.zoho.in/oauth/v2/token"
                             />
                             {oauthUrl ? (
                                 <div className={ToolsStyles.oauthUrlBox}>
@@ -686,14 +719,18 @@ function getValueAtPath(source, path) {
     return cursor;
 }
 
-function buildOAuthUrl({ baseUrl, scope, clientId, serverId, state, redirectUri }) {
+function buildOAuthUrl({ authUrl, scope, clientId, serverId, state, redirectUri }) {
     if (!scope || !clientId) {
         return '';
     }
-    const base = (baseUrl || 'https://accounts.zoho.in').replace(/\/$/, '');
-        const safeRedirectUri = redirectUri || `${window.location.origin}/trade-show-team-project/oauth-callback.html`;
+    const base = String(authUrl || '').trim();
+    if (!isValidHttpUrl(base)) {
+        return '';
+    }
+    const safeRedirectUri = redirectUri || `${window.location.origin}/trade-show-team-project/oauth-callback.html`;
     const finalState = state || createOAuthState(serverId);
-    return `${base}/oauth/v2/auth?scope=${encodeURIComponent(scope)}&client_id=${encodeURIComponent(clientId)}&state=${encodeURIComponent(finalState)}&response_type=code&redirect_uri=${encodeURIComponent(safeRedirectUri)}&access_type=offline`;
+    const separator = base.includes('?') ? '&' : '?';
+    return `${base}${separator}scope=${encodeURIComponent(scope)}&client_id=${encodeURIComponent(clientId)}&state=${encodeURIComponent(finalState)}&response_type=code&redirect_uri=${encodeURIComponent(safeRedirectUri)}&access_type=offline`;
 }
 
 function sanitizePayload(payload) {
@@ -754,16 +791,14 @@ function isTokenLikeError(error) {
 }
 
 function buildScopeString(defaultScope, additionalScopes) {
-    const base = String(defaultScope || DEFAULT_SCOPE).trim();
+    const baseScopes = Array.isArray(defaultScope)
+        ? defaultScope.map((s) => String(s || '').trim()).filter(Boolean)
+        : [];
     const extras = String(additionalScopes || '')
         .split(',')
         .map((s) => s.trim())
-        .filter(Boolean)
-        .filter((s) => s !== base);
-    if (extras.length === 0) {
-        return base;
-    }
-    return `${base},${extras.join(',')}`;
+        .filter(Boolean);
+    return [...new Set([...baseScopes, ...extras])].join(',');
 }
 
 function createOAuthState(serverId) {
@@ -771,4 +806,24 @@ function createOAuthState(serverId) {
         ? crypto.randomUUID()
         : Math.random().toString(16).slice(2);
     return `pulse_scope_${serverId}_${randomPart}`;
+}
+
+function isValidHttpUrl(value) {
+    try {
+        const parsed = new URL(String(value || '').trim());
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
+
+function parseScopeBreakdown(scopeText) {
+    const known = new Set(SCOPE_OPTIONS.map((item) => item.value));
+    const all = String(scopeText || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    const selectedScopes = all.filter((item) => known.has(item));
+    const customScopes = all.filter((item) => !known.has(item)).join(',');
+    return { selectedScopes, customScopes };
 }

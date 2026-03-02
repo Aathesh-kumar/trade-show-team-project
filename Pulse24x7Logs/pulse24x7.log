@@ -1,9 +1,9 @@
-2026-03-01 23:36:49,352 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO Initializing MCP Monitor Scheduler 
-2026-03-01 23:36:49,422 [org.quartz.impl.StdSchedulerFactory] INFO Using default implementation for ThreadExecutor 
-2026-03-01 23:36:49,446 [org.quartz.core.SchedulerSignalerImpl] INFO Initialized Scheduler Signaller of type: class org.quartz.core.SchedulerSignalerImpl 
-2026-03-01 23:36:49,446 [org.quartz.core.QuartzScheduler] INFO Quartz Scheduler v.2.3.2 created. 
-2026-03-01 23:36:49,447 [org.quartz.simpl.RAMJobStore] INFO RAMJobStore initialized. 
-2026-03-01 23:36:49,449 [org.quartz.core.QuartzScheduler] INFO Scheduler meta-data: Quartz Scheduler (v2.3.2) 'Pulse24x7Scheduler' with instanceId 'NON_CLUSTERED'
+2026-03-02 08:42:24,129 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO Initializing MCP Monitor Scheduler 
+2026-03-02 08:42:24,182 [org.quartz.impl.StdSchedulerFactory] INFO Using default implementation for ThreadExecutor 
+2026-03-02 08:42:24,195 [org.quartz.core.SchedulerSignalerImpl] INFO Initialized Scheduler Signaller of type: class org.quartz.core.SchedulerSignalerImpl 
+2026-03-02 08:42:24,195 [org.quartz.core.QuartzScheduler] INFO Quartz Scheduler v.2.3.2 created. 
+2026-03-02 08:42:24,196 [org.quartz.simpl.RAMJobStore] INFO RAMJobStore initialized. 
+2026-03-02 08:42:24,196 [org.quartz.core.QuartzScheduler] INFO Scheduler meta-data: Quartz Scheduler (v2.3.2) 'Pulse24x7Scheduler' with instanceId 'NON_CLUSTERED'
   Scheduler class: 'org.quartz.core.QuartzScheduler' - running locally.
   NOT STARTED.
   Currently in standby mode.
@@ -11,240 +11,164 @@
   Using thread pool 'org.quartz.simpl.SimpleThreadPool' - with 1 threads.
   Using job-store 'org.quartz.simpl.RAMJobStore' - which does not support persistence. and is not clustered.
  
-2026-03-01 23:36:49,449 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler 'Pulse24x7Scheduler' initialized from an externally provided properties instance. 
-2026-03-01 23:36:49,449 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler version: 2.3.2 
-2026-03-01 23:36:49,466 [org.quartz.core.QuartzScheduler] INFO Scheduler Pulse24x7Scheduler_$_NON_CLUSTERED started. 
-2026-03-01 23:36:49,470 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO MCP Monitor Scheduler started successfully. Monitoring interval: 30 minutes 
-2026-03-01 23:36:49,474 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Starting scheduled server monitoring ===== 
-2026-03-01 23:36:49,481 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting monitoring for all servers 
-2026-03-01 23:36:49,484 [com.tradeshow.pulse24x7.mcp.filter.CORSFilter] INFO CORSFilter initialized 
-2026-03-01 23:36:49,487 [com.tradeshow.pulse24x7.mcp.db.DBConnection] INFO MySQL JDBC driver loaded 
-2026-03-01 23:36:50,208 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Found 2 servers to monitor 
-2026-03-01 23:36:50,274 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Completed monitoring for all servers 
-2026-03-01 23:36:50,275 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Scheduled server monitoring completed in 800 ms ===== 
-2026-03-01 23:37:05,599 [com.tradeshow.pulse24x7.mcp.controller.ServerServlet] INFO ServerServlet initialized 
-2026-03-01 23:37:05,699 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 2 
-2026-03-01 23:37:05,764 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 2 because configured interval (30 minutes) has not elapsed 
-2026-03-01 23:38:35,722 [com.tradeshow.pulse24x7.mcp.controller.AuthTokenServlet] INFO AuthTokenServlet initialized 
-2026-03-01 23:38:55,399 [com.tradeshow.pulse24x7.mcp.dao.ServerDAO] INFO Deleting server ID=2 for userId=3 
-2026-03-01 23:38:55,441 [com.tradeshow.pulse24x7.mcp.dao.ServerDAO] INFO Server deleted successfully: 2 
-2026-03-01 23:47:13,401 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO Shutting down MCP Monitor Scheduler 
-2026-03-01 23:47:13,402 [org.quartz.core.QuartzScheduler] INFO Scheduler Pulse24x7Scheduler_$_NON_CLUSTERED shutting down. 
-2026-03-01 23:47:13,402 [org.quartz.core.QuartzScheduler] INFO Scheduler Pulse24x7Scheduler_$_NON_CLUSTERED paused. 
-2026-03-01 23:47:13,417 [org.quartz.core.QuartzScheduler] INFO Scheduler Pulse24x7Scheduler_$_NON_CLUSTERED shutdown complete. 
-2026-03-01 23:47:13,417 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO Scheduler shut down successfully 
-2026-03-01 23:47:18,885 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO Initializing MCP Monitor Scheduler 
-2026-03-01 23:47:18,934 [org.quartz.impl.StdSchedulerFactory] INFO Using default implementation for ThreadExecutor 
-2026-03-01 23:47:18,947 [org.quartz.core.SchedulerSignalerImpl] INFO Initialized Scheduler Signaller of type: class org.quartz.core.SchedulerSignalerImpl 
-2026-03-01 23:47:18,947 [org.quartz.core.QuartzScheduler] INFO Quartz Scheduler v.2.3.2 created. 
-2026-03-01 23:47:18,948 [org.quartz.simpl.RAMJobStore] INFO RAMJobStore initialized. 
-2026-03-01 23:47:18,949 [org.quartz.core.QuartzScheduler] INFO Scheduler meta-data: Quartz Scheduler (v2.3.2) 'Pulse24x7Scheduler' with instanceId 'NON_CLUSTERED'
-  Scheduler class: 'org.quartz.core.QuartzScheduler' - running locally.
-  NOT STARTED.
-  Currently in standby mode.
-  Number of jobs executed: 0
-  Using thread pool 'org.quartz.simpl.SimpleThreadPool' - with 1 threads.
-  Using job-store 'org.quartz.simpl.RAMJobStore' - which does not support persistence. and is not clustered.
- 
-2026-03-01 23:47:18,949 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler 'Pulse24x7Scheduler' initialized from an externally provided properties instance. 
-2026-03-01 23:47:18,949 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler version: 2.3.2 
-2026-03-01 23:47:18,960 [org.quartz.core.QuartzScheduler] INFO Scheduler Pulse24x7Scheduler_$_NON_CLUSTERED started. 
-2026-03-01 23:47:18,962 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO MCP Monitor Scheduler started successfully. Monitoring interval: 30 minutes 
-2026-03-01 23:47:18,966 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Starting scheduled server monitoring ===== 
-2026-03-01 23:47:18,972 [com.tradeshow.pulse24x7.mcp.filter.CORSFilter] INFO CORSFilter initialized 
-2026-03-01 23:47:18,974 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting monitoring for all servers 
-2026-03-01 23:47:18,979 [com.tradeshow.pulse24x7.mcp.db.DBConnection] INFO MySQL JDBC driver loaded 
-2026-03-01 23:47:19,431 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Found 1 servers to monitor 
-2026-03-01 23:47:19,467 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 1 
-2026-03-01 23:47:19,597 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating FORM POST request to: https://accounts.zoho.in/oauth/v2/token 
-2026-03-01 23:47:20,159 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Updating access token for server ID: 1 
-2026-03-01 23:47:20,198 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Access token updated successfully for server ID: 1 
-2026-03-01 23:47:20,275 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
-2026-03-01 23:47:20,676 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-01 23:47:20,713 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 1 is UP 
-2026-03-01 23:47:20,713 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 1 
-2026-03-01 23:47:20,716 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
-2026-03-01 23:47:20,983 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-01 23:47:21,056 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 17 tools for server ID: 1 
-2026-03-01 23:47:21,058 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 11 tools from response 
-2026-03-01 23:47:21,062 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 1 (keeping 11 tools active) 
-2026-03-01 23:47:21,086 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO 6 tools disabled for server ID: 1 
-2026-03-01 23:47:21,480 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 11 tools from server 1 
-2026-03-01 23:47:21,504 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 1 
-2026-03-01 23:47:21,504 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Completed monitoring for all servers 
-2026-03-01 23:47:21,504 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Scheduled server monitoring completed in 2538 ms ===== 
-2026-03-01 23:47:25,690 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating FORM POST request to: https://accounts.zoho.in/oauth/v2/token 
-2026-03-01 23:47:26,012 [com.tradeshow.pulse24x7.mcp.controller.ServerServlet] INFO ServerServlet initialized 
-2026-03-01 23:48:16,540 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating FORM POST request to: https://accounts.zoho.in/oauth/v2/token 
-2026-03-01 23:48:21,659 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
-2026-03-01 23:48:22,032 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-01 23:48:22,032 [com.tradeshow.pulse24x7.mcp.service.ServerService] INFO Registering new server for userId=3: Zoho Main MCP - https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
-2026-03-01 23:48:22,044 [com.tradeshow.pulse24x7.mcp.dao.ServerDAO] INFO Inserting server for userId=3: Zoho Main MCP - https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
-2026-03-01 23:48:22,068 [com.tradeshow.pulse24x7.mcp.dao.ServerDAO] INFO Server inserted successfully with ID: 3 
-2026-03-01 23:48:22,079 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Inserting/updating auth token for server ID: 3 
-2026-03-01 23:48:22,102 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Auth token inserted/updated successfully for server ID: 3 
-2026-03-01 23:48:22,102 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 3 
-2026-03-01 23:48:22,149 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
-2026-03-01 23:48:22,379 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-01 23:48:22,403 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 3 is UP 
-2026-03-01 23:48:22,404 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 3 
-2026-03-01 23:48:22,404 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
-2026-03-01 23:48:22,663 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-01 23:48:22,708 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 0 tools for server ID: 3 
-2026-03-01 23:48:22,709 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 4 tools from response 
-2026-03-01 23:48:22,709 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Updating 4 tools for server ID: 3 
-2026-03-01 23:48:22,709 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Inserting/Updating tool: ZohoCliq_Add_followers_to_a_thread for server ID: 3 
-2026-03-01 23:48:22,731 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Tool inserted/updated successfully: ZohoCliq_Add_followers_to_a_thread 
-2026-03-01 23:48:22,732 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Inserting/Updating tool: ZohoCliq_Delete_a_message for server ID: 3 
-2026-03-01 23:48:22,759 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Tool inserted/updated successfully: ZohoCliq_Delete_a_message 
-2026-03-01 23:48:22,760 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Inserting/Updating tool: ZohoCliq_Add_a_reaction for server ID: 3 
-2026-03-01 23:48:22,788 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Tool inserted/updated successfully: ZohoCliq_Add_a_reaction 
-2026-03-01 23:48:22,789 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Inserting/Updating tool: ZohoCliq_Delete_a_reaction for server ID: 3 
-2026-03-01 23:48:22,813 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Tool inserted/updated successfully: ZohoCliq_Delete_a_reaction 
-2026-03-01 23:48:22,814 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 3 (keeping 4 tools active) 
-2026-03-01 23:48:22,992 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 4 tools from server 3 
-2026-03-01 23:48:23,038 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 3 
-2026-03-01 23:48:24,014 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-01 23:48:24,027 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-01 23:48:24,043 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 3 because configured interval (30 minutes) has not elapsed 
-2026-03-01 23:49:19,936 [com.tradeshow.pulse24x7.mcp.controller.AuthTokenServlet] INFO AuthTokenServlet initialized 
-2026-03-01 23:49:30,583 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-01 23:49:30,584 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 3 because configured interval (30 minutes) has not elapsed 
-2026-03-01 23:49:59,765 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-01 23:49:59,782 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 3 because configured interval (30 minutes) has not elapsed 
-2026-03-01 23:50:20,507 [com.tradeshow.pulse24x7.mcp.controller.RequestLogServlet] INFO RequestLogServlet initialized 
-2026-03-01 23:50:23,657 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-01 23:50:23,671 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 3 because configured interval (30 minutes) has not elapsed 
-2026-03-01 23:51:31,696 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 3 
-2026-03-01 23:51:31,696 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-01 23:51:31,727 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-01 23:51:31,757 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
-2026-03-01 23:51:32,020 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-01 23:51:32,055 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 3 is UP 
-2026-03-01 23:51:32,055 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 3 
-2026-03-01 23:51:32,056 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
-2026-03-01 23:51:32,309 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-01 23:51:32,348 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 4 tools for server ID: 3 
-2026-03-01 23:51:32,348 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 4 tools from response 
-2026-03-01 23:51:32,350 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 3 (keeping 4 tools active) 
-2026-03-01 23:51:32,494 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 4 tools from server 3 
-2026-03-01 23:51:32,516 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 3 
-2026-03-01 23:51:32,579 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-01 23:51:32,607 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-01 23:51:44,047 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-01 23:52:08,893 [com.tradeshow.pulse24x7.mcp.controller.ToolServlet] INFO ToolServlet initialized 
-2026-03-01 23:52:08,916 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 4 available tools for server ID: 3 
-2026-03-01 23:56:24,622 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-01 23:56:24,718 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-01 23:56:24,721 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 3 because configured interval (30 minutes) has not elapsed 
-2026-03-01 23:56:29,259 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 4 available tools for server ID: 3 
-2026-03-02 00:01:13,117 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 4 available tools for server ID: 3 
-2026-03-02 00:01:21,775 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-02 00:01:21,786 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 3 because configured interval (30 minutes) has not elapsed 
-2026-03-02 00:17:18,953 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Starting scheduled server monitoring ===== 
-2026-03-02 00:17:18,954 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting monitoring for all servers 
-2026-03-02 00:17:18,962 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Found 2 servers to monitor 
-2026-03-02 00:17:18,979 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Completed monitoring for all servers 
-2026-03-02 00:17:18,980 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Scheduled server monitoring completed in 26 ms ===== 
-2026-03-02 00:18:57,054 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-02 00:18:57,059 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 3 because configured interval (30 minutes) has not elapsed 
-2026-03-02 00:21:12,370 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 4 available tools for server ID: 3 
-2026-03-02 00:27:39,376 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-02 00:27:39,385 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 3 
-2026-03-02 00:27:39,431 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
-2026-03-02 00:27:40,500 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-02 00:27:40,533 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 3 is UP 
-2026-03-02 00:27:40,533 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 3 
-2026-03-02 00:27:40,533 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
-2026-03-02 00:27:40,781 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-02 00:27:40,813 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 4 tools for server ID: 3 
-2026-03-02 00:27:40,814 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 4 tools from response 
-2026-03-02 00:27:40,814 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 3 (keeping 4 tools active) 
-2026-03-02 00:27:40,931 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 4 tools from server 3 
-2026-03-02 00:27:40,951 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 3 
-2026-03-02 00:47:18,952 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Starting scheduled server monitoring ===== 
-2026-03-02 00:47:18,953 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting monitoring for all servers 
-2026-03-02 00:47:18,964 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Found 2 servers to monitor 
-2026-03-02 00:47:18,982 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 1 
-2026-03-02 00:47:19,017 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating FORM POST request to: https://accounts.zoho.in/oauth/v2/token 
-2026-03-02 00:47:19,396 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Updating access token for server ID: 1 
-2026-03-02 00:47:19,426 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Access token updated successfully for server ID: 1 
-2026-03-02 00:47:19,463 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
-2026-03-02 00:47:23,860 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-02 00:47:23,890 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 1 is UP 
-2026-03-02 00:47:23,890 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 1 
-2026-03-02 00:47:23,890 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
-2026-03-02 00:47:24,139 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-02 00:47:24,186 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 17 tools for server ID: 1 
-2026-03-02 00:47:24,186 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 11 tools from response 
-2026-03-02 00:47:24,188 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 1 (keeping 11 tools active) 
-2026-03-02 00:47:24,208 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO 6 tools disabled for server ID: 1 
-2026-03-02 00:47:24,504 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 11 tools from server 1 
-2026-03-02 00:47:24,522 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 1 
-2026-03-02 00:47:24,522 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Completed monitoring for all servers 
-2026-03-02 00:47:24,522 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Scheduled server monitoring completed in 5569 ms ===== 
-2026-03-02 01:03:57,778 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 4 available tools for server ID: 3 
-2026-03-02 01:17:13,445 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO Shutting down MCP Monitor Scheduler 
-2026-03-02 01:17:13,447 [org.quartz.core.QuartzScheduler] INFO Scheduler Pulse24x7Scheduler_$_NON_CLUSTERED shutting down. 
-2026-03-02 01:17:13,447 [org.quartz.core.QuartzScheduler] INFO Scheduler Pulse24x7Scheduler_$_NON_CLUSTERED paused. 
-2026-03-02 01:17:13,889 [org.quartz.core.QuartzScheduler] INFO Scheduler Pulse24x7Scheduler_$_NON_CLUSTERED shutdown complete. 
-2026-03-02 01:17:13,889 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO Scheduler shut down successfully 
-2026-03-02 01:17:22,566 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO Initializing MCP Monitor Scheduler 
-2026-03-02 01:17:22,600 [org.quartz.impl.StdSchedulerFactory] INFO Using default implementation for ThreadExecutor 
-2026-03-02 01:17:22,608 [org.quartz.core.SchedulerSignalerImpl] INFO Initialized Scheduler Signaller of type: class org.quartz.core.SchedulerSignalerImpl 
-2026-03-02 01:17:22,608 [org.quartz.core.QuartzScheduler] INFO Quartz Scheduler v.2.3.2 created. 
-2026-03-02 01:17:22,609 [org.quartz.simpl.RAMJobStore] INFO RAMJobStore initialized. 
-2026-03-02 01:17:22,609 [org.quartz.core.QuartzScheduler] INFO Scheduler meta-data: Quartz Scheduler (v2.3.2) 'Pulse24x7Scheduler' with instanceId 'NON_CLUSTERED'
-  Scheduler class: 'org.quartz.core.QuartzScheduler' - running locally.
-  NOT STARTED.
-  Currently in standby mode.
-  Number of jobs executed: 0
-  Using thread pool 'org.quartz.simpl.SimpleThreadPool' - with 1 threads.
-  Using job-store 'org.quartz.simpl.RAMJobStore' - which does not support persistence. and is not clustered.
- 
-2026-03-02 01:17:22,609 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler 'Pulse24x7Scheduler' initialized from an externally provided properties instance. 
-2026-03-02 01:17:22,609 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler version: 2.3.2 
-2026-03-02 01:17:22,616 [org.quartz.core.QuartzScheduler] INFO Scheduler Pulse24x7Scheduler_$_NON_CLUSTERED started. 
-2026-03-02 01:17:22,618 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO MCP Monitor Scheduler started successfully. Monitoring interval: 30 minutes 
-2026-03-02 01:17:22,621 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Starting scheduled server monitoring ===== 
-2026-03-02 01:17:22,625 [com.tradeshow.pulse24x7.mcp.filter.CORSFilter] INFO CORSFilter initialized 
-2026-03-02 01:17:22,629 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting monitoring for all servers 
-2026-03-02 01:17:22,632 [com.tradeshow.pulse24x7.mcp.db.DBConnection] INFO MySQL JDBC driver loaded 
-2026-03-02 01:17:22,924 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Found 2 servers to monitor 
-2026-03-02 01:17:22,944 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 3 
-2026-03-02 01:17:23,019 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating FORM POST request to: https://accounts.zoho.in/oauth/v2/token 
-2026-03-02 01:17:23,563 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Updating access token for server ID: 3 
-2026-03-02 01:17:23,591 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Access token updated successfully for server ID: 3 
-2026-03-02 01:17:23,650 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
-2026-03-02 01:17:28,936 [com.tradeshow.pulse24x7.mcp.controller.AuthTokenServlet] INFO AuthTokenServlet initialized 
-2026-03-02 01:17:29,142 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-02 01:17:29,165 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 3 is UP 
-2026-03-02 01:17:29,165 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 3 
-2026-03-02 01:17:29,165 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
-2026-03-02 01:17:29,412 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-02 01:17:29,456 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 4 tools for server ID: 3 
-2026-03-02 01:17:29,458 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 4 tools from response 
-2026-03-02 01:17:29,459 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 3 (keeping 4 tools active) 
-2026-03-02 01:17:29,580 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 4 tools from server 3 
-2026-03-02 01:17:29,599 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 3 
-2026-03-02 01:17:29,616 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 1 
-2026-03-02 01:17:29,659 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
-2026-03-02 01:17:29,921 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-02 01:17:29,951 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 1 is UP 
-2026-03-02 01:17:29,951 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 1 
-2026-03-02 01:17:29,951 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
-2026-03-02 01:17:30,189 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
-2026-03-02 01:17:30,231 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 17 tools for server ID: 1 
-2026-03-02 01:17:30,232 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 11 tools from response 
-2026-03-02 01:17:30,233 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 1 (keeping 11 tools active) 
-2026-03-02 01:17:30,252 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO 6 tools disabled for server ID: 1 
-2026-03-02 01:17:30,553 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 11 tools from server 1 
-2026-03-02 01:17:30,570 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 1 
-2026-03-02 01:17:30,570 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Completed monitoring for all servers 
-2026-03-02 01:17:30,570 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Scheduled server monitoring completed in 7949 ms ===== 
-2026-03-02 01:17:47,615 [com.tradeshow.pulse24x7.mcp.controller.ServerServlet] INFO ServerServlet initialized 
-2026-03-02 01:17:47,707 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 3 
-2026-03-02 01:17:47,719 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 3 because configured interval (30 minutes) has not elapsed 
-2026-03-02 01:17:52,682 [com.tradeshow.pulse24x7.mcp.controller.RequestLogServlet] INFO RequestLogServlet initialized 
-2026-03-02 01:18:54,408 [com.tradeshow.pulse24x7.mcp.dao.ServerDAO] INFO Deleting server ID=3 for userId=3 
-2026-03-02 01:18:54,439 [com.tradeshow.pulse24x7.mcp.dao.ServerDAO] INFO Server deleted successfully with all dependent records: 3 
+2026-03-02 08:42:24,196 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler 'Pulse24x7Scheduler' initialized from an externally provided properties instance. 
+2026-03-02 08:42:24,196 [org.quartz.impl.StdSchedulerFactory] INFO Quartz scheduler version: 2.3.2 
+2026-03-02 08:42:24,206 [org.quartz.core.QuartzScheduler] INFO Scheduler Pulse24x7Scheduler_$_NON_CLUSTERED started. 
+2026-03-02 08:42:24,209 [com.tradeshow.pulse24x7.mcp.scheduler.MonitorScheduler] INFO MCP Monitor Scheduler started successfully. Monitoring interval: 30 minutes 
+2026-03-02 08:42:24,214 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Starting scheduled server monitoring ===== 
+2026-03-02 08:42:24,219 [com.tradeshow.pulse24x7.mcp.filter.CORSFilter] INFO CORSFilter initialized 
+2026-03-02 08:42:24,226 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting monitoring for all servers 
+2026-03-02 08:42:24,233 [com.tradeshow.pulse24x7.mcp.db.DBConnection] INFO MySQL JDBC driver loaded 
+2026-03-02 08:42:24,869 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Found 1 servers to monitor 
+2026-03-02 08:42:24,909 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Completed monitoring for all servers 
+2026-03-02 08:42:24,909 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Scheduled server monitoring completed in 694 ms ===== 
+2026-03-02 08:43:58,192 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating FORM POST request to: https://accounts.zoho.in/oauth/v2/token 
+2026-03-02 08:43:59,051 [com.tradeshow.pulse24x7.mcp.controller.ServerServlet] INFO ServerServlet initialized 
+2026-03-02 08:47:39,338 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating FORM POST request to: https://accounts.zoho.in/oauth/v2/token 
+2026-03-02 08:47:43,315 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
+2026-03-02 08:47:43,658 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-03-02 08:47:43,660 [com.tradeshow.pulse24x7.mcp.service.ServerService] INFO Registering new server for userId=3: Zoho Main MCP - https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
+2026-03-02 08:47:43,681 [com.tradeshow.pulse24x7.mcp.dao.ServerDAO] INFO Inserting server for userId=3: Zoho Main MCP - https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
+2026-03-02 08:47:43,709 [com.tradeshow.pulse24x7.mcp.dao.ServerDAO] INFO Server inserted successfully with ID: 4 
+2026-03-02 08:47:43,711 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Inserting/updating auth token for server ID: 4 
+2026-03-02 08:47:43,757 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Auth token inserted/updated successfully for server ID: 4 
+2026-03-02 08:47:43,758 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 4 
+2026-03-02 08:47:43,834 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
+2026-03-02 08:47:44,033 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-03-02 08:47:44,067 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 4 is UP 
+2026-03-02 08:47:44,067 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 4 
+2026-03-02 08:47:44,067 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
+2026-03-02 08:47:44,263 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-03-02 08:47:44,308 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 0 tools for server ID: 4 
+2026-03-02 08:47:44,311 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 4 tools from response 
+2026-03-02 08:47:44,312 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Updating 4 tools for server ID: 4 
+2026-03-02 08:47:44,312 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Inserting/Updating tool: ZohoCliq_Add_followers_to_a_thread for server ID: 4 
+2026-03-02 08:47:44,343 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Tool inserted/updated successfully: ZohoCliq_Add_followers_to_a_thread 
+2026-03-02 08:47:44,344 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Inserting/Updating tool: ZohoCliq_Delete_a_message for server ID: 4 
+2026-03-02 08:47:44,376 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Tool inserted/updated successfully: ZohoCliq_Delete_a_message 
+2026-03-02 08:47:44,377 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Inserting/Updating tool: ZohoCliq_Add_a_reaction for server ID: 4 
+2026-03-02 08:47:44,402 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Tool inserted/updated successfully: ZohoCliq_Add_a_reaction 
+2026-03-02 08:47:44,403 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Inserting/Updating tool: ZohoCliq_Delete_a_reaction for server ID: 4 
+2026-03-02 08:47:44,433 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Tool inserted/updated successfully: ZohoCliq_Delete_a_reaction 
+2026-03-02 08:47:44,435 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 4 (keeping 4 tools active) 
+2026-03-02 08:47:44,691 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 4 tools from server 4 
+2026-03-02 08:47:44,784 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 4 
+2026-03-02 08:47:45,858 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 4 
+2026-03-02 08:47:45,896 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 4 
+2026-03-02 08:47:45,916 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 4 because configured interval (30 minutes) has not elapsed 
+2026-03-02 08:48:02,151 [com.tradeshow.pulse24x7.mcp.controller.RequestLogServlet] INFO RequestLogServlet initialized 
+2026-03-02 08:48:19,969 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 4 
+2026-03-02 08:48:19,980 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 4 because configured interval (30 minutes) has not elapsed 
+2026-03-02 08:48:39,467 [com.tradeshow.pulse24x7.mcp.controller.ToolServlet] INFO ToolServlet initialized 
+2026-03-02 08:48:39,493 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 4 available tools for server ID: 4 
+2026-03-02 08:50:35,195 [com.tradeshow.pulse24x7.mcp.controller.AuthTokenServlet] INFO AuthTokenServlet initialized 
+2026-03-02 08:51:19,812 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 4 available tools for server ID: 4 
+2026-03-02 08:52:54,290 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
+2026-03-02 08:53:09,857 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 401 
+2026-03-02 08:53:09,858 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] ERROR POST failed | Status: 401 | Body: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"{\"code\":\"oauthtoken_scope_invalid\",\"message\":\"The OAuth token passed does not have the required scope.\"}\n\n\n"}],"isError":true}} 
+2026-03-02 08:54:03,906 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating FORM POST request to: https://accounts.zoho.in/oauth/v2/token 
+2026-03-02 08:54:04,255 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Inserting/updating auth token for server ID: 4 
+2026-03-02 08:54:04,293 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Auth token inserted/updated successfully for server ID: 4 
+2026-03-02 08:54:11,830 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
+2026-03-02 08:54:12,256 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-03-02 08:54:12,357 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 4 available tools for server ID: 4 
+2026-03-02 08:54:58,001 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 4 
+2026-03-02 08:54:58,013 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 4 because configured interval (30 minutes) has not elapsed 
+2026-03-02 08:55:42,822 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 4 
+2026-03-02 08:55:42,846 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 4 because configured interval (30 minutes) has not elapsed 
+2026-03-02 08:55:48,215 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 4 
+2026-03-02 08:57:35,972 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 4 available tools for server ID: 4 
+2026-03-02 08:57:39,307 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 4 
+2026-03-02 08:57:39,326 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 4 because configured interval (30 minutes) has not elapsed 
+2026-03-02 09:28:51,514 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 4 
+2026-03-02 09:28:51,525 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 4 
+2026-03-02 09:28:51,581 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
+2026-03-02 09:28:51,836 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-03-02 09:28:51,869 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 4 is UP 
+2026-03-02 09:28:51,869 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 4 
+2026-03-02 09:28:51,869 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
+2026-03-02 09:28:51,994 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-03-02 09:28:52,030 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 4 tools for server ID: 4 
+2026-03-02 09:28:52,031 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 4 tools from response 
+2026-03-02 09:28:52,031 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 4 (keeping 4 tools active) 
+2026-03-02 09:28:52,152 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 4 tools from server 4 
+2026-03-02 09:28:52,178 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 4 
+2026-03-02 09:33:59,517 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 4 
+2026-03-02 09:33:59,520 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 4 because configured interval (30 minutes) has not elapsed 
+2026-03-02 09:34:09,235 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 4 
+2026-03-02 09:34:45,617 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-03-02 09:34:45,674 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-03-02 09:34:45,688 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 1 
+2026-03-02 09:34:45,729 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating FORM POST request to: https://accounts.zoho.in/oauth/v2/token 
+2026-03-02 09:34:45,889 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Updating access token for server ID: 1 
+2026-03-02 09:34:45,919 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Access token updated successfully for server ID: 1 
+2026-03-02 09:34:45,947 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
+2026-03-02 09:34:46,398 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-03-02 09:34:46,420 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 1 is UP 
+2026-03-02 09:34:46,420 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 1 
+2026-03-02 09:34:46,421 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
+2026-03-02 09:34:46,554 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-03-02 09:34:46,601 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 17 tools for server ID: 1 
+2026-03-02 09:34:46,603 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 11 tools from response 
+2026-03-02 09:34:46,605 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 1 (keeping 11 tools active) 
+2026-03-02 09:34:46,625 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO 6 tools disabled for server ID: 1 
+2026-03-02 09:34:46,924 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 11 tools from server 1 
+2026-03-02 09:34:47,001 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 1 
+2026-03-02 09:35:45,553 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 11 available tools for server ID: 1 
+2026-03-02 09:42:24,200 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Starting scheduled server monitoring ===== 
+2026-03-02 09:42:24,201 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting monitoring for all servers 
+2026-03-02 09:42:24,210 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Found 2 servers to monitor 
+2026-03-02 09:42:24,232 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Completed monitoring for all servers 
+2026-03-02 09:42:24,232 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Scheduled server monitoring completed in 31 ms ===== 
+2026-03-02 09:45:38,056 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 11 available tools for server ID: 1 
+2026-03-02 09:46:59,560 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-03-02 09:46:59,575 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 1 because configured interval (30 minutes) has not elapsed 
+2026-03-02 09:47:03,565 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-03-02 09:49:13,144 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-03-02 09:58:49,539 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 11 available tools for server ID: 1 
+2026-03-02 10:06:36,198 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-03-02 10:06:36,200 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 1 
+2026-03-02 10:06:36,228 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
+2026-03-02 10:06:36,549 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-03-02 10:06:36,568 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 1 is UP 
+2026-03-02 10:06:36,568 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 1 
+2026-03-02 10:06:36,568 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
+2026-03-02 10:06:36,693 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-03-02 10:06:36,729 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 17 tools for server ID: 1 
+2026-03-02 10:06:36,730 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 11 tools from response 
+2026-03-02 10:06:36,731 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 1 (keeping 11 tools active) 
+2026-03-02 10:06:36,749 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO 6 tools disabled for server ID: 1 
+2026-03-02 10:06:37,012 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 11 tools from server 1 
+2026-03-02 10:06:37,028 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 1 
+2026-03-02 10:12:24,208 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Starting scheduled server monitoring ===== 
+2026-03-02 10:12:24,209 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting monitoring for all servers 
+2026-03-02 10:12:24,224 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Found 2 servers to monitor 
+2026-03-02 10:12:24,234 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Starting server monitoring for server ID: 4 
+2026-03-02 10:12:24,256 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating FORM POST request to: https://accounts.zoho.in/oauth/v2/token 
+2026-03-02 10:12:24,395 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Updating access token for server ID: 4 
+2026-03-02 10:12:24,413 [com.tradeshow.pulse24x7.mcp.dao.AuthTokenDAO] INFO Access token updated successfully for server ID: 4 
+2026-03-02 10:12:24,444 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
+2026-03-02 10:12:25,023 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-03-02 10:12:25,048 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server 4 is UP 
+2026-03-02 10:12:25,048 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Fetching tools from server ID: 4 
+2026-03-02 10:12:25,048 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://main-server-60065100497.zohomcp.in/mcp/message?key=636060361e93c7149c06452e292c0729 
+2026-03-02 10:12:25,167 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-03-02 10:12:25,209 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 4 tools for server ID: 4 
+2026-03-02 10:12:25,210 [com.tradeshow.pulse24x7.mcp.service.ToolService] INFO Parsed 4 tools from response 
+2026-03-02 10:12:25,211 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Disabling missing tools for server ID: 4 (keeping 4 tools active) 
+2026-03-02 10:12:25,303 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Fetched 4 tools from server 4 
+2026-03-02 10:12:25,321 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Server monitoring completed for server ID: 4 
+2026-03-02 10:12:25,325 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Completed monitoring for all servers 
+2026-03-02 10:12:25,325 [com.tradeshow.pulse24x7.mcp.scheduler.ServerMonitorTask] INFO ===== Scheduled server monitoring completed in 1116 ms ===== 
+2026-03-02 10:12:50,850 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-03-02 10:12:50,859 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 1 because configured interval (30 minutes) has not elapsed 
+2026-03-02 10:13:34,076 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-03-02 10:13:34,081 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 1 because configured interval (30 minutes) has not elapsed 
+2026-03-02 10:13:35,665 [com.tradeshow.pulse24x7.mcp.dao.ToolDAO] INFO Fetched 11 available tools for server ID: 1 
+2026-03-02 10:13:56,451 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
+2026-03-02 10:13:56,707 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 200 
+2026-03-02 10:13:56,816 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO Initiating POST request to: https://trade-show-test-60065100497.zohomcp.in/mcp/message?key=e7af3a01f7d734d54ac06b0542e664bf 
+2026-03-02 10:13:56,947 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] INFO POST response status: 401 
+2026-03-02 10:13:56,947 [com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil] ERROR POST failed | Status: 401 | Body: {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"{\"code\":\"oauthtoken_scope_invalid\",\"message\":\"The OAuth token passed does not have the required scope.\"}\n\n\n"}],"isError":true}} 
+2026-03-02 10:15:37,410 [com.tradeshow.pulse24x7.mcp.dao.ServerHistoryDAO] INFO Fetched 1 server history records for server ID: 1 
+2026-03-02 10:15:37,411 [com.tradeshow.pulse24x7.mcp.service.MonitoringService] INFO Skipping monitor for server 1 because configured interval (30 minutes) has not elapsed 

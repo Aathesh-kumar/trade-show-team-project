@@ -279,6 +279,45 @@ public class NotificationDAO {
         return null;
     }
 
+    public Notification getByIdForUser(long id, long userId) {
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.SELECT_NOTIFICATION_BY_ID_FOR_USER)) {
+            ps.setLong(1, id);
+            ps.setLong(2, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSet(rs);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to fetch notification id={} for userId={}", id, userId, e);
+        }
+        return null;
+    }
+
+    public List<Notification> getAllByUser(Long userId, Integer serverId) {
+        if (userId == null || userId <= 0) {
+            return List.of();
+        }
+        List<Notification> list = new ArrayList<>();
+        String sql = serverId == null ? DBQueries.SELECT_NOTIFICATIONS_BY_USER_ALL : DBQueries.SELECT_NOTIFICATIONS_BY_USER_AND_SERVER_ALL;
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, userId);
+            if (serverId != null) {
+                ps.setInt(2, serverId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to fetch all notifications for userId={}", userId, e);
+        }
+        return list;
+    }
+
     private Notification mapResultSet(ResultSet rs) throws SQLException {
         Notification n = new Notification();
         n.setId(rs.getLong("id"));

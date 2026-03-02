@@ -668,8 +668,7 @@ export default function Settings({
             onChange={setReceiverEmail}
             type="email"
             required={true}
-            readOnly={true}
-            tooltip="Receiver email is always your account email"
+            tooltip="Default is your login email"
           />
 
           <SelectField

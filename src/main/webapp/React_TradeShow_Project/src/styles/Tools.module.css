@@ -797,6 +797,32 @@
   font-size: 0.86rem;
 }
 
+.scopeSelector {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.55rem;
+}
+
+.scopeOption {
+  display: flex;
+  align-items: center;
+  gap: 0.52rem;
+  min-height: 38px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-elev-2) 72%, transparent);
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+}
+
+.scopeOption:hover {
+  border-color: color-mix(in srgb, var(--primary-color) 50%, transparent);
+}
+
+.scopeOption input {
+  accent-color: var(--primary-color);
+}
+
 .oauthUrlBox {
   border: 1px solid var(--panel-border);
   background: color-mix(in srgb, var(--bg-elev-2) 82%, transparent);
