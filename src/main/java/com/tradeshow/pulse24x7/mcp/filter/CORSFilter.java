@@ -19,9 +19,9 @@ public class CORSFilter extends HttpFilter {
     private static final Logger logger = LogManager.getLogger(CORSFilter.class);
     private Set<String> allowedOrigins;
     private boolean allowAllOrigins;
-    
+
     @Override
-    protected void doFilter(HttpServletRequest req, HttpServletResponse res, FilterChain chain) 
+    protected void doFilter(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws IOException, ServletException {
         String origin = req.getHeader("Origin");
         if (isOriginAllowed(origin)) {
@@ -36,14 +36,15 @@ public class CORSFilter extends HttpFilter {
         res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
         res.setHeader("Access-Control-Max-Age", "3600");
         res.setHeader("Access-Control-Allow-Credentials", "true");
+
         if ("OPTIONS".equalsIgnoreCase(req.getMethod())) {
             res.setStatus(HttpServletResponse.SC_OK);
             return;
         }
-        
+
         chain.doFilter(req, res);
     }
-    
+
     @Override
     public void init(FilterConfig config) throws ServletException {
         super.init(config);
