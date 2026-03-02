@@ -13,6 +13,8 @@ import jakarta.mail.internet.MimeMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -22,6 +24,7 @@ import java.util.Properties;
 
 public class NotificationEmailService {
     private static final Logger logger = LogManager.getLogger(NotificationEmailService.class);
+    private static final Properties localMailConfig = loadLocalMailConfig();
     private static final DateTimeFormatter EMAIL_TIME_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z", Locale.ROOT).withZone(ZoneId.systemDefault());
 
@@ -289,6 +292,12 @@ public class NotificationEmailService {
     private String env(String key, String fallback) {
         String value = System.getenv(key);
         if (value == null || value.isBlank()) {
+            value = System.getProperty(key);
+        }
+        if (value == null || value.isBlank()) {
+            value = localMailConfig.getProperty(key);
+        }
+        if (value == null || value.isBlank()) {
             return fallback;
         }
         return value;
@@ -300,6 +309,18 @@ public class NotificationEmailService {
         } catch (Exception ignored) {
             return fallback;
         }
+    }
+
+    private static Properties loadLocalMailConfig() {
+        Properties props = new Properties();
+        try (InputStream in = NotificationEmailService.class.getClassLoader().getResourceAsStream("zoho-login.properties")) {
+            if (in != null) {
+                props.load(in);
+            }
+        } catch (IOException ex) {
+            logger.warn("Failed to load local mail configuration from zoho-login.properties", ex);
+        }
+        return props;
     }
 
     private boolean sendHtml(String toEmail, String personalName, String subject, String htmlBody, MailboxProfile mailbox) {
