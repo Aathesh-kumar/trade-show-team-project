@@ -16,22 +16,28 @@ public class UserEmailSettingsService {
     }
 
     public UserEmailSettings getByUserId(Long userId) {
-        if (userId == null || userId <= 0) {
-            return null;
+        Long effectiveUserId = (userId == null || userId <= 0) ? null : userId;
+        UserEmailSettings latest = userEmailSettingsDAO.findLatest();
+        if (latest != null) {
+            User user = effectiveUserId == null ? null : userAuthService.findById(effectiveUserId);
+            UserEmailSettings normalized = normalize(latest, user);
+            normalized.setUserId(effectiveUserId);
+            return normalized;
         }
-        UserEmailSettings settings = userEmailSettingsDAO.findByUserId(userId);
-        if (settings != null) {
-            return normalize(settings, userAuthService.findById(userId));
-        }
-        User user = userAuthService.findById(userId);
-        return defaultSettings(userId, user != null ? user.getEmail() : null);
+        User user = effectiveUserId == null ? null : userAuthService.findById(effectiveUserId);
+        return defaultSettings(effectiveUserId, user != null ? user.getEmail() : null);
     }
 
     public boolean save(UserEmailSettings settings) {
-        if (settings == null || settings.getUserId() == null || settings.getUserId() <= 0) {
+        if (settings == null) {
             return false;
         }
-        User user = userAuthService.findById(settings.getUserId());
+        Long userId = settings.getUserId();
+        if (userId == null || userId <= 0) {
+            userId = 1L;
+        }
+        settings.setUserId(userId);
+        User user = userAuthService.findById(userId);
         UserEmailSettings normalized = normalize(settings, user);
         return userEmailSettingsDAO.upsert(normalized);
     }
@@ -66,6 +72,14 @@ public class UserEmailSettingsService {
         if (requestedEmail != null && !requestedEmail.isBlank()) {
             return requestedEmail.trim().toLowerCase(Locale.ROOT);
         }
+        String configured = normalizeGlobalDefaultEmail(
+                System.getenv("MCP_ALERT_RECEIVER_EMAIL"),
+                System.getProperty("MCP_ALERT_RECEIVER_EMAIL"),
+                "pulse24x7@zohomail.in"
+        );
+        if (configured != null) {
+            return configured;
+        }
         return userEmail == null ? null : userEmail.trim().toLowerCase(Locale.ROOT);
     }
 
@@ -75,5 +89,21 @@ public class UserEmailSettingsService {
             case "info", "warning", "error", "critical" -> value;
             default -> "warning";
         };
+    }
+
+    private String normalizeGlobalDefaultEmail(String... candidates) {
+        if (candidates == null) {
+            return null;
+        }
+        for (String candidate : candidates) {
+            if (candidate == null) {
+                continue;
+            }
+            String trimmed = candidate.trim().toLowerCase(Locale.ROOT);
+            if (!trimmed.isBlank()) {
+                return trimmed;
+            }
+        }
+        return null;
     }
 }

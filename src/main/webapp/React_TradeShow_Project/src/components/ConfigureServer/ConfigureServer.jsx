@@ -44,8 +44,8 @@ export default function ConfigureServer({ currentUser, onClose, onSuccess, canLo
             if (!data.serverName || data.serverName.trim().length < 3) {
                 return 'Server name must be at least 3 characters';
             }
-            if (!isValidMcpServerUrl(data.serverUrl)) {
-                return 'Server URL path must include `/mcp`, `/mcp/`, or `/mcp/...`';
+            if (!isValidServerEndpoint(data.serverUrl)) {
+                return 'Server URL must be a valid URL or URI';
             }
             if (!data.headerType || !String(data.headerType).trim()) {
                 return 'Header type is required';
@@ -62,9 +62,6 @@ export default function ConfigureServer({ currentUser, onClose, onSuccess, canLo
             }
             if (!isValidHttpUrl(data.oauthAuthUrl)) {
                 return 'OAuth Authorization URL is required and must be valid';
-            }
-            if (isFigmaAuthorizeUrl(data.oauthAuthUrl) && !isFigmaTokenEndpoint(data.tokenEndpoint)) {
-                return 'For Figma, Token Endpoint must be `https://www.figma.com/api/oauth/token`';
             }
             if (!data.accessToken || !String(data.accessToken).trim() || !data.refreshToken || !String(data.refreshToken).trim()) {
                 return 'Click Open OAuth and complete token generation before saving';
@@ -100,14 +97,6 @@ export default function ConfigureServer({ currentUser, onClose, onSuccess, canLo
     const handleInputChange = (field, value) => {
         setFormData((prev) => {
             const next = { ...prev, [field]: value };
-            if (field === 'oauthAuthUrl') {
-                const normalizedAuthUrl = normalizeOAuthAuthorizeBase(value);
-                const figmaTokenEndpoint = deriveFigmaTokenEndpoint(value);
-                next.oauthAuthUrl = normalizedAuthUrl;
-                if (figmaTokenEndpoint && (!String(prev.tokenEndpoint || '').trim() || isDefaultZohoTokenEndpoint(prev.tokenEndpoint))) {
-                    next.tokenEndpoint = figmaTokenEndpoint;
-                }
-            }
             if (field === 'clientId' || field === 'clientSecret' || field === 'oauthAuthUrl' || field === 'customScopes') {
                 next.accessToken = '';
                 next.refreshToken = '';
@@ -380,7 +369,7 @@ export default function ConfigureServer({ currentUser, onClose, onSuccess, canLo
                             onChange={(value) => handleInputChange('serverUrl', value)}
                             required
                             icon="link"
-                            tooltip="Endpoint path must include /mcp, /mcp/, or /mcp/..."
+                            tooltip="Enter a valid server endpoint URL or URI."
                         />
 
                         <InputField
@@ -467,7 +456,7 @@ export default function ConfigureServer({ currentUser, onClose, onSuccess, canLo
                             onChange={(value) => handleInputChange('oauthAuthUrl', value)}
                             required
                             icon="link"
-                            tooltip="Enter OAuth authorize endpoint (not token endpoint). For Figma use https://www.figma.com/oauth."
+                            tooltip="Enter a valid OAuth authorization URL."
                         />
 
                         <InputField
@@ -641,7 +630,7 @@ function buildScopeString(requiredScope, additionalScopes) {
 }
 
 function buildAuthorizeUrl(baseUrl, scope, clientId, redirectUri, state) {
-    const base = normalizeOAuthAuthorizeBase(baseUrl);
+    const base = String(baseUrl || '').trim();
     const normalizedScope = String(scope || '').trim();
     const normalizedClientId = String(clientId || '').trim();
     if (!isValidHttpUrl(base) || !normalizedScope || !normalizedClientId) {
@@ -650,77 +639,6 @@ function buildAuthorizeUrl(baseUrl, scope, clientId, redirectUri, state) {
     const nextState = state || `pulse_server_setup_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const separator = base.includes('?') ? '&' : '?';
     return `${base}${separator}scope=${encodeURIComponent(normalizedScope)}&client_id=${encodeURIComponent(normalizedClientId)}&state=${encodeURIComponent(nextState)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&access_type=offline&prompt=consent`;
-}
-
-function normalizeOAuthAuthorizeBase(value) {
-    const raw = String(value || '').trim();
-    if (!raw) {
-        return '';
-    }
-    try {
-        const parsed = new URL(raw);
-        const host = String(parsed.hostname || '').toLowerCase();
-        const path = String(parsed.pathname || '').toLowerCase();
-        if ((host === 'figma.com' || host.endsWith('.figma.com')) && path === '/api/oauth/token') {
-            parsed.pathname = '/oauth';
-            parsed.search = '';
-            return parsed.toString();
-        }
-        return parsed.toString();
-    } catch {
-        return raw;
-    }
-}
-
-function deriveFigmaTokenEndpoint(value) {
-    const raw = String(value || '').trim();
-    if (!raw) {
-        return '';
-    }
-    try {
-        const parsed = new URL(raw);
-        const host = String(parsed.hostname || '').toLowerCase();
-        if (host === 'figma.com' || host.endsWith('.figma.com')) {
-            return 'https://www.figma.com/api/oauth/token';
-        }
-        return '';
-    } catch {
-        return '';
-    }
-}
-
-function isDefaultZohoTokenEndpoint(value) {
-    return String(value || '').trim().toLowerCase() === 'https://accounts.zoho.in/oauth/v2/token';
-}
-
-function isFigmaAuthorizeUrl(value) {
-    const raw = String(value || '').trim();
-    if (!raw) {
-        return false;
-    }
-    try {
-        const parsed = new URL(normalizeOAuthAuthorizeBase(raw));
-        const host = String(parsed.hostname || '').toLowerCase();
-        const path = String(parsed.pathname || '').toLowerCase();
-        return (host === 'figma.com' || host.endsWith('.figma.com')) && path === '/oauth';
-    } catch {
-        return false;
-    }
-}
-
-function isFigmaTokenEndpoint(value) {
-    const raw = String(value || '').trim();
-    if (!raw) {
-        return false;
-    }
-    try {
-        const parsed = new URL(raw);
-        const host = String(parsed.hostname || '').toLowerCase();
-        const path = String(parsed.pathname || '').toLowerCase();
-        return (host === 'figma.com' || host.endsWith('.figma.com')) && path === '/api/oauth/token';
-    } catch {
-        return false;
-    }
 }
 
 function isValidEmail(email) {
@@ -745,16 +663,22 @@ function isValidHttpUrl(value) {
     }
 }
 
-function isValidMcpServerUrl(value) {
+function isValidServerEndpoint(value) {
     const raw = String(value || '').trim();
     if (!raw) {
         return false;
     }
-    const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    if (/^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(raw)) {
+        return true;
+    }
+    if (/^[^\s/$.?#].[^\s]*$/.test(raw)) {
+        return true;
+    }
+    const withProtocol = `https://${raw}`;
     try {
-        const parsed = new URL(withProtocol);
-        return /(^|\/)mcp(\/|$)/i.test(parsed.pathname);
+        new URL(withProtocol);
+        return true;
     } catch {
-        return /(^|\/)mcp(\/|$)/i.test(raw);
+        return false;
     }
 }

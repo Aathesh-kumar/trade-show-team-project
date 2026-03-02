@@ -279,6 +279,44 @@
   cursor: not-allowed;
 }
 
+.btnReset {
+  min-height: 46px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--success-color) 70%, transparent);
+  background:
+    linear-gradient(130deg,
+      color-mix(in srgb, var(--success-color) 80%, #10b981 20%),
+      color-mix(in srgb, var(--primary-color-strong) 42%, var(--success-color) 58%)
+    );
+  color: #ffffff;
+  font-size: 0.97rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.02em;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.btnReset:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--success-color) 36%, transparent);
+}
+
+.btnReset:active {
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+
+.btnReset:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .btn {
   margin-top: 0.2rem;
   min-height: 52px;

@@ -157,32 +157,13 @@ public class NotificationEmailService {
         );
     }
 
-    private MailboxProfile selectMailboxProfile(String receiverEmail) {
-        if (isZohoUser(receiverEmail)) {
-            return new MailboxProfile(
-                    env("MCP_MAIL_ZOHO_FROM", "pulse24x7@zohomail.in"),
-                    env("MCP_MAIL_ZOHO_PASSWORD", "DUMMY_ZOHO_APP_PASSWORD"),
-                    env("MCP_MAIL_ZOHO_HOST", "smtp.zoho.in"),
-                    parsePort(env("MCP_MAIL_ZOHO_PORT", "465"), 465)
-            );
-        }
+    private MailboxProfile selectMailboxProfile(String ignoredReceiverEmail) {
         return new MailboxProfile(
-                env("MCP_MAIL_GMAIL_FROM", "pulse24x7@gmail.com"),
-                env("MCP_MAIL_GMAIL_PASSWORD", "DUMMY_GMAIL_APP_PASSWORD"),
-                env("MCP_MAIL_GMAIL_HOST", "smtp.gmail.com"),
-                parsePort(env("MCP_MAIL_GMAIL_PORT", "465"), 465)
+                env("MCP_MAIL_ZOHO_FROM", "pulse24x7@zohomail.in"),
+                env("MCP_MAIL_ZOHO_PASSWORD", "DUMMY_ZOHO_APP_PASSWORD"),
+                env("MCP_MAIL_ZOHO_HOST", "smtp.zoho.in"),
+                parsePort(env("MCP_MAIL_ZOHO_PORT", "465"), 465)
         );
-    }
-
-    private boolean isZohoUser(String email) {
-        String lower = normalizeEmail(email);
-        if (lower == null) {
-            return false;
-        }
-        return lower.endsWith("@zoho.com")
-                || lower.endsWith("@zoho.in")
-                || lower.endsWith("@zohomail.in")
-                || lower.endsWith("@zohocorp.com");
     }
 
     private String buildSubject(Notification notification) {
