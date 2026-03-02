@@ -160,7 +160,7 @@ export default function Settings({
   const { refetch: refetchEmailSettings } = useGet('/user-auth/email-settings', {
     immediate: true,
     onSuccess: (emailSettingsData) => {
-      const next = mapEmailSettings(emailSettingsData, currentUser?.email || receiverEmail);
+      const next = mapEmailSettings(emailSettingsData);
       setAlertsEnabled(next.alertsEnabled);
       setReceiverEmail(next.receiverEmail);
       setMinSeverity(next.minSeverity);
@@ -844,10 +844,10 @@ function formatTimestampInput(value) {
   return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
 }
 
-function mapEmailSettings(raw, fallbackEmail = '') {
+function mapEmailSettings(raw) {
   return {
     alertsEnabled: raw?.alertsEnabled ?? true,
-    receiverEmail: normalize(raw?.receiverEmail) || normalize(fallbackEmail),
+    receiverEmail: normalize(raw?.receiverEmail),
     minSeverity: normalize(raw?.minSeverity).toLowerCase() || 'warning',
     includeServerAlerts: raw?.includeServerAlerts ?? true,
     includeToolAlerts: raw?.includeToolAlerts ?? true,

@@ -394,6 +394,10 @@ public class DBQueries {
                 "SELECT user_id, alerts_enabled, receiver_email, min_severity, include_server_alerts, include_tool_alerts, include_system_alerts, updated_at " +
                         "FROM user_email_settings WHERE user_id = ?";
 
+        public static final String SELECT_LATEST_USER_EMAIL_SETTINGS =
+                "SELECT user_id, alerts_enabled, receiver_email, min_severity, include_server_alerts, include_tool_alerts, include_system_alerts, updated_at " +
+                        "FROM user_email_settings ORDER BY updated_at DESC LIMIT 1";
+
         public static final String SELECT_NOTIFICATION_OWNER_BY_SERVER =
                 "SELECT u.id AS user_id, u.full_name, u.email FROM servers s " +
                         "INNER JOIN users u ON u.id = s.user_id " +

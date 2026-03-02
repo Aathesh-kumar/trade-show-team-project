@@ -21,11 +21,12 @@ export default function AuthPage({ onAuthenticated }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [zohoLoading, setZohoLoading] = useState(false);
-  const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotOtp, setForgotOtp] = useState('');
   const [forgotNewPassword, setForgotNewPassword] = useState('');
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
+  const [showForgotConfirmPassword, setShowForgotConfirmPassword] = useState(false);
   const [forgotMessage, setForgotMessage] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const passwordStrength = getPasswordStrength(signupForm.password);
@@ -37,8 +38,11 @@ export default function AuthPage({ onAuthenticated }) {
     }
   })();
 
-  const currentEmail = mode === 'login' ? loginForm.email : signupForm.email;
-  const currentPassword = mode === 'login' ? loginForm.password : signupForm.password;
+  const isLoginMode = mode === 'login';
+  const isSignupMode = mode === 'signup';
+  const isForgotMode = mode === 'forgot';
+  const currentEmail = isLoginMode ? loginForm.email : signupForm.email;
+  const currentPassword = isLoginMode ? loginForm.password : signupForm.password;
 
   const switchMode = (nextMode) => {
     setMode(nextMode);
@@ -47,11 +51,12 @@ export default function AuthPage({ onAuthenticated }) {
     setSignupForm({ fullName: '', email: '', password: '', confirmPassword: '', acceptedTerms: false });
     setShowPassword(false);
     setShowConfirmPassword(false);
-    setForgotOpen(false);
     setForgotEmail('');
     setForgotOtp('');
     setForgotNewPassword('');
     setForgotConfirmPassword('');
+    setShowForgotNewPassword(false);
+    setShowForgotConfirmPassword(false);
     setForgotMessage('');
   };
 
@@ -61,7 +66,7 @@ export default function AuthPage({ onAuthenticated }) {
       setError('Email and password are required.');
       return;
     }
-    if (mode === 'signup') {
+    if (isSignupMode) {
       if (!signupForm.fullName.trim()) {
         setError('Full name is required.');
         return;
@@ -81,8 +86,8 @@ export default function AuthPage({ onAuthenticated }) {
     }
     setLoading(true);
     try {
-      const endpoint = mode === 'login' ? '/user-auth/login' : '/user-auth/signup';
-      const payload = mode === 'login'
+      const endpoint = isLoginMode ? '/user-auth/login' : '/user-auth/signup';
+      const payload = isLoginMode
         ? { email: loginForm.email, password: loginForm.password }
         : { fullName: signupForm.fullName, email: signupForm.email, password: signupForm.password };
       const response = await fetch(buildUrl(endpoint), {
@@ -233,7 +238,6 @@ export default function AuthPage({ onAuthenticated }) {
       setForgotOtp('');
       setForgotNewPassword('');
       setForgotConfirmPassword('');
-      setForgotOpen(false);
       setMode('login');
     } catch (e) {
       setForgotMessage(e.message || 'Unable to reset password.');
@@ -256,18 +260,34 @@ export default function AuthPage({ onAuthenticated }) {
 
       <div className={AuthStyles.card}>
         <div className={AuthStyles.header}>
-          <h2>{mode === 'login' ? 'Continue where you left off' : 'Create Your Account'}</h2>
-          <p>{mode === 'login' ? 'Let\'s hear the pulse of your server' : 'Experience the next generation of cloud management.'}</p>
+          <h2>
+            {isLoginMode
+              ? 'Continue where you left off'
+              : isSignupMode
+                ? 'Create Your Account'
+                : 'Forgot Password'}
+          </h2>
+          <p>
+            {isLoginMode
+              ? 'Let\'s hear the pulse of your server'
+              : isSignupMode
+                ? 'Experience the next generation of cloud management.'
+                : 'Recover your account using OTP verification.'}
+          </p>
         </div>
 
         <form
           className={AuthStyles.form}
           onSubmit={(e) => {
             e.preventDefault();
+            if (isForgotMode) {
+              resetWithForgotOtp();
+              return;
+            }
             submit();
           }}
         >
-          {mode === 'signup' ? (
+          {isSignupMode ? (
             <div className={AuthStyles.fieldBlock}>
               <label>FULL NAME</label>
               <div className={AuthStyles.fieldWrap}>
@@ -282,7 +302,8 @@ export default function AuthPage({ onAuthenticated }) {
             </div>
           ) : null}
 
-          <div className={AuthStyles.fieldBlock}>
+          {!isForgotMode ? (
+            <div className={AuthStyles.fieldBlock}>
             <label>EMAIL ADDRESS</label>
             <div className={AuthStyles.fieldWrap}>
               <MdMail className={AuthStyles.fieldIcon} />
@@ -291,10 +312,10 @@ export default function AuthPage({ onAuthenticated }) {
                 placeholder="name@company.com"
                 type="email"
                 value={currentEmail}
-                autoComplete={mode === 'login' ? 'email' : 'off'}
+                autoComplete={isLoginMode ? 'email' : 'off'}
                 onChange={(e) => {
                   const nextEmail = e.target.value;
-                  if (mode === 'login') {
+                  if (isLoginMode) {
                     setLoginForm((prev) => ({ ...prev, email: nextEmail }));
                   } else {
                     setSignupForm((prev) => ({ ...prev, email: nextEmail }));
@@ -303,8 +324,9 @@ export default function AuthPage({ onAuthenticated }) {
               />
             </div>
           </div>
+          ) : null}
 
-          {mode === 'login' ? (
+          {isLoginMode ? (
             <div className={AuthStyles.fieldBlock}>
               <label>PASSWORD</label>
               <div className={AuthStyles.fieldWrap}>
@@ -329,18 +351,17 @@ export default function AuthPage({ onAuthenticated }) {
                 type="button"
                 className={AuthStyles.ghostLink}
                 onClick={() => {
-                  const next = !forgotOpen;
-                  setForgotOpen(next);
+                  setMode('forgot');
                   setForgotMessage('');
                   if (!forgotEmail && loginForm.email) {
                     setForgotEmail(loginForm.email);
                   }
                 }}
               >
-                {forgotOpen ? 'Close Recovery' : 'Forgot Password?'}
+                Forgot Password?
               </button>
             </div>
-          ) : (
+          ) : isSignupMode ? (
             <div className={AuthStyles.passwordGrid}>
               <div className={AuthStyles.fieldBlock}>
                 <label>PASSWORD</label>
@@ -386,9 +407,9 @@ export default function AuthPage({ onAuthenticated }) {
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
-          {mode === 'signup' ? (
+          {isSignupMode ? (
             <>
               <div className={AuthStyles.strengthRow}>
                 {[0, 1, 2, 3].map((barIndex) => (
@@ -415,44 +436,72 @@ export default function AuthPage({ onAuthenticated }) {
 
           {error ? <div className={AuthStyles.error}>{error}</div> : null}
 
-          {mode === 'login' && forgotOpen ? (
+          {isForgotMode ? (
             <div className={AuthStyles.recoveryPanel}>
               <h4>Password Recovery</h4>
               <p>Enter your account email to receive a one-time verification code.</p>
               <div className={AuthStyles.recoveryGrid}>
-                <input
-                  className={AuthStyles.input}
-                  type="email"
-                  placeholder="Account email"
-                  value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                />
+                <div className={AuthStyles.fieldWrap}>
+                  <MdMail className={AuthStyles.fieldIcon} />
+                  <input
+                    className={AuthStyles.input}
+                    type="email"
+                    placeholder="Account email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                  />
+                </div>
                 <button type="button" className={AuthStyles.btnSecondary} onClick={sendForgotOtp} disabled={forgotLoading}>
                   {forgotLoading ? 'Sending...' : 'Send Verification Code'}
                 </button>
-                <input
-                  className={AuthStyles.input}
-                  type="text"
-                  maxLength={6}
-                  placeholder="TOTP Code"
-                  value={forgotOtp}
-                  onChange={(e) => setForgotOtp(e.target.value)}
-                />
-                <input
-                  className={AuthStyles.input}
-                  type="password"
-                  placeholder="New password"
-                  value={forgotNewPassword}
-                  onChange={(e) => setForgotNewPassword(e.target.value)}
-                />
-                <input
-                  className={AuthStyles.input}
-                  type="password"
-                  placeholder="Confirm new password"
-                  value={forgotConfirmPassword}
-                  onChange={(e) => setForgotConfirmPassword(e.target.value)}
-                />
-                <button type="button" className={AuthStyles.btnSecondary} onClick={resetWithForgotOtp} disabled={forgotLoading}>
+                <div className={AuthStyles.fieldWrap}>
+                  <MdSecurity className={AuthStyles.fieldIcon} />
+                  <input
+                    className={AuthStyles.input}
+                    type="text"
+                    maxLength={6}
+                    placeholder="TOTP Code"
+                    value={forgotOtp}
+                    onChange={(e) => setForgotOtp(e.target.value)}
+                  />
+                </div>
+                <div className={AuthStyles.fieldWrap}>
+                  <MdLock className={AuthStyles.fieldIcon} />
+                  <input
+                    className={AuthStyles.input}
+                    type={showForgotNewPassword ? 'text' : 'password'}
+                    placeholder="New password"
+                    value={forgotNewPassword}
+                    onChange={(e) => setForgotNewPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className={AuthStyles.eyeBtn}
+                    onClick={() => setShowForgotNewPassword((prev) => !prev)}
+                    aria-label={showForgotNewPassword ? 'Hide new password' : 'Show new password'}
+                  >
+                    {showForgotNewPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                  </button>
+                </div>
+                <div className={AuthStyles.fieldWrap}>
+                  <MdSecurity className={AuthStyles.fieldIcon} />
+                  <input
+                    className={AuthStyles.input}
+                    type={showForgotConfirmPassword ? 'text' : 'password'}
+                    placeholder="Confirm new password"
+                    value={forgotConfirmPassword}
+                    onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className={AuthStyles.eyeBtn}
+                    onClick={() => setShowForgotConfirmPassword((prev) => !prev)}
+                    aria-label={showForgotConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                  >
+                    {showForgotConfirmPassword ? <MdVisibilityOff /> : <MdVisibility />}
+                  </button>
+                </div>
+                <button type="submit" className={AuthStyles.btnReset} disabled={forgotLoading}>
                   {forgotLoading ? 'Please wait...' : 'Reset Password'}
                 </button>
               </div>
@@ -460,10 +509,12 @@ export default function AuthPage({ onAuthenticated }) {
             </div>
           ) : null}
 
-          <button type="submit" className={AuthStyles.btn} disabled={loading}>
-            {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : <>Create Account <MdArrowForward /></>}
-          </button>
-          {mode === 'login' ? (
+          {!isForgotMode ? (
+            <button type="submit" className={AuthStyles.btn} disabled={loading}>
+              {loading ? 'Please wait...' : isLoginMode ? 'Sign In' : <>Create Account <MdArrowForward /></>}
+            </button>
+          ) : null}
+          {isLoginMode ? (
             <>
               <div className={AuthStyles.divider}><span>OR</span></div>
               <button
@@ -484,9 +535,13 @@ export default function AuthPage({ onAuthenticated }) {
         </form>
 
         <p className={AuthStyles.switchRow}>
-          {mode === 'login' ? 'Don\'t have an account?' : 'Already have an account?'}
-          <button type="button" className={AuthStyles.switchLink} onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}>
-            {mode === 'login' ? 'Sign Up' : 'Sign In'}
+          {isForgotMode ? 'Remember your password?' : isLoginMode ? 'Don\'t have an account?' : 'Already have an account?'}
+          <button
+            type="button"
+            className={AuthStyles.switchLink}
+            onClick={() => switchMode(isForgotMode ? 'login' : isLoginMode ? 'signup' : 'login')}
+          >
+            {isForgotMode ? 'Back to Sign In' : isLoginMode ? 'Sign Up' : 'Sign In'}
           </button>
         </p>
       </div>

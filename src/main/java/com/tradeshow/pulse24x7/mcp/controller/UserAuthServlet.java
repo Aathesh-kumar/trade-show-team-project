@@ -108,7 +108,7 @@ public class UserAuthServlet extends HttpServlet {
         UserEmailSettings settings = new UserEmailSettings();
         settings.setUserId(userId);
         settings.setAlertsEnabled(ServletUtil.getBoolean(payload, "alertsEnabled", true));
-        settings.setReceiverEmail(ServletUtil.getString(payload, "receiverEmail", currentUser.getEmail()));
+        settings.setReceiverEmail(ServletUtil.getString(payload, "receiverEmail", null));
         settings.setMinSeverity(ServletUtil.getString(payload, "minSeverity", "warning"));
         settings.setIncludeServerAlerts(ServletUtil.getBoolean(payload, "includeServerAlerts", true));
         settings.setIncludeToolAlerts(ServletUtil.getBoolean(payload, "includeToolAlerts", true));

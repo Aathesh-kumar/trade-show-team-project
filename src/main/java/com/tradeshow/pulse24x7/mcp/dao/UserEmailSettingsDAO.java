@@ -46,6 +46,21 @@ public class UserEmailSettingsDAO {
         return null;
     }
 
+    public UserEmailSettings findLatest() {
+        try (Connection con = DBConnection.getInstance().getConnection()) {
+            ensureTable(con);
+            try (PreparedStatement ps = con.prepareStatement(DBQueries.SELECT_LATEST_USER_EMAIL_SETTINGS);
+                 ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapSettings(rs);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to load latest global email settings", e);
+        }
+        return null;
+    }
+
     public boolean upsert(UserEmailSettings settings) {
         if (settings == null || settings.getUserId() == null || settings.getUserId() <= 0) {
             return false;
