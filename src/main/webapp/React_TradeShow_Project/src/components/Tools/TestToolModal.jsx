@@ -3,6 +3,7 @@ import ToolsStyles from '../../styles/Tools.module.css';
 import { MdCheckCircle, MdClose, MdContentCopy, MdErrorOutline, MdPlayArrow } from 'react-icons/md';
 import { usePost } from '../Hooks/usePost';
 import { API_BASE, buildUrl } from '../../services/api';
+import InputField from '../ConfigureServer/InputField';
 import CustomDropdown from '../Common/CustomDropdown';
 import { useGet } from '../Hooks/useGet';
 import JsonCodeEditor from '../Common/JsonCodeEditor';
@@ -16,7 +17,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
     const schema = getSchema(tool);
     const [mode, setMode] = useState('form');
     const [inputParams, setInputParams] = useState('');
-    const [formValues, setFormValues] = useState({});
+    const [formValues, setFormValues] = useState(generateExample(schema));
     const [testResult, setTestResult] = useState(null);
     const [errors, setErrors] = useState({});
     const [payloadCopied, setPayloadCopied] = useState(false);
@@ -50,10 +51,6 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
             return '';
         }
     })();
-    const livePayload = useMemo(() => {
-        const built = buildPayloadFromSchema(schema, formValues, { validateRequired: false, path: [] });
-        return built.value && typeof built.value === 'object' ? built.value : {};
-    }, [schema, formValues]);
 
     const handleTest = async () => {
         setErrors({});
@@ -72,12 +69,12 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                 payloadObject = {};
             }
         } else {
-            const built = buildPayloadFromSchema(schema, formValues, { validateRequired: true, path: [] });
-            if (built.error) {
-                setErrors({ form: built.error });
+            const validation = validateSchema(schema, formValues, []);
+            if (validation) {
+                setErrors({ form: validation });
                 return;
             }
-            payloadObject = built.value ?? {};
+            payloadObject = formValues;
         }
 
         const runRequest = async (candidatePayload) => {
@@ -146,7 +143,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
     };
 
     const handleUseExample = () => {
-        const sample = generateExamplePayload(schema);
+        const sample = generateExample(schema);
         if (mode === 'json') {
             setInputParams(JSON.stringify(sample, null, 2));
         } else {
@@ -357,7 +354,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                                         setInputParams(value);
                                         setErrors({});
                                     }}
-                                    placeholder={JSON.stringify(generateExamplePayload(schema), null, 2)}
+                                    placeholder={JSON.stringify(generateExample(schema), null, 2)}
                                     height="320px"
                                     className={`${ToolsStyles.jsonEditor} ${errors.inputParams ? ToolsStyles.error : ''}`}
                                 />
@@ -366,7 +363,6 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                         ) : (
                             <div className={ToolsStyles.toolTestGrid}>
                                 <div className={ToolsStyles.toolFormPane}>
-                                    <h4 className={ToolsStyles.schemaTopHeading}>Input Fields</h4>
                                     <SchemaFields
                                         schema={schema}
                                         rootValue={formValues}
@@ -397,7 +393,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                                         </button>
                                     </div>
                                     <JsonCodeEditor
-                                        value={JSON.stringify(livePayload, null, 2)}
+                                        value={JSON.stringify(formValues, null, 2)}
                                         readOnly={true}
                                         height="300px"
                                         className={ToolsStyles.jsonEditor}
@@ -533,28 +529,6 @@ function SchemaFields({ schema, rootValue, path, onChange, parentRequired = [] }
 
     const isObject = schema.type === 'object' || !!schema.properties;
     if (isObject && schema.properties) {
-        const entries = Object.entries(schema.properties);
-        if (path.length === 0) {
-            return (
-                <section className={ToolsStyles.schemaSection}>
-                    {entries.map(([key, child]) => (
-                        <div key={key} className={ToolsStyles.schemaRootBlock}>
-                            <header className={ToolsStyles.schemaSectionTitle}>
-                                <span>{key}</span>
-                                {child?.description ? <small className={ToolsStyles.schemaHint}>{child.description}</small> : null}
-                            </header>
-                            <SchemaFields
-                                schema={child}
-                                rootValue={rootValue}
-                                path={[key]}
-                                parentRequired={schema.required || []}
-                                onChange={onChange}
-                            />
-                        </div>
-                    ))}
-                </section>
-            );
-        }
         return (
             <section className={ToolsStyles.schemaSection}>
                 {path.length > 0 ? (
@@ -581,11 +555,12 @@ function SchemaFields({ schema, rootValue, path, onChange, parentRequired = [] }
     const required = parentRequired.includes(name);
     const value = getValueAtPath(rootValue, path);
 
-    const label = <span>{name}{required ? ' *' : ''}</span>;
-
-    const enumOptions = getFieldOptions(schema);
-    const isNumberType = schema.type === 'number' || schema.type === 'integer' || schema.format === 'int64';
-    const isArrayType = schema.type === 'array' && schema.items && typeof schema.items === 'object';
+    const label = (
+        <div className={ToolsStyles.schemaLabelRow}>
+            <span>{name}</span>
+            {required ? <span className={ToolsStyles.requiredBadge}>required</span> : null}
+        </div>
+    );
 
     if (schema.type === 'boolean') {
         return (
@@ -596,75 +571,22 @@ function SchemaFields({ schema, rootValue, path, onChange, parentRequired = [] }
                     onChange={(e) => onChange(path, e.target.checked)}
                 />
                 <div>
-                    <div className={ToolsStyles.schemaLabelRow}>
-                        {label}
-                        {required ? <span className={ToolsStyles.requiredBadge}>required</span> : null}
-                    </div>
+                    {label}
                     {schema.description ? <small className={ToolsStyles.schemaHint}>{schema.description}</small> : null}
                 </div>
             </label>
         );
     }
 
-    if (enumOptions.length > 0) {
-        const options = required
-            ? enumOptions
-            : [{ value: '', label: 'Select an option' }, ...enumOptions];
+    if (schema.enum && Array.isArray(schema.enum)) {
         return (
             <label className={ToolsStyles.schemaField}>
-                <div className={ToolsStyles.schemaLabelRow}>
-                    {label}
-                    {required ? <span className={ToolsStyles.requiredBadge}>required</span> : null}
-                </div>
+                {label}
                 <CustomDropdown
                     value={value ?? ''}
-                    onChange={(next) => onChange(path, next === '' ? undefined : next)}
-                    options={options}
+                    onChange={(next) => onChange(path, next)}
+                    options={schema.enum.map((option) => ({ value: String(option), label: String(option) }))}
                     buttonClassName={ToolsStyles.schemaInput}
-                    placeholder={required ? 'Select' : 'Select an option'}
-                />
-                {schema.description ? <small className={ToolsStyles.schemaHint}>{schema.description}</small> : null}
-            </label>
-        );
-    }
-
-    if (isArrayType) {
-        const itemSchema = schema.items;
-        const maxItems = Number(schema.maxItems || 0);
-        const isSingle = maxItems === 1;
-        const arrayValue = Array.isArray(value) ? value : [];
-        const displayValue = isSingle
-            ? (arrayValue[0] ?? '')
-            : arrayValue.join(', ');
-        return (
-            <label className={ToolsStyles.schemaField}>
-                <div className={ToolsStyles.schemaLabelRow}>
-                    {label}
-                    {required ? <span className={ToolsStyles.requiredBadge}>required</span> : null}
-                </div>
-                <input
-                    className={ToolsStyles.schemaInput}
-                    type={(itemSchema?.type === 'number' || itemSchema?.type === 'integer' || itemSchema?.format === 'int64') ? 'number' : 'text'}
-                    value={displayValue}
-                    onChange={(e) => {
-                        const raw = e.target.value;
-                        if (!raw.trim()) {
-                            onChange(path, undefined);
-                            return;
-                        }
-                        let arr;
-                        if (isSingle) {
-                            const converted = convertPrimitive(raw.trim(), itemSchema);
-                            arr = converted === undefined ? undefined : [converted];
-                        } else {
-                            arr = raw.split(',').map((part) => convertPrimitive(part.trim(), itemSchema)).filter((v) => v !== undefined);
-                            if (maxItems > 0) {
-                                arr = arr.slice(0, maxItems);
-                            }
-                        }
-                        onChange(path, arr && arr.length > 0 ? arr : undefined);
-                    }}
-                    placeholder={isSingle ? 'Enter value' : 'Comma separated values'}
                 />
                 {schema.description ? <small className={ToolsStyles.schemaHint}>{schema.description}</small> : null}
             </label>
@@ -674,15 +596,12 @@ function SchemaFields({ schema, rootValue, path, onChange, parentRequired = [] }
     if (schema.type === 'string' && Number(schema.maxLength || 0) > 120) {
         return (
             <label className={ToolsStyles.schemaField}>
-                <div className={ToolsStyles.schemaLabelRow}>
-                    {label}
-                    {required ? <span className={ToolsStyles.requiredBadge}>required</span> : null}
-                </div>
+                {label}
                 <textarea
                     className={ToolsStyles.schemaTextarea}
                     value={value ?? ''}
                     maxLength={schema.maxLength}
-                    onChange={(e) => onChange(path, e.target.value === '' ? undefined : e.target.value)}
+                    onChange={(e) => onChange(path, e.target.value)}
                 />
                 {schema.description ? <small className={ToolsStyles.schemaHint}>{schema.description}</small> : null}
             </label>
@@ -691,25 +610,19 @@ function SchemaFields({ schema, rootValue, path, onChange, parentRequired = [] }
 
     return (
         <label className={ToolsStyles.schemaField}>
-            <div className={ToolsStyles.schemaLabelRow}>
-                {label}
-                {required ? <span className={ToolsStyles.requiredBadge}>required</span> : null}
-            </div>
-            <input
-                className={ToolsStyles.schemaInput}
-                type={isNumberType ? 'number' : 'text'}
+            <InputField
+                label={name}
+                type={schema.type === 'number' || schema.type === 'integer' ? 'number' : 'text'}
                 value={value ?? ''}
-                onChange={(e) => {
-                    const raw = e.target.value;
-                    if (raw === '') {
-                        onChange(path, undefined);
-                        return;
-                    }
-                    onChange(path, convertPrimitive(raw, schema));
+                onChange={(raw) => {
+                    const parsed = (schema.type === 'number' || schema.type === 'integer')
+                        ? (raw === '' ? '' : Number(raw))
+                        : raw;
+                    onChange(path, parsed);
                 }}
                 placeholder={schema.description || `Enter ${name}`}
+                tooltip={schema.description || undefined}
             />
-            {schema.description ? <small className={ToolsStyles.schemaHint}>{schema.description}</small> : null}
         </label>
     );
 }
@@ -726,26 +639,16 @@ function getSchema(tool) {
     }
 }
 
-function generateExamplePayload(schema) {
+function generateExample(schema) {
     if (!schema || typeof schema !== 'object') {
         return {};
     }
     if ((schema.type === 'object' || schema.properties) && schema.properties) {
         const result = {};
-        const required = new Set(schema.required || []);
         Object.entries(schema.properties).forEach(([key, child]) => {
-            if (!required.has(key)) {
-                return;
-            }
-            const sample = generateExamplePayload(child);
-            if (sample !== undefined) {
-                result[key] = sample;
-            }
+            result[key] = generateExample(child);
         });
-        return Object.keys(result).length > 0 ? result : {};
-    }
-    if (schema.enum && Array.isArray(schema.enum) && schema.enum.length > 0) {
-        return schema.enum[0];
+        return result;
     }
     if (schema.type === 'number' || schema.type === 'integer') {
         return 0;
@@ -754,11 +657,10 @@ function generateExamplePayload(schema) {
         return false;
     }
     if (schema.type === 'array') {
-        const sample = generateExamplePayload(schema.items || {});
-        if (sample === undefined) {
-            return undefined;
-        }
-        return [sample];
+        return [];
+    }
+    if (schema.enum && Array.isArray(schema.enum) && schema.enum.length > 0) {
+        return schema.enum[0];
     }
     if (schema.default !== undefined) {
         return schema.default;
@@ -766,71 +668,30 @@ function generateExamplePayload(schema) {
     if (schema.example !== undefined) {
         return schema.example;
     }
-    return 'sample';
+    return '';
 }
 
-function buildPayloadFromSchema(schema, values, options = { validateRequired: true, path: [] }) {
+function validateSchema(schema, values, path) {
     if (!schema || typeof schema !== 'object') {
-        return { value: undefined, error: null };
+        return null;
     }
-
-    const path = Array.isArray(options.path) ? options.path : [];
-    const validateRequired = Boolean(options.validateRequired);
 
     if ((schema.type === 'object' || schema.properties) && schema.properties) {
-        const required = new Set(schema.required || []);
-        const result = {};
+        const required = schema.required || [];
+        for (const key of required) {
+            const val = values?.[key];
+            if (val === undefined || val === null || val === '') {
+                return `Required field missing: ${[...path, key].join('.')}`;
+            }
+        }
         for (const [key, child] of Object.entries(schema.properties)) {
-            const childBuild = buildPayloadFromSchema(child, values?.[key], {
-                validateRequired,
-                path: [...path, key]
-            });
-            if (childBuild.error) {
-                return childBuild;
-            }
-            if (childBuild.value !== undefined) {
-                result[key] = childBuild.value;
-            } else if (validateRequired && required.has(key)) {
-                return { value: undefined, error: `Required field missing: ${[...path, key].join('.')}` };
+            const err = validateSchema(child, values?.[key], [...path, key]);
+            if (err) {
+                return err;
             }
         }
-        if (Object.keys(result).length === 0) {
-            return { value: undefined, error: null };
-        }
-        return { value: result, error: null };
     }
-
-    if (schema.type === 'array') {
-        if (!Array.isArray(values) || values.length === 0) {
-            return { value: undefined, error: null };
-        }
-        const maxItems = Number(schema.maxItems || 0);
-        const limited = maxItems > 0 ? values.slice(0, maxItems) : values.slice();
-        if (maxItems > 0 && values.length > maxItems) {
-            return { value: undefined, error: `Maximum ${maxItems} item(s) allowed for ${path.join('.')}` };
-        }
-        return { value: limited, error: null };
-    }
-
-    if (schema.type === 'boolean') {
-        return { value: values === true, error: null };
-    }
-
-    if (schema.type === 'number' || schema.type === 'integer' || schema.format === 'int64') {
-        if (values === undefined || values === null || values === '') {
-            return { value: undefined, error: null };
-        }
-        const parsed = Number(values);
-        if (Number.isNaN(parsed)) {
-            return { value: undefined, error: `Invalid number for ${path.join('.')}` };
-        }
-        return { value: parsed, error: null };
-    }
-
-    if (values === undefined || values === null || String(values).trim() === '') {
-        return { value: undefined, error: null };
-    }
-    return { value: String(values), error: null };
+    return null;
 }
 
 function setValueAtPath(source, path, value) {
@@ -838,17 +699,12 @@ function setValueAtPath(source, path, value) {
     let cursor = root;
     for (let i = 0; i < path.length - 1; i++) {
         const part = path[i];
-        if (typeof cursor[part] !== 'object' || cursor[part] === null || Array.isArray(cursor[part])) {
+        if (typeof cursor[part] !== 'object' || cursor[part] === null) {
             cursor[part] = {};
         }
         cursor = cursor[part];
     }
-    const leaf = path[path.length - 1];
-    if (value === undefined) {
-        delete cursor[leaf];
-        return pruneEmptyObjects(root);
-    }
-    cursor[leaf] = value;
+    cursor[path[path.length - 1]] = value;
     return root;
 }
 
@@ -861,64 +717,6 @@ function getValueAtPath(source, path) {
         cursor = cursor[part];
     }
     return cursor;
-}
-
-function pruneEmptyObjects(value) {
-    if (Array.isArray(value)) {
-        return value.map(pruneEmptyObjects).filter((item) => item !== undefined);
-    }
-    if (!value || typeof value !== 'object') {
-        return value;
-    }
-    const next = {};
-    Object.entries(value).forEach(([key, child]) => {
-        const pruned = pruneEmptyObjects(child);
-        if (pruned === undefined) {
-            return;
-        }
-        if (typeof pruned === 'object' && !Array.isArray(pruned) && Object.keys(pruned).length === 0) {
-            return;
-        }
-        next[key] = pruned;
-    });
-    return next;
-}
-
-function convertPrimitive(raw, schema) {
-    if (raw === undefined || raw === null || raw === '') {
-        return undefined;
-    }
-    if (schema?.type === 'number' || schema?.type === 'integer' || schema?.format === 'int64') {
-        const parsed = Number(raw);
-        return Number.isNaN(parsed) ? undefined : parsed;
-    }
-    return String(raw);
-}
-
-function getFieldOptions(schema) {
-    if (!schema || typeof schema !== 'object') {
-        return [];
-    }
-    if (Array.isArray(schema.enum) && schema.enum.length > 0) {
-        return schema.enum.map((option) => ({ value: String(option), label: String(option) }));
-    }
-    const allowed = extractAllowedValuesFromDescription(schema.description);
-    if (allowed.length > 0) {
-        return allowed.map((option) => ({ value: option, label: option }));
-    }
-    return [];
-}
-
-function extractAllowedValuesFromDescription(description) {
-    const text = String(description || '');
-    const match = text.match(/Allowed values:\s*([^\n]+)/i);
-    if (!match || !match[1]) {
-        return [];
-    }
-    return match[1]
-        .split(',')
-        .map((v) => v.trim())
-        .filter(Boolean);
 }
 
 function buildOAuthUrl({ authUrl, scope, clientId, serverId, state, redirectUri }) {

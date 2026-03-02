@@ -77,7 +77,10 @@ public class NotificationEmailService {
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"padding:24px 12px;\">"
                 + "<tr><td align=\"center\">"
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:620px;background:#ffffff;border-radius:16px;border:1px solid #dfe6f3;overflow:hidden;\">"
-                + brandHeaderHtml("Pulse24x7 Account Recovery", "One-time verification code for password reset")
+                + "<tr><td style=\"background:linear-gradient(120deg,#0d3b66,#1d6fa5);padding:18px 20px;color:#ffffff;\">"
+                + "<h1 style=\"margin:0;font-size:20px;\">Pulse24x7 Account Recovery</h1>"
+                + "<p style=\"margin:6px 0 0;opacity:0.92;font-size:13px;\">One-time verification code for password reset</p>"
+                + "</td></tr>"
                 + "<tr><td style=\"padding:20px;\">"
                 + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">Dear " + safeName + ",</p>"
                 + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">We received a request to reset your Pulse24x7 account password.</p>"
@@ -119,7 +122,10 @@ public class NotificationEmailService {
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"padding:24px 12px;\">"
                 + "<tr><td align=\"center\">"
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:620px;background:#ffffff;border-radius:16px;border:1px solid #dfe6f3;overflow:hidden;\">"
-                + brandHeaderHtml("Pulse24x7 Email Verification", "One-time verification code for email switching")
+                + "<tr><td style=\"background:linear-gradient(120deg,#0d3b66,#1d6fa5);padding:18px 20px;color:#ffffff;\">"
+                + "<h1 style=\"margin:0;font-size:20px;\">Pulse24x7 Email Verification</h1>"
+                + "<p style=\"margin:6px 0 0;opacity:0.92;font-size:13px;\">One-time verification code for email switching</p>"
+                + "</td></tr>"
                 + "<tr><td style=\"padding:20px;\">"
                 + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">Dear " + safeName + ",</p>"
                 + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">Use the following code to verify your new email address:</p>"
@@ -160,7 +166,10 @@ public class NotificationEmailService {
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"padding:24px 12px;\">"
                 + "<tr><td align=\"center\">"
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:620px;background:#ffffff;border-radius:16px;border:1px solid #dfe6f3;overflow:hidden;\">"
-                + brandHeaderHtml("Pulse24x7 Account Security", "Your account email was changed")
+                + "<tr><td style=\"background:linear-gradient(120deg,#334155,#64748b);padding:18px 20px;color:#ffffff;\">"
+                + "<h1 style=\"margin:0;font-size:20px;\">Pulse24x7 Account Security</h1>"
+                + "<p style=\"margin:6px 0 0;opacity:0.92;font-size:13px;\">Your account email was changed</p>"
+                + "</td></tr>"
                 + "<tr><td style=\"padding:20px;\">"
                 + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">Dear " + safeName + ",</p>"
                 + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">Your Pulse24x7 email address was updated successfully.</p>"
@@ -210,7 +219,10 @@ public class NotificationEmailService {
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"padding:24px 12px;\">"
                 + "<tr><td align=\"center\">"
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:620px;background:#ffffff;border-radius:16px;border:1px solid #dfe6f3;overflow:hidden;\">"
-                + brandHeaderHtml("Pulse24x7 Notification Update", "A notification entry has been removed")
+                + "<tr><td style=\"background:linear-gradient(120deg,#334155,#64748b);padding:18px 20px;color:#ffffff;\">"
+                + "<h1 style=\"margin:0;font-size:20px;\">Pulse24x7 Notification Update</h1>"
+                + "<p style=\"margin:6px 0 0;opacity:0.92;font-size:13px;\">A notification entry has been removed</p>"
+                + "</td></tr>"
                 + "<tr><td style=\"padding:20px;\">"
                 + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">Dear " + userName + ",</p>"
                 + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">A notification has been deleted from your Pulse24x7 workspace.</p>"
@@ -264,7 +276,10 @@ public class NotificationEmailService {
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"padding:22px 12px;\">"
                 + "<tr><td align=\"center\">"
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:640px;background:#ffffff;border-radius:16px;border:1px solid #dfe6f3;overflow:hidden;\">"
-                + brandHeaderHtml("Pulse24x7 Alert Center", "Formal server monitoring notification")
+                + "<tr><td style=\"background:linear-gradient(120deg,#0d3b66,#1d6fa5);padding:18px 20px;color:#ffffff;\">"
+                + "<h1 style=\"margin:0;font-size:20px;\">Pulse24x7 Alert Center</h1>"
+                + "<p style=\"margin:6px 0 0;opacity:0.92;font-size:13px;\">Formal server monitoring notification</p>"
+                + "</td></tr>"
                 + "<tr><td style=\"padding:20px;\">"
                 + "<p style=\"margin:0 0 12px;font-size:14px;\">Dear " + userName + ",</p>"
                 + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.5;\">A new notification has been generated in your Pulse24x7 monitoring workspace.</p>"
@@ -292,28 +307,6 @@ public class NotificationEmailService {
                 + "<td style=\"padding:8px 0 6px;font-size:12px;color:#6b7f97;width:140px;\">" + label + "</td>"
                 + "<td style=\"padding:8px 0 6px;font-size:13px;color:#1b3550;\">" + value + "</td>"
                 + "</tr>";
-    }
-
-    private String brandHeaderHtml(String title, String subtitle) {
-        String logoUrl = escapeHtml(resolveProductLogoUrl());
-        return "<tr><td style=\"background:linear-gradient(120deg,#0d3b66,#1d6fa5);padding:14px 20px;color:#ffffff;\">"
-                + "<div style=\"display:flex;align-items:center;gap:12px;\">"
-                + "<img src=\"" + logoUrl + "\" alt=\"Pulse24x7\" style=\"width:42px;height:42px;border-radius:8px;background:#ffffff;padding:4px;object-fit:contain;\"/>"
-                + "<div>"
-                + "<h1 style=\"margin:0;font-size:20px;\">" + escapeHtml(normalizeText(title, "Pulse24x7")) + "</h1>"
-                + "<p style=\"margin:6px 0 0;opacity:0.92;font-size:13px;\">" + escapeHtml(normalizeText(subtitle, "")) + "</p>"
-                + "</div>"
-                + "</div>"
-                + "</td></tr>";
-    }
-
-    private String resolveProductLogoUrl() {
-        String configured = env("MCP_PRODUCT_LOGO_URL", "");
-        if (configured != null && !configured.isBlank()) {
-            return configured;
-        }
-        String base = env("MCP_APP_BASE_URL", "http://localhost:8080/trade-show-team-project");
-        return (base.endsWith("/") ? base.substring(0, base.length() - 1) : base) + "/Logo.svg";
     }
 
     private String formatCreatedAt(Timestamp createdAt) {

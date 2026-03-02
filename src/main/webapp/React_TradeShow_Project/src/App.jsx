@@ -8,7 +8,7 @@ import ConfigureServer from './components/ConfigureServer/ConfigureServer';
 import Settings from './components/Settings/Settings';
 import { useGet } from './components/Hooks/useGet';
 import AuthPage from './components/Auth/AuthPage';
-import { buildUrl, getAuthHeaders, parseApiResponse, unwrapData } from './services/api';
+import { buildUrl, getAuthHeaders } from './services/api';
 import Analytics from './components/Analytics/Analytics';
 import LoadingStyles from './styles/Loading.module.css';
 import { MdMenu } from 'react-icons/md';
@@ -49,8 +49,6 @@ function App() {
     const raw = Number(localStorage.getItem('pulse24x7_selected_server_id'));
     return Number.isInteger(raw) && raw > 0;
   });
-  const [globalToast, setGlobalToast] = useState(null);
-  const [seenNotificationIds, setSeenNotificationIds] = useState(() => new Set());
   const prevServersLengthRef = useRef(0);
 
   const { data: serversData, loading: loadingServers, refetch: refetchServers } = useGet('/server/all', {
@@ -172,64 +170,6 @@ function App() {
     window.addEventListener('keydown', onGlobalKeyDown);
     return () => window.removeEventListener('keydown', onGlobalKeyDown);
   }, [isSidebarOpen, showLeaveSettingsModal]);
-
-  useEffect(() => {
-    if (!currentUser) {
-      setGlobalToast(null);
-      setSeenNotificationIds(new Set());
-      return undefined;
-    }
-
-    let active = true;
-    const fetchLatestNotification = async () => {
-      try {
-        const response = await fetch(buildUrl('/notification', {
-          limit: 1,
-          offset: 0,
-          serverId: activeServer?.serverId || undefined
-        }), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...getAuthHeaders()
-          }
-        });
-        const body = await parseApiResponse(response);
-        const list = unwrapData(body);
-        const latest = Array.isArray(list) ? list[0] : null;
-        if (!active || !latest?.id) {
-          return;
-        }
-        setSeenNotificationIds((prev) => {
-          if (prev.has(latest.id)) {
-            return prev;
-          }
-          setGlobalToast(latest);
-          const next = new Set(prev);
-          next.add(latest.id);
-          return next;
-        });
-      } catch {
-        // Keep UI resilient if polling fails temporarily
-      }
-    };
-
-    fetchLatestNotification();
-    const id = setInterval(fetchLatestNotification, 15_000);
-    return () => {
-      active = false;
-      clearInterval(id);
-    };
-  }, [currentUser, activeServer?.serverId]);
-
-  useEffect(() => {
-    if (!globalToast?.id) {
-      return undefined;
-    }
-    const timer = setTimeout(() => {
-      setGlobalToast((prev) => (prev?.id === globalToast.id ? null : prev));
-    }, 5500);
-    return () => clearTimeout(timer);
-  }, [globalToast?.id]);
 
   const navigateTo = (nextPage) => {
     if (currentPage === 'settings' && nextPage !== 'settings' && settingsHasUnsavedChanges) {
@@ -429,15 +369,6 @@ function App() {
               </div>
             </div>
           ) : null}
-          {globalToast ? (
-            <div className={`${AppStyles.globalToast} ${AppStyles[getGlobalAlertClass(globalToast.severity)] || ''}`} role="alert">
-              <div className={AppStyles.globalToastMeta}>
-                <span className={AppStyles.globalToastBadge}>{String(globalToast.severity || 'alert')}</span>
-                <strong>{globalToast.title || 'Notification'}</strong>
-              </div>
-              <p className={AppStyles.globalToastMessage}>{globalToast.message || ''}</p>
-            </div>
-          ) : null}
         </main>
       ) : null}
     </>
@@ -445,10 +376,3 @@ function App() {
 }
 
 export default App;
-
-function getGlobalAlertClass(severity) {
-  const level = String(severity || '').toLowerCase();
-  if (level === 'success' || level === 'info') return 'globalToastInfo';
-  if (level === 'warning') return 'globalToastWarning';
-  return 'globalToastError';
-}

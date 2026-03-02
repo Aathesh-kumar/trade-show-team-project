@@ -602,26 +602,12 @@
   width: 100%;
 }
 
-.schemaTopHeading {
-  margin: 0 0 0.55rem;
-  font-size: 0.9rem;
-}
-
 .schemaSection {
   display: grid;
   gap: 0.6rem;
   border-left: 2px solid color-mix(in srgb, var(--primary-color) 28%, transparent);
   padding-left: 0.55rem;
   margin-top: 0.25rem;
-}
-
-.schemaRootBlock {
-  display: grid;
-  gap: 0.45rem;
-  border: 1px solid color-mix(in srgb, var(--primary-color) 26%, transparent);
-  border-radius: 10px;
-  padding: 0.55rem;
-  background: color-mix(in srgb, var(--bg-elev-1) 88%, transparent);
 }
 
 .schemaSectionTitle {
