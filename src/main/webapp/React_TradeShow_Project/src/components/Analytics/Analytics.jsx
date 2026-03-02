@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import DashboardStyles from '../../styles/Dashboard.module.css';
 import { useGet } from '../Hooks/useGet';
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
@@ -16,6 +16,15 @@ export default function Analytics({ selectedServer }) {
   const serverId = selectedServer?.serverId;
   const [activeToolIndex, setActiveToolIndex] = useState(0);
   const [activeRequestIndex, setActiveRequestIndex] = useState(0);
+  const [isCompactViewport, setIsCompactViewport] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth <= 1200 : false
+  ));
+
+  useEffect(() => {
+    const handleResize = () => setIsCompactViewport(window.innerWidth <= 1200);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const { data: metrics, loading } = useGet('/metrics/overview', {
     immediate: !!serverId,
     params: {
@@ -90,7 +99,7 @@ export default function Analytics({ selectedServer }) {
         <h1>Analytics</h1>
       </header>
 
-      <div className={DashboardStyles.statsGrid}>
+      <div className={`${DashboardStyles.statsGrid} ${DashboardStyles.analyticsGrid}`}>
         <section className={DashboardStyles.systemHealth}>
           <div className={DashboardStyles.sectionHeader}>
             <h2>Tools Usage</h2>
@@ -98,21 +107,21 @@ export default function Analytics({ selectedServer }) {
           {bufferedLoading ? (
             <LoadingSkeleton type="card" lines={5} />
           ) : (
-            <div style={{ width: '100%', height: 340 }}>
+            <div className={DashboardStyles.analyticsChartWrap}>
               <ResponsiveContainer>
                 <PieChart>
                   <Pie
                     data={usageData}
                     dataKey="value"
                     nameKey="name"
-                    cx="40%"
+                    cx={isCompactViewport ? '50%' : '40%'}
                     cy="50%"
                     stroke={0}
-                    outerRadius={126}
-                    innerRadius={72}
+                    outerRadius={isCompactViewport ? 120 : 145}
+                    innerRadius={isCompactViewport ? 65 : 80}
                     paddingAngle={2}
                     activeIndex={activeToolIndex}
-                    activeOuterRadius={136}
+                    activeOuterRadius={isCompactViewport ? 120 : 145}
                     isAnimationActive={true}
                     animationDuration={850}
                     onMouseEnter={(_, index) => setActiveToolIndex(index)}
@@ -123,11 +132,16 @@ export default function Analytics({ selectedServer }) {
                   </Pie>
                   <Tooltip content={<AnalyticsTooltip />} />
                   <Legend
-                    layout="vertical"
-                    align="right"
-                    verticalAlign="middle"
+                    layout={isCompactViewport ? 'horizontal' : 'vertical'}
+                    align={isCompactViewport ? 'center' : 'right'}
+                    verticalAlign={isCompactViewport ? 'bottom' : 'middle'}
                     iconType="square"
-                    wrapperStyle={{ paddingRight: 6, lineHeight: '1.9', maxWidth: '47%' }}
+                    wrapperStyle={
+                      isCompactViewport
+                        ? { lineHeight: '1.5', width: '100%', paddingTop: 4 }
+                        : { paddingRight: 6, lineHeight: '1.9', maxWidth: '47%', minWidth: 0 }
+                    }
+                    content={() => <ToolLegend items={usageData} compact={isCompactViewport} />}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -142,18 +156,18 @@ export default function Analytics({ selectedServer }) {
           {bufferedLoading ? (
             <LoadingSkeleton type="card" lines={5} />
           ) : (
-            <div style={{ width: '100%', height: 340 }}>
+            <div className={DashboardStyles.analyticsChartWrap}>
               <ResponsiveContainer>
                 <PieChart>
                   <Pie
                     data={orderedRequestSplit}
                     dataKey="value"
                     nameKey="name"
-                    cx="40%"
+                    cx={isCompactViewport ? '50%' : '40%'}
                     cy="50%"
-                    outerRadius={125}
+                    outerRadius={isCompactViewport ? 120 : 145}
                     activeIndex={activeRequestIndex}
-                    activeOuterRadius={136}
+                    activeOuterRadius={isCompactViewport ? 120 : 145}
                     isAnimationActive={true}
                     animationDuration={850}
                     stroke={0}
@@ -166,11 +180,15 @@ export default function Analytics({ selectedServer }) {
                   </Pie>
                   <Tooltip content={<AnalyticsTooltip />} />
                   <Legend
-                    layout="vertical"
-                    align="right"
-                    verticalAlign="middle"
-                    wrapperStyle={{ paddingRight: 6, maxWidth: '47%' }}
-                    content={() => <RequestLegend items={orderedRequestSplit} />}
+                    layout={isCompactViewport ? 'horizontal' : 'vertical'}
+                    align={isCompactViewport ? 'center' : 'right'}
+                    verticalAlign={isCompactViewport ? 'bottom' : 'middle'}
+                    wrapperStyle={
+                      isCompactViewport
+                        ? { width: '100%', paddingTop: 4 }
+                        : { paddingRight: 6, maxWidth: '47%' }
+                    }
+                    content={() => <RequestLegend items={orderedRequestSplit} compact={isCompactViewport} />}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -179,6 +197,48 @@ export default function Analytics({ selectedServer }) {
         </section>
       </div>
     </div>
+  );
+}
+
+function ToolLegend({ items = [], compact = false }) {
+  return (
+    <ul style={{
+      display: 'flex',
+      flexDirection: compact ? 'row' : 'column',
+      justifyContent: 'center',
+      flexWrap: compact ? 'wrap' : 'nowrap',
+      gap: 10,
+      listStyle: 'none',
+      margin: 0,
+      padding: 0
+    }}>
+      {items.map((item, index) => (
+        <li
+          key={item.name}
+          title={item.name}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            color: TOOL_COLORS[index % TOOL_COLORS.length],
+            maxWidth: compact ? '100%' : 260,
+            minWidth: 0
+          }}
+        >
+          <span style={{ width: 12, height: 10, background: TOOL_COLORS[index % TOOL_COLORS.length], display: 'inline-block', flex: '0 0 auto' }} />
+          <span style={{
+            fontSize: compact ? 18 : 20,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: 'block',
+            minWidth: 0
+          }}>
+            {item.name}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -224,7 +284,7 @@ function isInternalToolName(name) {
     || lower.includes('token');
 }
 
-function RequestLegend({ items = [] }) {
+function RequestLegend({ items = [], compact = false }) {
   const fixedOrder = ['Success', 'Error', 'Others'];
   const byName = new Map(items.map((item) => [item.name, item]));
   const ordered = fixedOrder.map((name) => byName.get(name)).filter(Boolean);
@@ -232,17 +292,18 @@ function RequestLegend({ items = [] }) {
   return (
       <ul style={{
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: compact ? 'row' : 'column',
         justifyContent: 'center',
+        flexWrap: compact ? 'wrap' : 'nowrap',
         gap: 16,
         listStyle: 'none',
         margin: 0,
         padding: 0
       }}>
         {ordered.map((item) => (
-            <li key={item.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: REQUEST_COLORS[item.name] }}>
+            <li key={item.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: REQUEST_COLORS[item.name], marginRight: compact ? 12 : 0 }}>
               <span style={{ width: 12, height: 10, background: REQUEST_COLORS[item.name], display: 'inline-block' }} />
-              <span style={{ fontSize: 18 }}>{item.name}</span>
+              <span style={{ fontSize: compact ? 18 : 20 }}>{item.name}</span>
             </li>
         ))}
       </ul>

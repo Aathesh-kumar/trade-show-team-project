@@ -286,6 +286,7 @@ function App() {
           <Settings
             key={activeServer?.serverId || 'no-server'}
             selectedServer={activeServer}
+            currentUser={currentUser}
             servers={servers}
             onSelectServer={(id) => setSelectedServerId(id)}
             onServerUpdated={refetchServers}
