@@ -4,6 +4,7 @@
     --primary-font: 'Outfit', sans-serif;
     --base-font-size: 18px;
     --bg-app: #f4f8ff;
+    --page-bg: #f4f8ff;
     --bg-elev-1: #ffffff;
     --bg-elev-2: #e9f1fd;
     --primary-bg: #ffffff;
@@ -36,6 +37,7 @@
 
 [data-theme='dark'] {
     --bg-app: #090f1f;
+    --page-bg: #090f1f;
     --bg-elev-1: #0f172a;
     --bg-elev-2: #1a2542;
     --primary-bg: #0f172a;
@@ -77,7 +79,7 @@ body {
     min-height: 100vh;
     background: radial-gradient(1200px 650px at 8% -10%, var(--app-glow-1), transparent 65%),
     radial-gradient(800px 500px at 95% 0%, var(--app-glow-2), transparent 68%),
-    var(--bg-app);
+    var(--page-bg);
     font-size: var(--base-font-size);
     font-family: var(--primary-font);
     color: var(--text-primary);

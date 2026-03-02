@@ -31,6 +31,7 @@ export default function AuthPage({ onAuthenticated }) {
   const [forgotMessage, setForgotMessage] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const passwordStrength = getPasswordStrength(signupForm.password);
+  const forgotPasswordStrength = getPasswordStrength(forgotNewPassword);
   const apiOrigin = (() => {
     try {
       return new URL(API_BASE).origin;
@@ -45,14 +46,10 @@ export default function AuthPage({ onAuthenticated }) {
   const currentEmail = isLoginMode ? loginForm.email : signupForm.email;
   const currentPassword = isLoginMode ? loginForm.password : signupForm.password;
 
-  const switchMode = (nextMode) => {
-    setMode(nextMode);
-    setError('');
-    setLoginForm({ email: '', password: '' });
-    setSignupForm({ fullName: '', email: '', password: '', confirmPassword: '', acceptedTerms: false });
-    setShowPassword(false);
-    setShowConfirmPassword(false);
-    setForgotEmail('');
+  const resetForgotFlow = ({ keepEmail = false } = {}) => {
+    if (!keepEmail) {
+      setForgotEmail('');
+    }
     setForgotOtp('');
     setForgotNewPassword('');
     setForgotConfirmPassword('');
@@ -60,6 +57,16 @@ export default function AuthPage({ onAuthenticated }) {
     setShowForgotNewPassword(false);
     setShowForgotConfirmPassword(false);
     setForgotMessage('');
+  };
+
+  const switchMode = (nextMode) => {
+    setMode(nextMode);
+    setError('');
+    setLoginForm({ email: '', password: '' });
+    setSignupForm({ fullName: '', email: '', password: '', confirmPassword: '', acceptedTerms: false });
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    resetForgotFlow();
   };
 
   const submit = async () => {
@@ -73,8 +80,8 @@ export default function AuthPage({ onAuthenticated }) {
         setError('Full name is required.');
         return;
       }
-      if (signupForm.password.length < 8) {
-        setError('Password must be at least 8 characters.');
+      if (!isPasswordPolicyValid(signupForm.password)) {
+        setError('Password must be 8+ chars with uppercase, lowercase, and special character.');
         return;
       }
       if (signupForm.password !== signupForm.confirmPassword) {
@@ -201,7 +208,10 @@ export default function AuthPage({ onAuthenticated }) {
       const body = await parseApiResponse(response);
       const data = unwrapData(body);
       setForgotMessage(data?.message || 'If this email is registered, a verification code has been sent.');
-      setForgotStep('reset');
+      setForgotOtp('');
+      setForgotNewPassword('');
+      setForgotConfirmPassword('');
+      setForgotStep('otp');
     } catch (e) {
       setForgotMessage(e.message || 'Unable to send verification code at this time.');
     } finally {
@@ -209,13 +219,24 @@ export default function AuthPage({ onAuthenticated }) {
     }
   };
 
+  const continueForgotWithOtp = () => {
+    if (!forgotOtp.trim() || forgotOtp.trim().length < 6) {
+      setForgotMessage('Enter the 6-digit verification code.');
+      return;
+    }
+    setForgotNewPassword('');
+    setForgotConfirmPassword('');
+    setForgotMessage('');
+    setForgotStep('password');
+  };
+
   const resetWithForgotOtp = async () => {
     if (!forgotEmail.trim() || !forgotOtp.trim() || !forgotNewPassword || !forgotConfirmPassword) {
       setForgotMessage('Please complete all password recovery fields.');
       return;
     }
-    if (forgotNewPassword.length < 8) {
-      setForgotMessage('New password must be at least 8 characters.');
+    if (!isPasswordPolicyValid(forgotNewPassword)) {
+      setForgotMessage('Password must be 8+ chars with uppercase, lowercase, and special character.');
       return;
     }
     if (forgotNewPassword !== forgotConfirmPassword) {
@@ -238,10 +259,7 @@ export default function AuthPage({ onAuthenticated }) {
       const data = unwrapData(body);
       setForgotMessage(data?.message || 'Password reset successful.');
       setLoginForm((prev) => ({ ...prev, email: forgotEmail.trim(), password: '' }));
-      setForgotOtp('');
-      setForgotNewPassword('');
-      setForgotConfirmPassword('');
-      setForgotStep('email');
+      resetForgotFlow();
       setMode('login');
     } catch (e) {
       setForgotMessage(e.message || 'Unable to reset password.');
@@ -262,7 +280,7 @@ export default function AuthPage({ onAuthenticated }) {
         </>
       </div>
 
-      <div className={AuthStyles.card}>
+      <div className={`${AuthStyles.card} ${isForgotMode ? AuthStyles.forgotCard : ''}`}>
         <div className={AuthStyles.header}>
           <h2>
             {isLoginMode
@@ -271,7 +289,9 @@ export default function AuthPage({ onAuthenticated }) {
                 ? 'Create Your Account'
                 : forgotStep === 'email'
                   ? 'Forgot Password'
-                  : 'Reset Password'}
+                  : forgotStep === 'otp'
+                    ? 'Verify OTP'
+                    : 'Reset Password'}
           </h2>
           <p>
             {isLoginMode
@@ -280,7 +300,9 @@ export default function AuthPage({ onAuthenticated }) {
                 ? 'Experience the next generation of cloud management.'
                 : forgotStep === 'email'
                   ? 'Enter your account email to receive a one-time verification code.'
-                  : 'Enter OTP and set your new password.'}
+                  : forgotStep === 'otp'
+                    ? 'Enter the verification code sent to your email.'
+                    : 'Set a new password for your account.'}
           </p>
         </div>
 
@@ -289,7 +311,9 @@ export default function AuthPage({ onAuthenticated }) {
           onSubmit={(e) => {
             e.preventDefault();
             if (isForgotMode) {
-              resetWithForgotOtp();
+              if (forgotStep === 'password') {
+                resetWithForgotOtp();
+              }
               return;
             }
             submit();
@@ -360,8 +384,7 @@ export default function AuthPage({ onAuthenticated }) {
                 className={AuthStyles.ghostLink}
                 onClick={() => {
                   setMode('forgot');
-                  setForgotStep('email');
-                  setForgotMessage('');
+                  resetForgotFlow();
                   if (!forgotEmail && loginForm.email) {
                     setForgotEmail(loginForm.email);
                   }
@@ -432,6 +455,9 @@ export default function AuthPage({ onAuthenticated }) {
                   {passwordStrength.label}
                 </span>
               </div>
+              <p className={AuthStyles.passwordRuleHint}>
+                Use 8+ characters with uppercase, lowercase, and one special character.
+              </p>
               <label className={AuthStyles.termsRow}>
                 <input
                   type="checkbox"
@@ -447,6 +473,55 @@ export default function AuthPage({ onAuthenticated }) {
 
           {isForgotMode ? (
             <div className={AuthStyles.recoveryPanel}>
+              <div className={AuthStyles.forgotHero}>
+                <h3>Recover Your Account</h3>
+                <p>Complete email verification and set a stronger password.</p>
+              </div>
+              <div className={AuthStyles.forgotSteps}>
+                <button
+                  type="button"
+                  className={`${AuthStyles.forgotStepBtn} ${forgotStep === 'email' ? AuthStyles.forgotStepBtnActive : ''}`}
+                  onClick={() => {
+                    setForgotOtp('');
+                    setForgotNewPassword('');
+                    setForgotConfirmPassword('');
+                    setForgotStep('email');
+                    setForgotMessage('');
+                  }}
+                >
+                  Email
+                </button>
+                <button
+                  type="button"
+                  className={`${AuthStyles.forgotStepBtn} ${forgotStep === 'otp' ? AuthStyles.forgotStepBtnActive : ''}`}
+                  onClick={() => {
+                    if (!forgotEmail.trim()) {
+                      setForgotMessage('Enter email first to continue.');
+                      return;
+                    }
+                    setForgotNewPassword('');
+                    setForgotConfirmPassword('');
+                    setForgotStep('otp');
+                    setForgotMessage('');
+                  }}
+                >
+                  OTP
+                </button>
+                <button
+                  type="button"
+                  className={`${AuthStyles.forgotStepBtn} ${forgotStep === 'password' ? AuthStyles.forgotStepBtnActive : ''}`}
+                  onClick={() => {
+                    if (!forgotOtp.trim()) {
+                      setForgotMessage('Enter OTP first to continue.');
+                      return;
+                    }
+                    setForgotStep('password');
+                    setForgotMessage('');
+                  }}
+                >
+                  New Password
+                </button>
+              </div>
               {forgotStep === 'email' ? (
                 <div className={AuthStyles.recoveryGrid}>
                   <div className={AuthStyles.fieldWrap}>
@@ -463,7 +538,7 @@ export default function AuthPage({ onAuthenticated }) {
                     {forgotLoading ? 'Sending...' : 'Send Verification Code'}
                   </button>
                 </div>
-              ) : (
+              ) : forgotStep === 'otp' ? (
                 <div className={AuthStyles.recoveryGrid}>
                   <div className={AuthStyles.fieldWrap}>
                     <MdSecurity className={AuthStyles.fieldIcon} />
@@ -476,6 +551,26 @@ export default function AuthPage({ onAuthenticated }) {
                       onChange={(e) => setForgotOtp(e.target.value)}
                     />
                   </div>
+                  <button type="button" className={AuthStyles.btnSecondary} onClick={continueForgotWithOtp} disabled={forgotLoading}>
+                    Continue
+                  </button>
+                  <button type="button" className={AuthStyles.btnSecondary} onClick={sendForgotOtp} disabled={forgotLoading}>
+                    Resend Code
+                  </button>
+                  <button
+                    type="button"
+                    className={AuthStyles.btnSecondary}
+                    onClick={() => {
+                      setForgotOtp('');
+                      setForgotStep('email');
+                    }}
+                    disabled={forgotLoading}
+                  >
+                    Back to Email Step
+                  </button>
+                </div>
+              ) : (
+                <div className={AuthStyles.recoveryGrid}>
                   <div className={AuthStyles.fieldWrap}>
                     <MdLock className={AuthStyles.fieldIcon} />
                     <input
@@ -494,6 +589,21 @@ export default function AuthPage({ onAuthenticated }) {
                       {showForgotNewPassword ? <MdVisibilityOff /> : <MdVisibility />}
                     </button>
                   </div>
+                  <div className={AuthStyles.strengthRow}>
+                    {[0, 1, 2, 3].map((barIndex) => (
+                      <span
+                        key={barIndex}
+                        className={`${AuthStyles.strengthBar} ${barIndex < forgotPasswordStrength.level ? AuthStyles.strengthBarActive : ''}`}
+                        style={barIndex < forgotPasswordStrength.level ? { background: forgotPasswordStrength.color } : undefined}
+                      ></span>
+                    ))}
+                    <span className={AuthStyles.strengthText} style={{ color: forgotPasswordStrength.color }}>
+                      {forgotPasswordStrength.label}
+                    </span>
+                  </div>
+                  <p className={AuthStyles.passwordRuleHint}>
+                    Must include at least 8 characters, uppercase, lowercase, and one special character.
+                  </p>
                   <div className={AuthStyles.fieldWrap}>
                     <MdSecurity className={AuthStyles.fieldIcon} />
                     <input
@@ -518,10 +628,14 @@ export default function AuthPage({ onAuthenticated }) {
                   <button
                     type="button"
                     className={AuthStyles.btnSecondary}
-                    onClick={() => setForgotStep('email')}
+                    onClick={() => {
+                      setForgotNewPassword('');
+                      setForgotConfirmPassword('');
+                      setForgotStep('otp');
+                    }}
                     disabled={forgotLoading}
                   >
-                    Back to Email Step
+                    Back to OTP Step
                   </button>
                 </div>
               )}
@@ -598,4 +712,15 @@ function getPasswordStrength(password) {
     return { level: 3, label: 'STRONG', color: '#3b82f6' };
   }
   return { level: 4, label: 'SECURE', color: '#22c55e' };
+}
+
+function isPasswordPolicyValid(password) {
+  const input = String(password || '');
+  if (input.length < 8) {
+    return false;
+  }
+  const hasLower = /[a-z]/.test(input);
+  const hasUpper = /[A-Z]/.test(input);
+  const hasSpecial = /[^A-Za-z0-9]/.test(input);
+  return hasLower && hasUpper && hasSpecial;
 }

@@ -41,6 +41,14 @@ export default function Settings({
   const [showAccessToken, setShowAccessToken] = useState(false);
   const [showRefreshToken, setShowRefreshToken] = useState(false);
   const [showClientSecret, setShowClientSecret] = useState(false);
+  const [showEmailSwitchModal, setShowEmailSwitchModal] = useState(false);
+  const [emailSwitchStep, setEmailSwitchStep] = useState('credentials');
+  const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState('');
+  const [newEmailForSwitch, setNewEmailForSwitch] = useState('');
+  const [emailSwitchOtp, setEmailSwitchOtp] = useState('');
+  const [emailSwitchLoading, setEmailSwitchLoading] = useState(false);
+  const [accountEmailState, setAccountEmailState] = useState('');
+  const [showCurrentPasswordForEmail, setShowCurrentPasswordForEmail] = useState(false);
   const [deleteServerId, setDeleteServerId] = useState(() => selectedServer?.serverId || null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deletingServer, setDeletingServer] = useState(false);
@@ -83,6 +91,10 @@ export default function Settings({
     () => normalize(currentUser?.email),
     [currentUser]
   );
+
+  useEffect(() => {
+    setAccountEmailState(accountEmail);
+  }, [accountEmail]);
 
   useEffect(() => {
     const nextName = selectedServer?.serverName || '';
@@ -479,6 +491,84 @@ export default function Settings({
     }
   };
 
+  const resetEmailSwitchState = () => {
+    setEmailSwitchStep('credentials');
+    setCurrentPasswordForEmail('');
+    setNewEmailForSwitch('');
+    setEmailSwitchOtp('');
+    setEmailSwitchLoading(false);
+    setShowCurrentPasswordForEmail(false);
+  };
+
+  const sendEmailSwitchOtp = async () => {
+    const nextEmail = normalize(newEmailForSwitch);
+    if (!nextEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+      setMessage({ type: 'error', text: 'Enter a valid new email address.' });
+      return;
+    }
+    if (nextEmail.toLowerCase() === normalize(accountEmailState).toLowerCase()) {
+      setMessage({ type: 'error', text: 'New email must be different from current email.' });
+      return;
+    }
+    setMessage(null);
+    setEmailSwitchLoading(true);
+    try {
+      const response = await fetch(buildUrl('/user-auth/email-change/send-otp'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({
+          currentPassword: currentPasswordForEmail,
+          newEmail: newEmailForSwitch
+        })
+      });
+      const body = await parseApiResponse(response);
+      unwrapData(body);
+      setEmailSwitchStep('otp');
+      setMessage({ type: 'success', text: 'Verification code sent to the new email address.' });
+    } catch (e) {
+      setMessage({ type: 'error', text: e.message });
+    } finally {
+      setEmailSwitchLoading(false);
+    }
+  };
+
+  const confirmEmailSwitch = async () => {
+    setMessage(null);
+    setEmailSwitchLoading(true);
+    try {
+      const response = await fetch(buildUrl('/user-auth/email-change/confirm'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({
+          newEmail: newEmailForSwitch,
+          otpCode: emailSwitchOtp
+        })
+      });
+      const body = await parseApiResponse(response);
+      const payload = unwrapData(body) || {};
+      const nextToken = normalize(payload?.token);
+      const nextUserEmail = normalize(payload?.user?.email) || normalize(newEmailForSwitch);
+      if (nextToken) {
+        localStorage.setItem('mcp_jwt', nextToken);
+      }
+      setAccountEmailState(nextUserEmail);
+      refetchEmailSettings();
+      setShowEmailSwitchModal(false);
+      resetEmailSwitchState();
+      setMessage({ type: 'success', text: 'Email changed successfully.' });
+    } catch (e) {
+      setMessage({ type: 'error', text: e.message });
+    } finally {
+      setEmailSwitchLoading(false);
+    }
+  };
+
   return (
     <div className={SettingsStyles.settingsPage}>
       <header className={SettingsStyles.settingsHeader}>
@@ -493,28 +583,7 @@ export default function Settings({
       )}
 
       <div className={SettingsStyles.grid}>
-        <section className={SettingsStyles.card}>
-          <h2>Account</h2>
-          <p className={SettingsStyles.cardHint}>Signed-in user details for Pulse24x7.</p>
-          <div className={SettingsStyles.fieldStack}>
-            <InputField
-              label="Username"
-              placeholder="Username"
-              value={accountName}
-              onChange={() => {}}
-              readOnly={true}
-            />
-            <InputField
-              label="Email"
-              type="email"
-              placeholder="Email"
-              value={accountEmail}
-              onChange={() => {}}
-              readOnly={true}
-            />
-          </div>
-        </section>
-        <section className={SettingsStyles.card}>
+        <section className={`${SettingsStyles.card} ${SettingsStyles.serverCard}`}>
           <h2>Server Profile</h2>
           <p className={SettingsStyles.cardHint}>Update the connected Pulse24x7 source server details.</p>
           <div className={SettingsStyles.fieldStack}>
@@ -565,37 +634,72 @@ export default function Settings({
             </div>
           </div>
         </section>
-        <section className={SettingsStyles.card}>
-          <h2>Appearance</h2>
-          <p className={SettingsStyles.cardHint}>Choose your preferred theme for the full workspace.</p>
-          <div className={SettingsStyles.themeGroup}>
-            <button
-              type="button"
-              className={`${SettingsStyles.themeBtn} ${themeMode === 'light' ? SettingsStyles.themeActive : ''}`}
-              aria-pressed={themeMode === 'light'}
-              onClick={() => onThemeModeChange?.('light')}
-            >
-              Light
-            </button>
-            <button
-              type="button"
-              className={`${SettingsStyles.themeBtn} ${themeMode === 'dark' ? SettingsStyles.themeActive : ''}`}
-              aria-pressed={themeMode === 'dark'}
-              onClick={() => onThemeModeChange?.('dark')}
-            >
-              Dark
-            </button>
-            <button
-              type="button"
-              className={`${SettingsStyles.themeBtn} ${themeMode === 'system' ? SettingsStyles.themeActive : ''}`}
-              aria-pressed={themeMode === 'system'}
-              onClick={() => onThemeModeChange?.('system')}
-            >
-              System
-            </button>
-          </div>
-          <p className={SettingsStyles.cardHint}>Current active theme: <strong>{resolvedTheme === 'dark' ? 'Dark' : 'Light'}</strong></p>
-        </section>
+        <div className={SettingsStyles.rightColumn}>
+          <section className={SettingsStyles.card}>
+            <h2>Account</h2>
+            <p className={SettingsStyles.cardHint}>Signed-in user details for Pulse24x7.</p>
+            <div className={SettingsStyles.fieldStack}>
+              <InputField
+                label="Username"
+                placeholder="Username"
+                value={accountName}
+                onChange={() => {}}
+                readOnly={true}
+              />
+              <InputField
+                label="Email"
+                type="email"
+                placeholder="Email"
+                value={accountEmailState}
+                onChange={() => {}}
+                readOnly={true}
+              />
+                  <div className={SettingsStyles.actions}>
+                <button
+                  type="button"
+                  className={SettingsStyles.btnSecondary}
+                  onClick={() => {
+                    resetEmailSwitchState();
+                    setShowEmailSwitchModal(true);
+                  }}
+                >
+                  Switch Email
+                </button>
+              </div>
+            </div>
+          </section>
+          <section className={SettingsStyles.card}>
+            <h2>Appearance</h2>
+            <p className={SettingsStyles.cardHint}>Choose your preferred theme for the full workspace.</p>
+            <div className={SettingsStyles.themeGroup}>
+              <button
+                type="button"
+                className={`${SettingsStyles.themeBtn} ${themeMode === 'light' ? SettingsStyles.themeActive : ''}`}
+                aria-pressed={themeMode === 'light'}
+                onClick={() => onThemeModeChange?.('light')}
+              >
+                Light
+              </button>
+              <button
+                type="button"
+                className={`${SettingsStyles.themeBtn} ${themeMode === 'dark' ? SettingsStyles.themeActive : ''}`}
+                aria-pressed={themeMode === 'dark'}
+                onClick={() => onThemeModeChange?.('dark')}
+              >
+                Dark
+              </button>
+              <button
+                type="button"
+                className={`${SettingsStyles.themeBtn} ${themeMode === 'system' ? SettingsStyles.themeActive : ''}`}
+                aria-pressed={themeMode === 'system'}
+                onClick={() => onThemeModeChange?.('system')}
+              >
+                System
+              </button>
+            </div>
+            <p className={SettingsStyles.cardHint}>Current active theme: <strong>{resolvedTheme === 'dark' ? 'Dark' : 'Light'}</strong></p>
+          </section>
+        </div>
       </div>
 
       <section className={SettingsStyles.cardWide}>
@@ -802,6 +906,88 @@ export default function Settings({
           Save Settings
         </button>
       </section>
+
+      {showEmailSwitchModal && (
+        <div className={SettingsStyles.modalBackdrop} role="dialog" aria-modal="true" aria-label="Switch email">
+          <div className={SettingsStyles.modalCard}>
+            <h2>Switch Account Email</h2>
+            <p className={SettingsStyles.cardHint}>Verify with current password and confirm new email with OTP.</p>
+            <div className={SettingsStyles.stepRow}>
+              <span className={`${SettingsStyles.stepPill} ${emailSwitchStep === 'credentials' ? SettingsStyles.stepPillActive : ''}`}>1. Authorize</span>
+              <span className={`${SettingsStyles.stepPill} ${emailSwitchStep === 'otp' ? SettingsStyles.stepPillActive : ''}`}>2. Verify OTP</span>
+            </div>
+            {emailSwitchStep === 'credentials' ? (
+              <div className={SettingsStyles.fieldStack}>
+                <InputField
+                  label="Current Password"
+                  type={showCurrentPasswordForEmail ? 'text' : 'password'}
+                  placeholder="Enter current password"
+                  value={currentPasswordForEmail}
+                  onChange={setCurrentPasswordForEmail}
+                  showToggle={true}
+                  onToggle={() => setShowCurrentPasswordForEmail((prev) => !prev)}
+                />
+                <InputField
+                  label="New Email"
+                  type="email"
+                  placeholder="new-email@example.com"
+                  value={newEmailForSwitch}
+                  onChange={setNewEmailForSwitch}
+                />
+              </div>
+            ) : (
+              <div className={SettingsStyles.fieldStack}>
+                <InputField
+                  label="New Email"
+                  type="email"
+                  placeholder="new-email@example.com"
+                  value={newEmailForSwitch}
+                  onChange={() => {}}
+                  readOnly={true}
+                />
+                <InputField
+                  label="Verification Code"
+                  placeholder="Enter 6-digit OTP"
+                  value={emailSwitchOtp}
+                  onChange={setEmailSwitchOtp}
+                />
+              </div>
+            )}
+            <div className={SettingsStyles.actions}>
+              <button
+                type="button"
+                className={SettingsStyles.btnSecondary}
+                onClick={() => {
+                  setShowEmailSwitchModal(false);
+                  resetEmailSwitchState();
+                }}
+                disabled={emailSwitchLoading}
+              >
+                Cancel
+              </button>
+              {emailSwitchStep === 'credentials' ? (
+                <button
+                  type="button"
+                  className={SettingsStyles.btnPrimary}
+                  disabled={emailSwitchLoading || !normalize(currentPasswordForEmail) || !normalize(newEmailForSwitch)}
+                  onClick={sendEmailSwitchOtp}
+                >
+                  {emailSwitchLoading ? 'Sending...' : 'Send OTP'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={SettingsStyles.btnPrimary}
+                  disabled={emailSwitchLoading || !normalize(emailSwitchOtp)}
+                  onClick={confirmEmailSwitch}
+                >
+                  {emailSwitchLoading ? 'Verifying...' : 'Verify & Switch'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -47,7 +47,17 @@
   margin-top: 1rem;
   display: grid;
   gap: 1rem;
-  grid-template-columns: 1.25fr 0.75fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  align-items: start;
+}
+
+.serverCard {
+  height: 100%;
+}
+
+.rightColumn {
+  display: grid;
+  gap: 1rem;
 }
 
 .card,
@@ -524,6 +534,56 @@
   justify-content: flex-end;
 }
 
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: color-mix(in srgb, var(--text-primary) 45%, transparent);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.modalCard {
+  width: min(520px, 100%);
+  background:
+    linear-gradient(150deg, color-mix(in srgb, var(--bg-elev-1) 94%, #ffffff 6%), color-mix(in srgb, var(--bg-elev-1) 98%, transparent)),
+    var(--bg-elev-1);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  padding: 1rem;
+}
+
+.modalCard h2 {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.stepRow {
+  margin-top: 0.7rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.stepPill {
+  min-height: 30px;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.stepPillActive {
+  color: #ffffff;
+  border-color: color-mix(in srgb, var(--primary-color) 80%, transparent);
+  background: linear-gradient(140deg, var(--primary-color), var(--primary-color-strong));
+}
+
 @keyframes settingsDropWave {
   0% {
     opacity: 0.92;
@@ -551,6 +611,7 @@
   }
 
   .grid,
+  .rightColumn,
   .credentialGrid,
   .tokenAreaGrid,
   .themeGroup {

@@ -107,6 +107,21 @@ public class UserDAO {
         }
     }
 
+    public boolean updateEmail(Long userId, String newEmail) {
+        if (userId == null || userId <= 0 || newEmail == null || newEmail.isBlank()) {
+            return false;
+        }
+        try (Connection con = DBConnection.getInstance().getConnection();
+             PreparedStatement ps = con.prepareStatement(DBQueries.UPDATE_USER_EMAIL)) {
+            ps.setString(1, newEmail.trim().toLowerCase());
+            ps.setLong(2, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            logger.error("Failed to update email for userId={}", userId, e);
+            return false;
+        }
+    }
+
     private User mapUser(ResultSet rs) throws SQLException {
         User user = new User();
         user.setId(rs.getLong("id"));

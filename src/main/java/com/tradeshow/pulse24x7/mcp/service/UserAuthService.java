@@ -2,8 +2,10 @@ package com.tradeshow.pulse24x7.mcp.service;
 
 import com.tradeshow.pulse24x7.mcp.dao.UserDAO;
 import com.tradeshow.pulse24x7.mcp.dao.PasswordResetCodeDAO;
+import com.tradeshow.pulse24x7.mcp.dao.UserEmailSettingsDAO;
 import com.tradeshow.pulse24x7.mcp.model.PasswordResetCode;
 import com.tradeshow.pulse24x7.mcp.model.User;
+import com.tradeshow.pulse24x7.mcp.model.UserEmailSettings;
 import com.tradeshow.pulse24x7.mcp.utils.HttpClientUtil;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -20,6 +22,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -30,20 +33,26 @@ public class UserAuthService {
     private static final int PASSWORD_RESET_CODE_LENGTH = 6;
     private static final int PASSWORD_RESET_EXPIRY_MINUTES = 10;
     private static final int MAX_PASSWORD_RESET_ATTEMPTS = 5;
+    private static final int EMAIL_CHANGE_CODE_LENGTH = 6;
+    private static final int EMAIL_CHANGE_EXPIRY_MINUTES = 10;
+    private static final int MAX_EMAIL_CHANGE_ATTEMPTS = 5;
+    private static final Map<Long, PendingEmailChange> pendingEmailChanges = new ConcurrentHashMap<>();
     private final UserDAO userDAO;
     private final PasswordResetCodeDAO passwordResetCodeDAO;
     private final NotificationEmailService notificationEmailService;
+    private final UserEmailSettingsDAO userEmailSettingsDAO;
     private final SecureRandom secureRandom;
 
     public UserAuthService() {
         this.userDAO = new UserDAO();
         this.passwordResetCodeDAO = new PasswordResetCodeDAO();
         this.notificationEmailService = new NotificationEmailService();
+        this.userEmailSettingsDAO = new UserEmailSettingsDAO();
         this.secureRandom = new SecureRandom();
     }
 
     public User signup(String fullName, String email, String password) {
-        if (fullName == null || fullName.isBlank() || email == null || email.isBlank() || password == null || password.length() < 6) {
+        if (fullName == null || fullName.isBlank() || email == null || email.isBlank() || !isStrongPassword(password)) {
             return null;
         }
         if (userDAO.findByEmail(email) != null) {
@@ -95,7 +104,7 @@ public class UserAuthService {
     public boolean resetPasswordWithTotp(String email, String totpCode, String newPassword) {
         String normalizedEmail = normalize(email);
         String normalizedCode = normalize(totpCode);
-        if (normalizedEmail == null || normalizedCode == null || newPassword == null || newPassword.length() < 8) {
+        if (normalizedEmail == null || normalizedCode == null || !isStrongPassword(newPassword)) {
             return false;
         }
 
@@ -125,6 +134,88 @@ public class UserAuthService {
         }
         passwordResetCodeDAO.consume(user.getId());
         return true;
+    }
+
+    public boolean requestEmailChangeTotp(Long userId, String currentPassword, String newEmail) {
+        String normalizedEmail = normalize(newEmail);
+        if (userId == null || userId <= 0 || normalize(currentPassword) == null || normalizedEmail == null) {
+            return false;
+        }
+        User user = userDAO.findById(userId);
+        if (user == null || user.getPasswordHash() == null || !BCrypt.checkpw(currentPassword, user.getPasswordHash())) {
+            return false;
+        }
+        String normalizedNewEmail = normalizedEmail.toLowerCase(Locale.ROOT);
+        if (normalizedNewEmail.equalsIgnoreCase(normalize(user.getEmail()))) {
+            return false;
+        }
+        User existing = userDAO.findByEmail(normalizedNewEmail);
+        if (existing != null) {
+            return false;
+        }
+
+        String code = generateNumericCode(EMAIL_CHANGE_CODE_LENGTH);
+        String codeHash = BCrypt.hashpw(code, BCrypt.gensalt(10));
+        PendingEmailChange pending = new PendingEmailChange(
+                normalizedNewEmail,
+                codeHash,
+                Timestamp.from(Instant.now().plusSeconds(EMAIL_CHANGE_EXPIRY_MINUTES * 60L))
+        );
+        pendingEmailChanges.put(userId, pending);
+
+        return notificationEmailService.sendEmailChangeTotp(
+                normalizedNewEmail,
+                user.getFullName(),
+                code,
+                EMAIL_CHANGE_EXPIRY_MINUTES
+        );
+    }
+
+    public User confirmEmailChange(Long userId, String newEmail, String otpCode) {
+        String normalizedEmail = normalize(newEmail);
+        String normalizedOtp = normalize(otpCode);
+        if (userId == null || userId <= 0 || normalizedEmail == null || normalizedOtp == null) {
+            return null;
+        }
+        User user = userDAO.findById(userId);
+        if (user == null) {
+            return null;
+        }
+
+        PendingEmailChange pending = pendingEmailChanges.get(userId);
+        if (pending == null || pending.consumed || pending.expiresAt == null) {
+            return null;
+        }
+        if (pending.expiresAt.before(Timestamp.from(Instant.now()))) {
+            pendingEmailChanges.remove(userId);
+            return null;
+        }
+        if (pending.attempts >= MAX_EMAIL_CHANGE_ATTEMPTS) {
+            pendingEmailChanges.remove(userId);
+            return null;
+        }
+        if (!pending.newEmail.equalsIgnoreCase(normalizedEmail.toLowerCase(Locale.ROOT))) {
+            pending.attempts++;
+            return null;
+        }
+        if (pending.codeHash == null || !BCrypt.checkpw(normalizedOtp, pending.codeHash)) {
+            pending.attempts++;
+            return null;
+        }
+        if (userDAO.findByEmail(pending.newEmail) != null) {
+            return null;
+        }
+
+        String oldEmail = user.getEmail();
+        boolean updated = userDAO.updateEmail(userId, pending.newEmail);
+        if (!updated) {
+            return null;
+        }
+        synchronizeReceiverEmailAfterAccountEmailChange(userId, oldEmail, pending.newEmail);
+        pending.consumed = true;
+        pendingEmailChanges.remove(userId);
+        notificationEmailService.sendEmailChangeNotice(oldEmail, user.getFullName(), pending.newEmail);
+        return userDAO.findById(userId);
     }
 
     public User loginWithZoho(String code, String redirectUri, String zohoBaseUrl) {
@@ -332,5 +423,66 @@ public class UserAuthService {
             code.append(secureRandom.nextInt(10));
         }
         return code.toString();
+    }
+
+    private boolean isStrongPassword(String password) {
+        if (password == null || password.length() < 8) {
+            return false;
+        }
+        boolean hasLower = false;
+        boolean hasUpper = false;
+        boolean hasSpecial = false;
+        for (char ch : password.toCharArray()) {
+            if (Character.isLowerCase(ch)) {
+                hasLower = true;
+            } else if (Character.isUpperCase(ch)) {
+                hasUpper = true;
+            } else if (!Character.isLetterOrDigit(ch)) {
+                hasSpecial = true;
+            }
+        }
+        return hasLower && hasUpper && hasSpecial;
+    }
+
+    private void synchronizeReceiverEmailAfterAccountEmailChange(Long userId, String oldEmail, String newEmail) {
+        try {
+            if (userId == null || userId <= 0) {
+                return;
+            }
+            String oldNormalized = normalize(oldEmail);
+            String newNormalized = normalize(newEmail);
+            if (oldNormalized == null || newNormalized == null) {
+                return;
+            }
+            UserEmailSettings settings = userEmailSettingsDAO.findByUserId(userId);
+            if (settings == null) {
+                return;
+            }
+            String receiver = normalize(settings.getReceiverEmail());
+            if (receiver != null && !receiver.equalsIgnoreCase(oldNormalized)) {
+                return;
+            }
+            settings.setUserId(userId);
+            settings.setReceiverEmail(newNormalized.toLowerCase(Locale.ROOT));
+            userEmailSettingsDAO.upsert(settings);
+        } catch (Exception ex) {
+            logger.warn("Failed to sync receiver email after account email change for userId={}", userId, ex);
+        }
+    }
+
+    private static class PendingEmailChange {
+        private final String newEmail;
+        private final String codeHash;
+        private final Timestamp expiresAt;
+        private int attempts;
+        private boolean consumed;
+
+        private PendingEmailChange(String newEmail, String codeHash, Timestamp expiresAt) {
+            this.newEmail = newEmail;
+            this.codeHash = codeHash;
+            this.expiresAt = expiresAt;
+            this.attempts = 0;
+            this.consumed = false;
+        }
     }
 }

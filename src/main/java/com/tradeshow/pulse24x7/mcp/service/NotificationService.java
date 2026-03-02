@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.List;
+import java.util.Locale;
 
 public class NotificationService {
     private static final Logger logger = LogManager.getLogger(NotificationService.class);
@@ -25,12 +26,8 @@ public class NotificationService {
     }
 
     public boolean notify(Integer serverId, String category, String severity, String title, String message) {
-        if (serverId == null || serverId <= 0) {
-            logger.warn("Skipping notification insert because serverId is null/invalid. category={}, title={}", category, title);
-            return false;
-        }
         Notification n = new Notification();
-        n.setServerId(serverId);
+        n.setServerId(serverId != null && serverId > 0 ? serverId : null);
         n.setCategory(category == null ? "system" : category);
         n.setSeverity(severity == null ? "info" : severity);
         n.setTitle(title == null ? "Notification" : title);
@@ -123,8 +120,25 @@ public class NotificationService {
         try {
             NotificationRecipient recipient = resolveRecipient(notification);
             UserEmailSettings settings = resolveSettings(recipient);
-            if (recipient == null || settings == null) return;
-            notificationEmailService.send(notification, recipient, settings);
+            if (recipient == null) {
+                recipient = buildFallbackRecipient();
+            }
+            if (settings == null) {
+                settings = userEmailSettingsService.getByUserId(
+                        recipient == null ? null : recipient.getUserId()
+                );
+            }
+            if (recipient == null || settings == null) {
+                logger.warn("Skipping notification email due to missing recipient/settings for notificationId={}",
+                        notification == null ? null : notification.getId());
+                return;
+            }
+            boolean sent = notificationEmailService.send(notification, recipient, settings);
+            if (!sent) {
+                logger.warn("Notification email send failed for notificationId={} serverId={}",
+                        notification == null ? null : notification.getId(),
+                        notification == null ? null : notification.getServerId());
+            }
         } catch (Exception e) {
             logger.error("Failed to dispatch notification email for notificationId={}", notification.getId(), e);
         }
@@ -134,8 +148,23 @@ public class NotificationService {
         try {
             NotificationRecipient recipient = resolveRecipient(notification);
             UserEmailSettings settings = resolveSettings(recipient);
-            if (recipient == null || settings == null) return;
-            notificationEmailService.sendNotificationDeleted(notification, recipient, settings);
+            if (recipient == null) {
+                recipient = buildFallbackRecipient();
+            }
+            if (settings == null) {
+                settings = userEmailSettingsService.getByUserId(
+                        recipient == null ? null : recipient.getUserId()
+                );
+            }
+            if (recipient == null || settings == null) {
+                logger.warn("Skipping deletion email due to missing recipient/settings for notificationId={}",
+                        notification == null ? null : notification.getId());
+                return;
+            }
+            boolean sent = notificationEmailService.sendNotificationDeleted(notification, recipient, settings);
+            if (!sent) {
+                logger.warn("Deletion email send failed for notificationId={}", notification == null ? null : notification.getId());
+            }
         } catch (Exception e) {
             logger.error("Failed to dispatch deletion email for notificationId={}", notification == null ? null : notification.getId(), e);
         }
@@ -157,5 +186,37 @@ public class NotificationService {
             return null;
         }
         return userEmailSettingsService.getByUserId(recipient.getUserId());
+    }
+
+    private NotificationRecipient buildFallbackRecipient() {
+        String fallback = normalizeEmail(
+                System.getenv("MCP_ALERT_RECEIVER_EMAIL"),
+                System.getProperty("MCP_ALERT_RECEIVER_EMAIL"),
+                "pulse24x7@zohomail.in"
+        );
+        if (fallback == null) {
+            return null;
+        }
+        NotificationRecipient recipient = new NotificationRecipient();
+        recipient.setUserId(1L);
+        recipient.setFullName("Pulse24x7 Admin");
+        recipient.setEmail(fallback);
+        return recipient;
+    }
+
+    private String normalizeEmail(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (value == null) {
+                continue;
+            }
+            String trimmed = value.trim().toLowerCase(Locale.ROOT);
+            if (!trimmed.isBlank()) {
+                return trimmed;
+            }
+        }
+        return null;
     }
 }

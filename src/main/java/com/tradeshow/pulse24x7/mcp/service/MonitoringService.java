@@ -121,6 +121,19 @@ public class MonitoringService {
         } catch (Exception e) {
             logger.error("Failed to monitor server ID: {}", serverId, e);
             serverHistoryDAO.insertHistory(serverId, false, 0);
+            try {
+                Server server = serverService.getServerByIdGlobal(serverId);
+                String serverName = server == null ? ("Server #" + serverId) : server.getServerName();
+                notificationService.notify(
+                        serverId,
+                        "server",
+                        "error",
+                        "Server monitoring error",
+                        serverName + " monitoring failed: " + e.getMessage()
+                );
+            } catch (Exception notifyError) {
+                logger.error("Failed to create notification for monitoring exception serverId={}", serverId, notifyError);
+            }
         }
     }
 

@@ -32,20 +32,13 @@ public class NotificationEmailService {
         if (notification == null || recipient == null || settings == null) {
             return false;
         }
-        if (!settings.isAlertsEnabled()) {
-            return true;
-        }
         String toEmail = normalizeEmail(settings.getReceiverEmail());
+        if (toEmail == null || toEmail.isBlank()) {
+            toEmail = normalizeEmail(recipient.getEmail());
+        }
         if (toEmail == null || toEmail.isBlank()) {
             return false;
         }
-        if (!isCategoryEnabled(notification.getCategory(), settings)) {
-            return true;
-        }
-        if (!passesSeverityThreshold(notification.getSeverity(), settings.getMinSeverity())) {
-            return true;
-        }
-
         MailboxProfile mailbox = selectMailboxProfile(recipient.getEmail());
         if (mailbox.password == null || mailbox.password.isBlank()) {
             logger.warn("Skipping email alert: sender password missing for {}", mailbox.fromEmail);
@@ -84,10 +77,7 @@ public class NotificationEmailService {
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"padding:24px 12px;\">"
                 + "<tr><td align=\"center\">"
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:620px;background:#ffffff;border-radius:16px;border:1px solid #dfe6f3;overflow:hidden;\">"
-                + "<tr><td style=\"background:linear-gradient(120deg,#0d3b66,#1d6fa5);padding:18px 20px;color:#ffffff;\">"
-                + "<h1 style=\"margin:0;font-size:20px;\">Pulse24x7 Account Recovery</h1>"
-                + "<p style=\"margin:6px 0 0;opacity:0.92;font-size:13px;\">One-time verification code for password reset</p>"
-                + "</td></tr>"
+                + brandHeaderHtml("Pulse24x7 Account Recovery", "One-time verification code for password reset")
                 + "<tr><td style=\"padding:20px;\">"
                 + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">Dear " + safeName + ",</p>"
                 + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">We received a request to reset your Pulse24x7 account password.</p>"
@@ -111,11 +101,96 @@ public class NotificationEmailService {
         );
     }
 
+    public boolean sendEmailChangeTotp(String toEmail, String fullName, String totpCode, int validMinutes) {
+        String normalizedEmail = normalizeEmail(toEmail);
+        if (normalizedEmail == null || normalizedEmail.isBlank() || totpCode == null || totpCode.isBlank()) {
+            return false;
+        }
+        MailboxProfile mailbox = selectMailboxProfile(normalizedEmail);
+        if (mailbox.password == null || mailbox.password.isBlank()) {
+            logger.warn("Skipping email change OTP email: sender password missing for {}", mailbox.fromEmail);
+            return false;
+        }
+        String safeName = escapeHtml(normalizeText(fullName, "User"));
+        String expiresAt = EMAIL_TIME_FORMAT.format(ZonedDateTime.now().plusMinutes(Math.max(1, validMinutes)).toInstant());
+        String html = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" />"
+                + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />"
+                + "</head><body style=\"margin:0;padding:0;background:#f3f6fb;font-family:Segoe UI,Arial,sans-serif;color:#172b4d;\">"
+                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"padding:24px 12px;\">"
+                + "<tr><td align=\"center\">"
+                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:620px;background:#ffffff;border-radius:16px;border:1px solid #dfe6f3;overflow:hidden;\">"
+                + brandHeaderHtml("Pulse24x7 Email Verification", "One-time verification code for email switching")
+                + "<tr><td style=\"padding:20px;\">"
+                + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">Dear " + safeName + ",</p>"
+                + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">Use the following code to verify your new email address:</p>"
+                + "<div style=\"margin:14px 0 16px;padding:14px 16px;border-radius:12px;background:#edf5ff;border:1px solid #cfe0f7;text-align:center;\">"
+                + "<span style=\"font-size:28px;letter-spacing:0.3em;font-weight:700;color:#0f2a43;\">" + escapeHtml(totpCode) + "</span>"
+                + "</div>"
+                + "<p style=\"margin:0 0 10px;font-size:13px;color:#334e68;\">This code is valid for " + validMinutes + " minutes and expires at " + escapeHtml(expiresAt) + ".</p>"
+                + "<p style=\"margin:14px 0 0;font-size:12px;color:#5e718a;\">If you did not request this email change, ignore this message.</p>"
+                + "</td></tr>"
+                + "</table>"
+                + "</td></tr></table></body></html>";
+
+        return sendHtml(
+                normalizedEmail,
+                "Pulse24x7 Security",
+                "[Pulse24x7] Verify New Email Address",
+                html,
+                mailbox
+        );
+    }
+
+    public boolean sendEmailChangeNotice(String oldEmail, String fullName, String newEmail) {
+        String normalizedOldEmail = normalizeEmail(oldEmail);
+        String normalizedNewEmail = normalizeEmail(newEmail);
+        if (normalizedOldEmail == null || normalizedNewEmail == null) {
+            return false;
+        }
+        MailboxProfile mailbox = selectMailboxProfile(normalizedOldEmail);
+        if (mailbox.password == null || mailbox.password.isBlank()) {
+            logger.warn("Skipping email change notice: sender password missing for {}", mailbox.fromEmail);
+            return false;
+        }
+        String safeName = escapeHtml(normalizeText(fullName, "User"));
+        String changedAt = EMAIL_TIME_FORMAT.format(ZonedDateTime.now().toInstant());
+        String html = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" />"
+                + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />"
+                + "</head><body style=\"margin:0;padding:0;background:#f3f6fb;font-family:Segoe UI,Arial,sans-serif;color:#172b4d;\">"
+                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"padding:24px 12px;\">"
+                + "<tr><td align=\"center\">"
+                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:620px;background:#ffffff;border-radius:16px;border:1px solid #dfe6f3;overflow:hidden;\">"
+                + brandHeaderHtml("Pulse24x7 Account Security", "Your account email was changed")
+                + "<tr><td style=\"padding:20px;\">"
+                + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">Dear " + safeName + ",</p>"
+                + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">Your Pulse24x7 email address was updated successfully.</p>"
+                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"border-collapse:collapse;\">"
+                + row("Previous Email", escapeHtml(normalizedOldEmail))
+                + row("New Email", escapeHtml(normalizedNewEmail))
+                + row("Changed At", escapeHtml(changedAt))
+                + "</table>"
+                + "<p style=\"margin:14px 0 0;font-size:12px;color:#5e718a;\">If this was not you, change your password immediately.</p>"
+                + "</td></tr>"
+                + "</table>"
+                + "</td></tr></table></body></html>";
+
+        return sendHtml(
+                normalizedOldEmail,
+                "Pulse24x7 Security",
+                "[Pulse24x7] Account Email Changed",
+                html,
+                mailbox
+        );
+    }
+
     public boolean sendNotificationDeleted(Notification notification, NotificationRecipient recipient, UserEmailSettings settings) {
-        if (notification == null || recipient == null || settings == null || !settings.isAlertsEnabled()) {
+        if (notification == null || recipient == null || settings == null) {
             return false;
         }
         String toEmail = normalizeEmail(settings.getReceiverEmail());
+        if (toEmail == null || toEmail.isBlank()) {
+            toEmail = normalizeEmail(recipient.getEmail());
+        }
         if (toEmail == null || toEmail.isBlank()) {
             return false;
         }
@@ -135,10 +210,7 @@ public class NotificationEmailService {
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"padding:24px 12px;\">"
                 + "<tr><td align=\"center\">"
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:620px;background:#ffffff;border-radius:16px;border:1px solid #dfe6f3;overflow:hidden;\">"
-                + "<tr><td style=\"background:linear-gradient(120deg,#334155,#64748b);padding:18px 20px;color:#ffffff;\">"
-                + "<h1 style=\"margin:0;font-size:20px;\">Pulse24x7 Notification Update</h1>"
-                + "<p style=\"margin:6px 0 0;opacity:0.92;font-size:13px;\">A notification entry has been removed</p>"
-                + "</td></tr>"
+                + brandHeaderHtml("Pulse24x7 Notification Update", "A notification entry has been removed")
                 + "<tr><td style=\"padding:20px;\">"
                 + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">Dear " + userName + ",</p>"
                 + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">A notification has been deleted from your Pulse24x7 workspace.</p>"
@@ -161,8 +233,11 @@ public class NotificationEmailService {
     }
 
     private MailboxProfile selectMailboxProfile(String ignoredReceiverEmail) {
+        String fromEmail = env("MCP_MAIL_ZOHO_FROM", "pulse24x7@zohomail.in");
+        String username = env("MCP_MAIL_ZOHO_USERNAME", fromEmail);
         return new MailboxProfile(
-                env("MCP_MAIL_ZOHO_FROM", "pulse24x7@zohomail.in"),
+                fromEmail,
+                username,
                 env("MCP_MAIL_ZOHO_PASSWORD", "DUMMY_ZOHO_APP_PASSWORD"),
                 env("MCP_MAIL_ZOHO_HOST", "smtp.zoho.in"),
                 parsePort(env("MCP_MAIL_ZOHO_PORT", "465"), 465)
@@ -189,10 +264,7 @@ public class NotificationEmailService {
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"padding:22px 12px;\">"
                 + "<tr><td align=\"center\">"
                 + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:640px;background:#ffffff;border-radius:16px;border:1px solid #dfe6f3;overflow:hidden;\">"
-                + "<tr><td style=\"background:linear-gradient(120deg,#0d3b66,#1d6fa5);padding:18px 20px;color:#ffffff;\">"
-                + "<h1 style=\"margin:0;font-size:20px;\">Pulse24x7 Alert Center</h1>"
-                + "<p style=\"margin:6px 0 0;opacity:0.92;font-size:13px;\">Formal server monitoring notification</p>"
-                + "</td></tr>"
+                + brandHeaderHtml("Pulse24x7 Alert Center", "Formal server monitoring notification")
                 + "<tr><td style=\"padding:20px;\">"
                 + "<p style=\"margin:0 0 12px;font-size:14px;\">Dear " + userName + ",</p>"
                 + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.5;\">A new notification has been generated in your Pulse24x7 monitoring workspace.</p>"
@@ -222,6 +294,28 @@ public class NotificationEmailService {
                 + "</tr>";
     }
 
+    private String brandHeaderHtml(String title, String subtitle) {
+        String logoUrl = escapeHtml(resolveProductLogoUrl());
+        return "<tr><td style=\"background:linear-gradient(120deg,#0d3b66,#1d6fa5);padding:14px 20px;color:#ffffff;\">"
+                + "<div style=\"display:flex;align-items:center;gap:12px;\">"
+                + "<img src=\"" + logoUrl + "\" alt=\"Pulse24x7\" style=\"width:42px;height:42px;border-radius:8px;background:#ffffff;padding:4px;object-fit:contain;\"/>"
+                + "<div>"
+                + "<h1 style=\"margin:0;font-size:20px;\">" + escapeHtml(normalizeText(title, "Pulse24x7")) + "</h1>"
+                + "<p style=\"margin:6px 0 0;opacity:0.92;font-size:13px;\">" + escapeHtml(normalizeText(subtitle, "")) + "</p>"
+                + "</div>"
+                + "</div>"
+                + "</td></tr>";
+    }
+
+    private String resolveProductLogoUrl() {
+        String configured = env("MCP_PRODUCT_LOGO_URL", "");
+        if (configured != null && !configured.isBlank()) {
+            return configured;
+        }
+        String base = env("MCP_APP_BASE_URL", "http://localhost:8080/trade-show-team-project");
+        return (base.endsWith("/") ? base.substring(0, base.length() - 1) : base) + "/Logo.svg";
+    }
+
     private String formatCreatedAt(Timestamp createdAt) {
         if (createdAt == null) {
             return "-";
@@ -234,28 +328,6 @@ public class NotificationEmailService {
             case "ERROR", "CRITICAL" -> "#c62828";
             case "WARNING" -> "#ef6c00";
             default -> "#1565c0";
-        };
-    }
-
-    private boolean isCategoryEnabled(String category, UserEmailSettings settings) {
-        String normalized = normalizeLower(category, "system");
-        return switch (normalized) {
-            case "server" -> settings.isIncludeServerAlerts();
-            case "tools", "tool" -> settings.isIncludeToolAlerts();
-            default -> settings.isIncludeSystemAlerts();
-        };
-    }
-
-    private boolean passesSeverityThreshold(String severity, String threshold) {
-        return severityRank(severity) >= severityRank(threshold);
-    }
-
-    private int severityRank(String severity) {
-        return switch (normalizeLower(severity, "info")) {
-            case "critical" -> 4;
-            case "error" -> 3;
-            case "warning" -> 2;
-            default -> 1;
         };
     }
 
@@ -328,7 +400,7 @@ public class NotificationEmailService {
             Session session = Session.getInstance(mailbox.smtpProperties(), new Authenticator() {
                 @Override
                 protected PasswordAuthentication getPasswordAuthentication() {
-                    return new PasswordAuthentication(mailbox.fromEmail, mailbox.password);
+                    return new PasswordAuthentication(mailbox.username, mailbox.password);
                 }
             });
             Message message = new MimeMessage(session);
@@ -346,12 +418,14 @@ public class NotificationEmailService {
 
     private static class MailboxProfile {
         private final String fromEmail;
+        private final String username;
         private final String password;
         private final String host;
         private final int port;
 
-        private MailboxProfile(String fromEmail, String password, String host, int port) {
+        private MailboxProfile(String fromEmail, String username, String password, String host, int port) {
             this.fromEmail = fromEmail;
+            this.username = username;
             this.password = password;
             this.host = host;
             this.port = port;
@@ -362,7 +436,12 @@ public class NotificationEmailService {
             props.put("mail.smtp.auth", "true");
             props.put("mail.smtp.host", host);
             props.put("mail.smtp.port", String.valueOf(port));
-            props.put("mail.smtp.ssl.enable", "true");
+            props.put("mail.smtp.ssl.enable", String.valueOf(port == 465));
+            props.put("mail.smtp.starttls.enable", String.valueOf(port != 465));
+            props.put("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
+            props.put("mail.smtp.connectiontimeout", "10000");
+            props.put("mail.smtp.timeout", "10000");
+            props.put("mail.smtp.writetimeout", "10000");
             return props;
         }
     }
