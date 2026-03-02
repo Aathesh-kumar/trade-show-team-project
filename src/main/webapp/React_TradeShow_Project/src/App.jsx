@@ -271,6 +271,7 @@ function App() {
       case 'configure-server':
         return (
           <ConfigureServer
+            currentUser={currentUser}
             onClose={() => {
               if (servers.length > 0) {
                 navigateTo('dashboard');
@@ -303,6 +304,7 @@ function App() {
       default:
         return (
           <ConfigureServer
+            currentUser={currentUser}
             onClose={() => {
               if (servers.length > 0) {
                 navigateTo('dashboard');

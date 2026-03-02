@@ -1,33 +1,21 @@
 import DashboardStyles from '../../styles/Dashboard.module.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import PaginationControls from '../Common/PaginationControls';
 import LoadingSkeleton from '../Loading/LoadingSkeleton';
 import { buildUrl, getAuthHeaders, parseApiResponse } from '../../services/api';
 
 export default function NotificationPanel({ isOpen, onClose, notificationsData = [], loading = false, onNotificationsChanged, openCycle = 0, serverId = null }) {
-  const [page, setPage] = useState(1);
   const [panelLoading, setPanelLoading] = useState(true);
   const [displayNotifications, setDisplayNotifications] = useState([]);
   const openStartedAtRef = useRef(0);
   const loadingTimerRef = useRef(null);
-  const pageSize = 12;
   const allNotifications = Array.isArray(notificationsData) ? notificationsData : [];
-  const totalItems = allNotifications.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
-  const notifications = allNotifications.slice((page - 1) * pageSize, page * pageSize);
   const openNotifications = useMemo(() => {
     if (!isOpen) {
       return [];
     }
-    return notifications;
-  }, [isOpen, notifications]);
+    return allNotifications;
+  }, [isOpen, allNotifications]);
   const hasMarkedReadRef = useRef(false);
-
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
-    }
-  }, [page, totalPages]);
 
   useEffect(() => {
     if (isOpen) {
@@ -94,7 +82,6 @@ export default function NotificationPanel({ isOpen, onClose, notificationsData =
         ...getAuthHeaders()
       }
     }).then(parseApiResponse).catch(() => null);
-    setPage(1);
     onNotificationsChanged?.();
   };
 
@@ -149,13 +136,6 @@ export default function NotificationPanel({ isOpen, onClose, notificationsData =
             </>
           )}
         </div>
-        <PaginationControls
-          page={page}
-          pageSize={pageSize}
-          totalItems={totalItems}
-          totalPages={totalPages}
-          onPageChange={setPage}
-        />
       </div>
     </div>
   );

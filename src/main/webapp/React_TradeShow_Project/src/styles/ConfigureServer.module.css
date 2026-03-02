@@ -658,6 +658,44 @@
     justify-content: flex-end;
 }
 
+.scopeField {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.scopeField > label {
+    font-size: 1.03rem;
+    font-weight: 500;
+}
+
+.scopeGrid {
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.scopeOption {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 40px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--text-primary) 16%, transparent);
+    background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+    padding: 0.5rem 0.7rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.scopeOption:hover {
+    border-color: color-mix(in srgb, var(--primary-color) 46%, transparent);
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+}
+
+.scopeOption input {
+    accent-color: var(--primary-color);
+}
+
 .actions button {
     padding: 0.875rem 1.5rem;
     border-radius: 8px;
@@ -783,6 +821,12 @@
     background-color: rgba(239, 68, 68, 0.2);
     border: 1px solid #EF4444;
     color: #EF4444;
+}
+
+.toast.warning {
+    background-color: rgba(245, 158, 11, 0.2);
+    border: 1px solid #f59e0b;
+    color: #f59e0b;
 }
 
 .toastContent {
@@ -1095,6 +1139,4 @@
 [data-theme='light'] .emptyStateContent h2 {
     color: var(--text-primary);
 }
-
-
 

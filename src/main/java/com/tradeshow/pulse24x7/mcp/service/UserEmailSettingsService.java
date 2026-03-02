@@ -41,7 +41,7 @@ public class UserEmailSettingsService {
         normalized.setUserId(settings.getUserId());
         normalized.setAlertsEnabled(settings.isAlertsEnabled());
         String fallbackEmail = user != null ? user.getEmail() : null;
-        normalized.setReceiverEmail(resolveReceiverEmail(fallbackEmail));
+        normalized.setReceiverEmail(resolveReceiverEmail(settings.getReceiverEmail(), fallbackEmail));
         normalized.setMinSeverity(resolveMinSeverity(settings.getMinSeverity()));
         normalized.setIncludeServerAlerts(settings.isIncludeServerAlerts());
         normalized.setIncludeToolAlerts(settings.isIncludeToolAlerts());
@@ -54,7 +54,7 @@ public class UserEmailSettingsService {
         UserEmailSettings settings = new UserEmailSettings();
         settings.setUserId(userId);
         settings.setAlertsEnabled(true);
-        settings.setReceiverEmail(resolveReceiverEmail(userEmail));
+        settings.setReceiverEmail(resolveReceiverEmail(null, userEmail));
         settings.setMinSeverity("warning");
         settings.setIncludeServerAlerts(true);
         settings.setIncludeToolAlerts(true);
@@ -62,7 +62,10 @@ public class UserEmailSettingsService {
         return settings;
     }
 
-    private String resolveReceiverEmail(String userEmail) {
+    private String resolveReceiverEmail(String requestedEmail, String userEmail) {
+        if (requestedEmail != null && !requestedEmail.isBlank()) {
+            return requestedEmail.trim().toLowerCase(Locale.ROOT);
+        }
         return userEmail == null ? null : userEmail.trim().toLowerCase(Locale.ROOT);
     }
 

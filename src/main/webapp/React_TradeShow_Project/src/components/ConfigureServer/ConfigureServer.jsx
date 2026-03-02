@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePost } from '../Hooks/usePost';
 import ConfigureServerStyles from '../../styles/ConfigureServer.module.css';
 import Breadcrumb from './Breadcrumb';
@@ -9,7 +9,12 @@ import LoadingDots from '../Loading/LoadingDots';
 import { MdBook, MdMessage } from 'react-icons/md';
 import { buildUrl, getAuthHeaders, parseApiResponse, unwrapData } from '../../services/api';
 
-export default function ConfigureServer({ onClose, onSuccess, canLogout = false, onLogout }) {
+const DEFAULT_SCOPE = 'ZohoMCP.tool.execute';
+const SCOPE_OPTIONS = [
+    { value: 'ZohoMCP.tool.execute', label: 'Zoho MCP Tool Execute' }
+];
+
+export default function ConfigureServer({ currentUser, onClose, onSuccess, canLogout = false, onLogout }) {
     const redirectUri = `${window.location.origin}/trade-show-team-project/oauth-callback.html`;
     const [formData, setFormData] = useState({
         serverName: '',
@@ -19,10 +24,11 @@ export default function ConfigureServer({ onClose, onSuccess, canLogout = false,
         refreshToken: '',
         clientId: '',
         clientSecret: '',
-        requiredScope: 'ZohoMCP.tool.execute',
-        additionalScopes: '',
-        oauthBaseUrl: 'https://accounts.zoho.in',
+        selectedScopes: [DEFAULT_SCOPE],
+        customScopes: '',
+        oauthAuthUrl: 'https://accounts.zoho.in/oauth/v2/auth',
         tokenEndpoint: 'https://accounts.zoho.in/oauth/v2/token',
+        receiverEmail: currentUser?.email || '',
         monitorIntervalMinutes: 30,
         connectionTimeout: 5000,
         autoReconnect: true
@@ -50,17 +56,21 @@ export default function ConfigureServer({ onClose, onSuccess, canLogout = false,
             if (!data.clientSecret || !String(data.clientSecret).trim()) {
                 return 'Client Secret is required';
             }
-            if (!data.requiredScope || !String(data.requiredScope).trim()) {
-                return 'Required scope is required';
+            const scopeValue = buildScopeString(data.selectedScopes, data.customScopes);
+            if (!scopeValue) {
+                return 'Select at least one scope';
             }
-            if (!data.oauthBaseUrl || !/^https?:\/\/.+/.test(data.oauthBaseUrl)) {
-                return 'OAuth Base URL is required and must be valid';
+            if (!isValidHttpUrl(data.oauthAuthUrl)) {
+                return 'OAuth Authorization URL is required and must be valid';
             }
             if (!data.accessToken || !String(data.accessToken).trim() || !data.refreshToken || !String(data.refreshToken).trim()) {
                 return 'Click Open OAuth and complete token generation before saving';
             }
             if (!data.tokenEndpoint || !/^https?:\/\/.+/.test(data.tokenEndpoint)) {
                 return 'Token Endpoint is required and must be valid';
+            }
+            if (!isValidEmail(data.receiverEmail)) {
+                return 'Receiver email is required and must be valid';
             }
             const interval = Number(data.monitorIntervalMinutes);
             if (!Number.isFinite(interval) || interval < 1 || interval > 1440) {
@@ -87,27 +97,57 @@ export default function ConfigureServer({ onClose, onSuccess, canLogout = false,
     const handleInputChange = (field, value) => {
         setFormData((prev) => {
             const next = { ...prev, [field]: value };
-            if (field === 'clientId' || field === 'clientSecret' || field === 'oauthBaseUrl' || field === 'requiredScope' || field === 'additionalScopes') {
+            if (field === 'clientId' || field === 'clientSecret' || field === 'oauthAuthUrl' || field === 'customScopes') {
                 next.accessToken = '';
                 next.refreshToken = '';
                 next.expiresAt = null;
             }
             return next;
         });
-        if (field === 'clientId' || field === 'clientSecret' || field === 'oauthBaseUrl' || field === 'requiredScope' || field === 'additionalScopes') {
+        if (field === 'clientId' || field === 'clientSecret' || field === 'oauthAuthUrl' || field === 'customScopes') {
             setAuthorizationCode('');
         }
     };
 
+    const handleScopeToggle = (scope) => {
+        setFormData((prev) => {
+            const hasScope = Array.isArray(prev.selectedScopes) && prev.selectedScopes.includes(scope);
+            const selectedScopes = hasScope
+                ? prev.selectedScopes.filter((item) => item !== scope)
+                : [...(Array.isArray(prev.selectedScopes) ? prev.selectedScopes : []), scope];
+            return {
+                ...prev,
+                selectedScopes,
+                accessToken: '',
+                refreshToken: '',
+                expiresAt: null
+            };
+        });
+        setAuthorizationCode('');
+    };
+
     const quickIntervals = [5, 10, 15, 30, 60, 120];
     const finalScope = useMemo(
-        () => buildScopeString(formData.requiredScope, formData.additionalScopes),
-        [formData.requiredScope, formData.additionalScopes]
+        () => buildScopeString(formData.selectedScopes, formData.customScopes),
+        [formData.selectedScopes, formData.customScopes]
     );
     const oauthUrl = useMemo(
-        () => buildAuthorizeUrl(formData.oauthBaseUrl, finalScope, formData.clientId, redirectUri, null),
-        [formData.oauthBaseUrl, finalScope, formData.clientId, redirectUri]
+        () => buildAuthorizeUrl(formData.oauthAuthUrl, finalScope, formData.clientId, redirectUri, null),
+        [formData.oauthAuthUrl, finalScope, formData.clientId, redirectUri]
     );
+
+    useEffect(() => {
+        const loginEmail = String(currentUser?.email || '').trim();
+        if (!loginEmail) {
+            return;
+        }
+        setFormData((prev) => {
+            if (String(prev.receiverEmail || '').trim()) {
+                return prev;
+            }
+            return { ...prev, receiverEmail: loginEmail };
+        });
+    }, [currentUser?.email]);
 
     const openOAuthWindow = () => {
         const clientId = String(formData.clientId || '').trim();
@@ -125,9 +165,9 @@ export default function ConfigureServer({ onClose, onSuccess, canLogout = false,
             return;
         }
         const state = `pulse_server_setup_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        const authUrl = buildAuthorizeUrl(formData.oauthBaseUrl, finalScope, clientId, redirectUri, state);
+        const authUrl = buildAuthorizeUrl(formData.oauthAuthUrl, finalScope, clientId, redirectUri, state);
         if (!authUrl) {
-            setToast({ type: 'error', message: 'OAuth URL cannot be generated. Check base URL, scope, and client ID.' });
+            setToast({ type: 'error', message: 'OAuth URL cannot be generated. Check authorization URL, scope, and client ID.' });
             return;
         }
         const popup = window.open(authUrl, 'pulse_server_oauth', 'width=900,height=760,resizable=yes,scrollbars=yes');
@@ -208,11 +248,34 @@ export default function ConfigureServer({ onClose, onSuccess, canLogout = false,
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const oauthBase = String(formData.oauthBaseUrl || '').replace(/\/$/, '');
+            const loginEmail = String(currentUser?.email || '').trim().toLowerCase();
+            const receiverEmail = String(formData.receiverEmail || '').trim().toLowerCase();
+            const zohoUser = isZohoAddress(loginEmail);
+            if (zohoUser && receiverEmail && !isZohoAddress(receiverEmail)) {
+                setToast({ type: 'error', message: 'Warning: Zoho users should use a Zoho-domain receiver email.' });
+            }
+
+            const emailSettingsResp = await fetch(buildUrl('/user-auth/email-settings'), {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders()
+                },
+                body: JSON.stringify({
+                    alertsEnabled: true,
+                    receiverEmail: receiverEmail || loginEmail,
+                    minSeverity: 'warning',
+                    includeServerAlerts: true,
+                    includeToolAlerts: true,
+                    includeSystemAlerts: true
+                })
+            });
+            await parseApiResponse(emailSettingsResp);
+
             const payload = {
                 ...formData,
                 scope: finalScope,
-                oauthTokenLink: `${oauthBase}/oauth/v2/auth`,
+                oauthTokenLink: String(formData.oauthAuthUrl || '').trim(),
                 authorizationCode,
                 redirectUri,
                 monitorIntervalMinutes: Number(formData.monitorIntervalMinutes) || 30,
@@ -308,6 +371,15 @@ export default function ConfigureServer({ onClose, onSuccess, canLogout = false,
                             icon="link"
                             tooltip="Endpoint must include mcp/ in the URL path"
                         />
+
+                        <InputField
+                            label="Receiver Email for Alerts"
+                            placeholder="name@company.com"
+                            value={formData.receiverEmail}
+                            onChange={(value) => handleInputChange('receiverEmail', value)}
+                            required
+                            tooltip="Default is your login email; you may change it."
+                        />
                     </FormSection>
 
                     <FormSection icon="lock" title="AUTHENTICATION">
@@ -347,33 +419,44 @@ export default function ConfigureServer({ onClose, onSuccess, canLogout = false,
                             tooltip="OAuth client secret for token generation"
                         />
 
-                        <InputField
-                            label="Required Scope"
-                            placeholder="ZohoMCP.tool.execute"
-                            value={formData.requiredScope}
-                            onChange={() => null}
-                            required
-                            icon="token"
-                            tooltip="Default scope (fixed)"
-                            readOnly
-                        />
+                        <div className={ConfigureServerStyles.scopeField}>
+                            <label>
+                                Required Scopes
+                                <span className={ConfigureServerStyles.required}>*</span>
+                            </label>
+                            <div className={ConfigureServerStyles.scopeGrid}>
+                                {SCOPE_OPTIONS.map((scope) => {
+                                    const checked = Array.isArray(formData.selectedScopes) && formData.selectedScopes.includes(scope.value);
+                                    return (
+                                        <label key={scope.value} className={ConfigureServerStyles.scopeOption}>
+                                            <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={() => handleScopeToggle(scope.value)}
+                                            />
+                                            <span>{scope.label}</span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                            <InputField
+                                label="Custom Scopes (comma separated)"
+                                placeholder="scope.one,scope.two"
+                                value={formData.customScopes}
+                                onChange={(value) => handleInputChange('customScopes', value)}
+                                icon="token"
+                                tooltip="Optional custom scopes for third-party providers"
+                            />
+                        </div>
 
                         <InputField
-                            label="Additional Scopes (comma separated)"
-                            placeholder="scope.one,scope.two"
-                            value={formData.additionalScopes}
-                            onChange={(value) => handleInputChange('additionalScopes', value)}
-                            icon="token"
-                            tooltip="These scopes will be appended after default scope with comma"
-                        />
-
-                        <InputField
-                            label="OAuth Base URL"
-                            placeholder="https://accounts.zoho.in"
-                            value={formData.oauthBaseUrl}
-                            onChange={(value) => handleInputChange('oauthBaseUrl', value)}
+                            label="OAuth Authorization URL"
+                            placeholder="https://accounts.zoho.in/oauth/v2/auth"
+                            value={formData.oauthAuthUrl}
+                            onChange={(value) => handleInputChange('oauthAuthUrl', value)}
                             required
                             icon="link"
+                            tooltip="Enter full authorization URL. The app will not append any endpoint."
                         />
 
                         <InputField
@@ -535,24 +618,47 @@ function clampTimeout(value, autoReconnect) {
 }
 
 function buildScopeString(requiredScope, additionalScopes) {
-    const required = String(requiredScope || '').trim();
+    const selected = Array.isArray(requiredScope) ? requiredScope : [];
+    const base = selected
+        .map((scope) => String(scope || '').trim())
+        .filter(Boolean);
     const extras = String(additionalScopes || '')
         .split(',')
         .map((scope) => scope.trim())
         .filter(Boolean);
-    if (!required) {
-        return extras.join(',');
-    }
-    return [required, ...extras].join(',');
+    return [...new Set([...base, ...extras])].join(',');
 }
 
 function buildAuthorizeUrl(baseUrl, scope, clientId, redirectUri, state) {
-    const base = String(baseUrl || '').replace(/\/$/, '');
+    const base = String(baseUrl || '').trim();
     const normalizedScope = String(scope || '').trim();
     const normalizedClientId = String(clientId || '').trim();
-    if (!base || !normalizedScope || !normalizedClientId) {
+    if (!isValidHttpUrl(base) || !normalizedScope || !normalizedClientId) {
         return '';
     }
     const nextState = state || `pulse_server_setup_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    return `${base}/oauth/v2/auth?scope=${encodeURIComponent(normalizedScope)}&client_id=${encodeURIComponent(normalizedClientId)}&state=${encodeURIComponent(nextState)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&access_type=offline&prompt=consent`;
+    const separator = base.includes('?') ? '&' : '?';
+    return `${base}${separator}scope=${encodeURIComponent(normalizedScope)}&client_id=${encodeURIComponent(normalizedClientId)}&state=${encodeURIComponent(nextState)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&access_type=offline&prompt=consent`;
+}
+
+function isValidEmail(email) {
+    const value = String(email || '').trim();
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isZohoAddress(email) {
+    const value = String(email || '').trim().toLowerCase();
+    return value.endsWith('@zoho.com')
+        || value.endsWith('@zoho.in')
+        || value.endsWith('@zohomail.in')
+        || value.endsWith('@zohocorp.com');
+}
+
+function isValidHttpUrl(value) {
+    try {
+        const parsed = new URL(String(value || '').trim());
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+        return false;
+    }
 }

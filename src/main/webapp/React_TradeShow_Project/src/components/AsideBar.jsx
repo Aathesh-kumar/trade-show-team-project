@@ -82,25 +82,28 @@ export default function AsideBar({ isOpen, onToggle, currentPage, onNavigate, ac
             {isOpen && <div className={AsideStyles.overlay} onClick={onToggle}></div>}
 
             <nav className={AsideStyles.mobileNav} aria-label="Mobile navigation">
-                <div
-                    className={AsideStyles.mobileNavTrack}
-                    style={{ "--mobile-active-index": activeMobileIndex }}
-                >
-                    {navItems.map((item) => {
-                        const active = currentPage === item.key;
-                        return (
-                            <button
-                                key={item.key}
-                                type="button"
-                                className={`${AsideStyles.mobileNavItem} ${active ? AsideStyles.mobileNavItemActive : ''}`}
-                                onClick={() => onNavigate(item.key)}
-                                aria-label={item.label}
-                            >
-                                <span className={AsideStyles.mobileNavIcon}>{item.icon}</span>
-                                {active ? <span className={AsideStyles.mobileNavLabel}>{item.label}</span> : null}
-                            </button>
-                        );
-                    })}
+                <div className={AsideStyles.mobileNavShell}>
+                    <div className={AsideStyles.navigation} style={{ '--mobile-active-index': String(activeMobileIndex) }}>
+                        <ul>
+                            {navItems.map((item) => {
+                                const active = currentPage === item.key;
+                                return (
+                                    <li key={item.key} className={active ? AsideStyles.active : ''}>
+                                        <button
+                                            type="button"
+                                            onClick={() => onNavigate(item.key)}
+                                            aria-label={item.label}
+                                            className={AsideStyles.navButton}
+                                        >
+                                            <span className={AsideStyles.icon}>{item.icon}</span>
+                                            <span className={AsideStyles.text}>{item.label}</span>
+                                        </button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                        <span className={AsideStyles.indicator}></span>
+                    </div>
                 </div>
             </nav>
         </>

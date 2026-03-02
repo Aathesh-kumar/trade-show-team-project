@@ -282,6 +282,11 @@ public class DBQueries {
         public static final String SELECT_NOTIFICATION_BY_ID =
                 "SELECT id, server_id, category, severity, title, message, is_read, created_at " +
                         "FROM notifications WHERE id = ?";
+        public static final String SELECT_NOTIFICATION_BY_ID_FOR_USER =
+                "SELECT n.id, n.server_id, n.category, n.severity, n.title, n.message, n.is_read, n.created_at " +
+                        "FROM notifications n " +
+                        "INNER JOIN servers s ON s.server_id = n.server_id " +
+                        "WHERE n.id = ? AND s.user_id = ?";
         public static final String SELECT_NOTIFICATIONS_BY_USER =
                 "SELECT n.id, n.server_id, n.category, n.severity, n.title, n.message, n.is_read, n.created_at " +
                         "FROM notifications n " +
@@ -294,6 +299,18 @@ public class DBQueries {
                         "INNER JOIN servers s ON s.server_id = n.server_id " +
                         "WHERE s.user_id = ? AND n.server_id = ? " +
                         "ORDER BY n.created_at DESC LIMIT ? OFFSET ?";
+        public static final String SELECT_NOTIFICATIONS_BY_USER_ALL =
+                "SELECT n.id, n.server_id, n.category, n.severity, n.title, n.message, n.is_read, n.created_at " +
+                        "FROM notifications n " +
+                        "INNER JOIN servers s ON s.server_id = n.server_id " +
+                        "WHERE s.user_id = ? " +
+                        "ORDER BY n.created_at DESC";
+        public static final String SELECT_NOTIFICATIONS_BY_USER_AND_SERVER_ALL =
+                "SELECT n.id, n.server_id, n.category, n.severity, n.title, n.message, n.is_read, n.created_at " +
+                        "FROM notifications n " +
+                        "INNER JOIN servers s ON s.server_id = n.server_id " +
+                        "WHERE s.user_id = ? AND n.server_id = ? " +
+                        "ORDER BY n.created_at DESC";
 
         public static final String DELETE_NOTIFICATION =
                 "DELETE FROM notifications WHERE id = ?";

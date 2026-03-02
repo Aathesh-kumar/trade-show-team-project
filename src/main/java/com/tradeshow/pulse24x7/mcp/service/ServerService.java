@@ -14,10 +14,12 @@ public class ServerService {
     private static final Logger logger = LogManager.getLogger(ServerService.class);
     private final ServerDAO serverDAO;
     private final ServerHistoryDAO serverHistoryDAO;
+    private final NotificationService notificationService;
 
     public ServerService() {
         this.serverDAO = new ServerDAO();
         this.serverHistoryDAO = new ServerHistoryDAO();
+        this.notificationService = new NotificationService();
     }
 
     public Integer registerServer(Long userId, String serverName, String serverUrl, Integer monitorIntervalMinutes) {
@@ -124,6 +126,8 @@ public class ServerService {
             logger.error("Invalid userId: {}", userId);
             return false;
         }
+        // Send deletion emails for notification rows before server and dependencies are removed.
+        notificationService.clearAllByUser(userId, serverId);
         return serverDAO.deleteServer(serverId, userId);
     }
 

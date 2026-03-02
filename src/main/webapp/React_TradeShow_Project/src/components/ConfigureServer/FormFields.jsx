@@ -1,5 +1,5 @@
 import ConfigureServerStyles from '../../styles/ConfigureServer.module.css';
-import { MdInfoOutline, MdClose, MdCheckCircle, MdErrorOutline } from 'react-icons/md';
+import { MdInfoOutline, MdClose, MdCheckCircle, MdErrorOutline, MdWarningAmber } from 'react-icons/md';
 import { useEffect, useMemo, useState } from 'react';
 import CustomDropdown from '../Common/CustomDropdown';
 
@@ -132,7 +132,7 @@ export function Toast({ type, message, onClose }) {
         <div className={`${ConfigureServerStyles.toast} ${ConfigureServerStyles[type]}`}>
             <div className={ConfigureServerStyles.toastContent}>
                 <span className={ConfigureServerStyles.toastIcon}>
-                    {type === 'success' ? <MdCheckCircle /> : <MdErrorOutline />}
+                    {type === 'success' ? <MdCheckCircle /> : type === 'warning' ? <MdWarningAmber /> : <MdErrorOutline />}
                 </span>
                 <span className={ConfigureServerStyles.toastMessage}>{message}</span>
             </div>

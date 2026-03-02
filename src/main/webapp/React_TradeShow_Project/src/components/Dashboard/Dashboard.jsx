@@ -44,7 +44,7 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
     const metricsLoading = useBufferedLoading(metricsRawLoading || dashboardReloading, 1500);
     const { data: notificationsData, loading: notificationsLoading, refetch: refetchNotifications } = useGet('/notification', {
         immediate: true,
-        params: { limit: 300, offset: 0, serverId },
+        params: { limit: 1000, offset: 0, serverId },
         dependencies: [serverId, reloadTick]
     });
     const notificationsBufferedLoading = useBufferedLoading(notificationsLoading, 280);
@@ -56,7 +56,6 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
         dependencies: [showNotifications, serverId, reloadTick]
     });
     const [dismissedHighAlerts, setDismissedHighAlerts] = useState(() => new Set());
-    const [toastShownOnce, setToastShownOnce] = useState(false);
 
     const recentNotification = useMemo(() => {
         const list = Array.isArray(notificationsData) ? notificationsData : [];
@@ -66,7 +65,7 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
             .sort((a, b) => new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime());
         return ranked[0] || null;
     }, [notificationsData, dismissedHighAlerts]);
-    const toastNotification = toastShownOnce ? null : recentNotification;
+    const toastNotification = recentNotification;
     const toastSeverityClass = toastNotification ? getAlertClass(toastNotification.severity) : '';
 
     useEffect(() => {
@@ -108,7 +107,6 @@ export default function Dashboard({ selectedServer, onNavigate, onSelectServer }
         if (!toastNotification?.id) {
             return;
         }
-        setToastShownOnce(true);
         const id = setTimeout(() => {
             setDismissedHighAlerts((prev) => {
                 const next = new Set(prev);

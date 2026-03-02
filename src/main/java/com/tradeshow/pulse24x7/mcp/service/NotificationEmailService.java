@@ -43,7 +43,7 @@ public class NotificationEmailService {
             return true;
         }
 
-        MailboxProfile mailbox = selectMailboxProfile(toEmail);
+        MailboxProfile mailbox = selectMailboxProfile(recipient.getEmail());
         if (mailbox.password == null || mailbox.password.isBlank()) {
             logger.warn("Skipping email alert: sender password missing for {}", mailbox.fromEmail);
             return false;
@@ -108,18 +108,67 @@ public class NotificationEmailService {
         );
     }
 
+    public boolean sendNotificationDeleted(Notification notification, NotificationRecipient recipient, UserEmailSettings settings) {
+        if (notification == null || recipient == null || settings == null || !settings.isAlertsEnabled()) {
+            return false;
+        }
+        String toEmail = normalizeEmail(settings.getReceiverEmail());
+        if (toEmail == null || toEmail.isBlank()) {
+            return false;
+        }
+        MailboxProfile mailbox = selectMailboxProfile(recipient.getEmail());
+        if (mailbox.password == null || mailbox.password.isBlank()) {
+            logger.warn("Skipping notification deletion email: sender password missing for {}", mailbox.fromEmail);
+            return false;
+        }
+
+        String userName = escapeHtml(normalizeText(recipient.getFullName(), "User"));
+        String title = escapeHtml(normalizeText(notification.getTitle(), "Notification"));
+        String category = escapeHtml(normalizeLower(notification.getCategory(), "system"));
+        String createdAt = escapeHtml(formatCreatedAt(notification.getCreatedAt()));
+        String html = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\" />"
+                + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />"
+                + "</head><body style=\"margin:0;padding:0;background:#f3f6fb;font-family:Segoe UI,Arial,sans-serif;color:#172b4d;\">"
+                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"padding:24px 12px;\">"
+                + "<tr><td align=\"center\">"
+                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:620px;background:#ffffff;border-radius:16px;border:1px solid #dfe6f3;overflow:hidden;\">"
+                + "<tr><td style=\"background:linear-gradient(120deg,#334155,#64748b);padding:18px 20px;color:#ffffff;\">"
+                + "<h1 style=\"margin:0;font-size:20px;\">Pulse24x7 Notification Update</h1>"
+                + "<p style=\"margin:6px 0 0;opacity:0.92;font-size:13px;\">A notification entry has been removed</p>"
+                + "</td></tr>"
+                + "<tr><td style=\"padding:20px;\">"
+                + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">Dear " + userName + ",</p>"
+                + "<p style=\"margin:0 0 12px;font-size:14px;line-height:1.6;\">A notification has been deleted from your Pulse24x7 workspace.</p>"
+                + "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"border-collapse:collapse;\">"
+                + row("Title", title)
+                + row("Category", category)
+                + row("Created At", createdAt)
+                + row("Notification ID", String.valueOf(notification.getId() == null ? "-" : notification.getId()))
+                + "</table>"
+                + "</td></tr></table>"
+                + "</td></tr></table></body></html>";
+
+        return sendHtml(
+                toEmail,
+                "Pulse24x7 Alerts",
+                "[Pulse24x7][DELETED] " + normalizeText(notification.getTitle(), "Notification"),
+                html,
+                mailbox
+        );
+    }
+
     private MailboxProfile selectMailboxProfile(String receiverEmail) {
         if (isZohoUser(receiverEmail)) {
             return new MailboxProfile(
                     env("MCP_MAIL_ZOHO_FROM", "pulse24x7@zohomail.in"),
-                    env("MCP_MAIL_ZOHO_PASSWORD", ""),
+                    env("MCP_MAIL_ZOHO_PASSWORD", "DUMMY_ZOHO_APP_PASSWORD"),
                     env("MCP_MAIL_ZOHO_HOST", "smtp.zoho.in"),
                     parsePort(env("MCP_MAIL_ZOHO_PORT", "465"), 465)
             );
         }
         return new MailboxProfile(
                 env("MCP_MAIL_GMAIL_FROM", "pulse24x7@gmail.com"),
-                env("MCP_MAIL_GMAIL_PASSWORD", ""),
+                env("MCP_MAIL_GMAIL_PASSWORD", "DUMMY_GMAIL_APP_PASSWORD"),
                 env("MCP_MAIL_GMAIL_HOST", "smtp.gmail.com"),
                 parsePort(env("MCP_MAIL_GMAIL_PORT", "465"), 465)
         );

@@ -265,175 +265,197 @@
         display: block;
         position: fixed;
         left: 50%;
-        bottom: 12px;
+        bottom: 10px;
         transform: translateX(-50%);
-        width: min(92vw, 560px);
+        width: min(94vw, 430px);
         z-index: 1002;
-        pointer-events: none;
     }
 
-    .mobileNavTrack {
-        pointer-events: auto;
-        background: color-mix(in srgb, var(--bg-elev-1) 62%, transparent);
-        border-radius: 18px;
-        min-height: 70px;
+    .mobileNavShell {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    .navigation {
+        --mobile-active-index: 0;
         position: relative;
-        overflow: visible;
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        width: 100%;
+        height: 74px;
+        background: color-mix(in srgb, var(--bg-elev-1) 90%, transparent);
+        border: 1px solid color-mix(in srgb, var(--panel-border) 82%, transparent);
+        border-radius: 22px;
+        display: flex;
+        justify-content: center;
         align-items: center;
-        padding: 0 10px;
-        box-shadow: 0 12px 28px color-mix(in srgb, var(--text-primary) 14%, transparent);
-        border: 1px solid color-mix(in srgb, var(--panel-border) 70%, transparent);
-        backdrop-filter: blur(10px);
-        transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, backdrop-filter 0.25s ease;
+        box-shadow: 0 14px 34px color-mix(in srgb, var(--text-primary) 15%, transparent);
+        backdrop-filter: blur(12px);
     }
 
-    .mobileNavTrack::before {
-        content: "";
-        position: absolute;
-        top: 8px;
-        left: calc((var(--mobile-active-index, 0) + 0.5) * 20% - 56px);
-        width: 112px;
-        height: 54px;
-        border-radius: 16px;
-        background: linear-gradient(
-            180deg,
-            color-mix(in srgb, var(--primary-color) 36%, transparent),
-            color-mix(in srgb, var(--primary-color) 16%, transparent)
-        );
-        box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 20%, transparent);
-        transition: left 0.25s ease, background-color 0.25s ease;
-        pointer-events: none;
+    .navigation ul {
+        display: flex;
+        width: calc(100% - 52px);
+        margin: 0 auto;
+        padding: 0;
     }
 
-    .mobileNavItem {
+    .navigation ul li {
         position: relative;
-        border: none;
-        background: color-mix(in srgb, var(--bg-elev-2) 14%, transparent);
-        display: grid;
-        place-items: center;
-        min-height: 54px;
-        color: var(--text-primary);
-        border-radius: 14px;
-        pointer-events: auto;
-        transition: transform 0.2s ease, color 0.2s ease, background-color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
-        opacity: 0.78;
-    }
-
-    .mobileNavIcon {
-        display: grid;
-        place-items: center;
-    }
-
-    .mobileNavIcon svg {
-        width: 24px;
-        height: 24px;
-        color: color-mix(in srgb, var(--text-primary) 75%, transparent);
-        transition: color 0.2s ease;
-    }
-
-    .mobileNavItemActive {
-        transform: translateY(-18px);
+        list-style: none;
+        width: 20%;
+        height: 74px;
         z-index: 2;
-        opacity: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .navButton {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        border: none;
         background: transparent;
+        cursor: pointer;
+        text-align: center;
+        font-weight: 500;
+        color: var(--text-primary);
+        font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif;
     }
 
-    .mobileNavItemActive .mobileNavIcon {
-        width: 62px;
-        height: 62px;
-        border-radius: 999px;
-        background: linear-gradient(145deg, var(--primary-color), var(--primary-color-strong));
-        border: 4px solid color-mix(in srgb, var(--bg-app) 80%, transparent);
-        box-shadow: 0 8px 22px color-mix(in srgb, var(--primary-color) 45%, transparent);
+    .icon {
+        position: relative;
+        display: grid;
+        place-items: center;
+        line-height: 1;
+        font-size: 1.4rem;
+        text-align: center;
+        transition: transform 0.35s ease, color 0.35s ease;
+        color: color-mix(in srgb, var(--text-primary) 82%, transparent);
     }
 
-    .mobileNavItemActive .mobileNavIcon svg {
-        width: 26px;
-        height: 26px;
+    .icon svg {
+        width: 23px;
+        height: 23px;
+    }
+
+    .text {
+        position: absolute;
+        color: color-mix(in srgb, var(--text-primary) 80%, transparent);
+        font-weight: 500;
+        font-size: 0.74rem;
+        letter-spacing: 0.04em;
+        transition: all 0.35s ease;
+        opacity: 0;
+        transform: translateY(18px);
+        white-space: nowrap;
+    }
+
+    .active .icon {
+        transform: translateY(-34px);
         color: #ffffff;
     }
 
-    .mobileNavLabel {
-        position: absolute;
-        bottom: -22px;
-        font-size: 0.76rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        white-space: nowrap;
-        letter-spacing: 0.2px;
-    }
-
-    @media (hover: hover) and (pointer: fine) {
-        .mobileNavTrack:hover {
-            background: color-mix(in srgb, var(--bg-elev-1) 92%, transparent);
-            border-color: color-mix(in srgb, var(--primary-color) 45%, var(--panel-border));
-            box-shadow: 0 18px 36px color-mix(in srgb, var(--text-primary) 20%, transparent);
-            backdrop-filter: blur(14px);
-        }
-
-        .mobileNavTrack:hover::before {
-            background: linear-gradient(
-                180deg,
-                color-mix(in srgb, var(--primary-color) 42%, transparent),
-                color-mix(in srgb, var(--primary-color) 22%, transparent)
-            );
-        }
-
-        .mobileNavItem:hover {
-            opacity: 1;
-            background: color-mix(in srgb, var(--primary-color) 22%, transparent);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px color-mix(in srgb, var(--primary-color) 22%, transparent);
-        }
-
-        .mobileNavItem:hover .mobileNavIcon svg {
-            color: var(--primary-color);
-        }
-
-        .mobileNavItemActive:hover {
-            transform: translateY(-20px);
-            background: transparent;
-            box-shadow: none;
-        }
-
-        .mobileNavItemActive:hover .mobileNavIcon svg {
-            color: #ffffff;
-        }
-    }
-
-    .mobileNavItem:focus-visible,
-    .mobileNavItem:active {
+    .active .text {
         opacity: 1;
-        background: color-mix(in srgb, var(--primary-color) 20%, transparent);
-        outline: none;
+        transform: translateY(10px);
     }
 
-    .mobileNavItemActive:focus-visible,
-    .mobileNavItemActive:active {
-        background: transparent;
+    .navigation ul li:hover .icon,
+    .navigation ul li:focus-within .icon {
+        transform: translateY(-20px) scale(1.05);
+        color: color-mix(in srgb, #ffffff 92%, var(--primary-color) 8%);
+    }
+
+    .navigation ul li:hover .text,
+    .navigation ul li:focus-within .text {
+        opacity: 1;
+        transform: translateY(12px);
+    }
+
+    .navButton:active .icon {
+        transform: translateY(-22px) scale(0.98);
+    }
+
+    .indicator {
+        position: absolute;
+        top: -26px;
+        left: calc(
+            26px
+            + (var(--mobile-active-index, 0) * ((100% - 52px) / 5))
+            + (((100% - 52px) / 5) / 2)
+            - 29px
+        );
+        width: 58px;
+        height: 58px;
+        background: linear-gradient(145deg, var(--primary-color), var(--primary-color-strong));
+        border-radius: 50%;
+        border: 5px solid color-mix(in srgb, var(--bg-app) 92%, transparent);
+        transition: left 0.35s ease;
+        z-index: 1;
+        box-shadow: 0 10px 24px color-mix(in srgb, var(--primary-color) 45%, transparent);
+    }
+
+    .indicator::before {
+        content: none;
+    }
+
+    .indicator::after {
+        content: none;
     }
 }
 
 @media (max-width: 640px) {
-    .mobileNavTrack {
-        min-height: 66px;
-        padding: 0 8px;
+    .mobileNav {
+        width: calc(100% - 18px);
+        bottom: 8px;
     }
 
-    .mobileNavTrack::before {
-        left: calc((var(--mobile-active-index, 0) + 0.5) * 20% - 50px);
-        width: 100px;
-        height: 50px;
+    .navigation {
+        height: 70px;
+        border-radius: 18px;
     }
 
-    .mobileNavItemActive .mobileNavIcon {
-        width: 58px;
-        height: 58px;
+    .navigation ul {
+        width: calc(100% - 36px);
     }
 
-    .mobileNavLabel {
-        bottom: -20px;
+    .navigation ul li {
+        height: 70px;
     }
+
+    .indicator {
+        width: 54px;
+        height: 54px;
+        top: -24px;
+        left: calc(
+            18px
+            + (var(--mobile-active-index, 0) * ((100% - 36px) / 5))
+            + (((100% - 36px) / 5) / 2)
+            - 27px
+        );
+    }
+
+    .icon svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .active .icon {
+        transform: translateY(-31px);
+    }
+
+    .text {
+        font-size: 0.68rem;
+    }
+}
+
+[data-theme='light'] .navigation {
+    background: color-mix(in srgb, var(--bg-elev-1) 95%, #ffffff 5%);
+    border-color: color-mix(in srgb, var(--panel-border) 82%, transparent);
+    box-shadow: 0 12px 26px color-mix(in srgb, #334155 18%, transparent);
 }
