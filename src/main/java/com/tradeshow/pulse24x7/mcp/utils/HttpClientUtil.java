@@ -3,6 +3,7 @@ package com.tradeshow.pulse24x7.mcp.utils;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.tradeshow.pulse24x7.mcp.model.HttpResult;
+import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -13,6 +14,7 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.hc.core5.util.Timeout;
 
 import java.io.IOException;
 import java.net.URI;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 
 public class HttpClientUtil {
     private static final Logger logger = LogManager.getLogger(HttpClientUtil.class);
+    private static final int DEFAULT_TIMEOUT_MS = 10000;
 
     public static class HttpRequestException extends RuntimeException {
         private final int statusCode;
@@ -44,13 +47,41 @@ public class HttpClientUtil {
         }
     }
 
+    public static class HttpTimeoutException extends RuntimeException {
+        private final int timeoutMs;
+        private final String url;
+
+        public HttpTimeoutException(String url, int timeoutMs, Throwable cause) {
+            super("Request timed out after " + timeoutMs + " ms", cause);
+            this.timeoutMs = timeoutMs;
+            this.url = url;
+        }
+
+        public int getTimeoutMs() {
+            return timeoutMs;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+    }
+
     public static JsonObject doPost(String url, Map<String, String> headers, String jsonPayload) {
+        return doPost(url, headers, jsonPayload, null);
+    }
+
+    public static JsonObject doPost(String url, Map<String, String> headers, String jsonPayload, Integer timeoutMs) {
         logger.info("Initiating POST request to: " + url);
         
         try (CloseableHttpClient client = HttpClients.createDefault()) {
+            int effectiveTimeoutMs = normalizeTimeoutMs(timeoutMs, DEFAULT_TIMEOUT_MS);
             URI uri = new URI(url);
             HttpHost target = new HttpHost(uri.getScheme(), uri.getHost(), uri.getPort());
             HttpPost httpPost = new HttpPost(uri);
+            httpPost.setConfig(RequestConfig.custom()
+                    .setConnectTimeout(Timeout.ofMilliseconds(effectiveTimeoutMs))
+                    .setResponseTimeout(Timeout.ofMilliseconds(effectiveTimeoutMs))
+                    .build());
 
             // Add headers
             if (headers != null) {
@@ -94,18 +125,30 @@ public class HttpClientUtil {
             logger.error("Invalid URL: {}", url, e);
             throw new RuntimeException("Invalid URL: " + url, e);
         } catch (IOException e) {
+            if (isTimeoutException(e)) {
+                throw new HttpTimeoutException(url, normalizeTimeoutMs(timeoutMs, DEFAULT_TIMEOUT_MS), e);
+            }
             logger.error("POST request failed for URL: {}", url, e);
-            throw new RuntimeException("POST request failed for URL: " + url, e);
+            throw new RuntimeException("POST request failed for URL: " + url + ": " + e.getMessage(), e);
         }
     }
 
     public static JsonObject doGet(String url, Map<String, String> headers) {
+        return doGet(url, headers, null);
+    }
+
+    public static JsonObject doGet(String url, Map<String, String> headers, Integer timeoutMs) {
         logger.info("Initiating GET request to: {}", url);
         
         try (CloseableHttpClient client = HttpClients.createDefault()) {
+            int effectiveTimeoutMs = normalizeTimeoutMs(timeoutMs, DEFAULT_TIMEOUT_MS);
             URI uri = new URI(url);
             HttpHost target = new HttpHost(uri.getScheme(), uri.getHost(), uri.getPort());
             HttpGet httpGet = new HttpGet(uri);
+            httpGet.setConfig(RequestConfig.custom()
+                    .setConnectTimeout(Timeout.ofMilliseconds(effectiveTimeoutMs))
+                    .setResponseTimeout(Timeout.ofMilliseconds(effectiveTimeoutMs))
+                    .build());
 
             // Add headers
             if (headers != null) {
@@ -143,12 +186,19 @@ public class HttpClientUtil {
             logger.error("Invalid URL: {}", url, e);
             throw new RuntimeException("Invalid URL: " + url, e);
         } catch (IOException e) {
+            if (isTimeoutException(e)) {
+                throw new HttpTimeoutException(url, normalizeTimeoutMs(timeoutMs, DEFAULT_TIMEOUT_MS), e);
+            }
             logger.error("GET request failed for URL: {}", url, e);
-            throw new RuntimeException("GET request failed for URL: " + url, e);
+            throw new RuntimeException("GET request failed for URL: " + url + ": " + e.getMessage(), e);
         }
     }
 
     public static JsonObject doPostForm(String url, Map<String, String> headers, Map<String, String> formFields) {
+        return doPostForm(url, headers, formFields, null);
+    }
+
+    public static JsonObject doPostForm(String url, Map<String, String> headers, Map<String, String> formFields, Integer timeoutMs) {
         String formBody = formFields.entrySet().stream()
                 .filter(e -> e.getValue() != null)
                 .map(e -> urlEncode(e.getKey()) + "=" + urlEncode(e.getValue()))
@@ -162,9 +212,14 @@ public class HttpClientUtil {
 
         logger.info("Initiating FORM POST request to: {}", url);
         try (CloseableHttpClient client = HttpClients.createDefault()) {
+            int effectiveTimeoutMs = normalizeTimeoutMs(timeoutMs, DEFAULT_TIMEOUT_MS);
             URI uri = new URI(url);
             HttpHost target = new HttpHost(uri.getScheme(), uri.getHost(), uri.getPort());
             HttpPost httpPost = new HttpPost(uri);
+            httpPost.setConfig(RequestConfig.custom()
+                    .setConnectTimeout(Timeout.ofMilliseconds(effectiveTimeoutMs))
+                    .setResponseTimeout(Timeout.ofMilliseconds(effectiveTimeoutMs))
+                    .build());
             finalHeaders.forEach(httpPost::addHeader);
             httpPost.setEntity(new StringEntity(formBody, ContentType.APPLICATION_FORM_URLENCODED));
 
@@ -183,6 +238,9 @@ public class HttpClientUtil {
         } catch (HttpRequestException e) {
             throw e;
         } catch (Exception e) {
+            if (e instanceof IOException ioEx && isTimeoutException(ioEx)) {
+                throw new HttpTimeoutException(url, normalizeTimeoutMs(timeoutMs, DEFAULT_TIMEOUT_MS), ioEx);
+            }
             throw new RuntimeException("FORM POST request failed for URL: " + url, e);
         }
     }
@@ -198,9 +256,15 @@ public class HttpClientUtil {
     }
 
     public static HttpResult canPingServer(String url, Map<String, String> headers, String jsonBody) {
+        return canPingServer(url, headers, jsonBody, null);
+    }
+
+    public static HttpResult canPingServer(String url, Map<String, String> headers, String jsonBody, Integer timeoutMs) {
         try {
-            JsonObject response = doPost(url, headers, jsonBody);
+            JsonObject response = doPost(url, headers, jsonBody, timeoutMs);
             return new HttpResult(true, 200, response.toString(), null);
+        } catch (HttpTimeoutException e) {
+            return new HttpResult(false, 504, null, e.getMessage());
         } catch (RuntimeException e) {
             return new HttpResult(false, 400, null, e.getMessage());
         }
@@ -248,5 +312,26 @@ public class HttpClientUtil {
 
     private static String urlEncode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private static int normalizeTimeoutMs(Integer timeoutMs, int fallback) {
+        int value = timeoutMs == null ? fallback : timeoutMs;
+        if (value <= 0) {
+            value = fallback;
+        }
+        // Avoid effectively "infinite" values from the UI or callers.
+        return Math.max(500, Math.min(300_000, value));
+    }
+
+    private static boolean isTimeoutException(IOException e) {
+        if (e == null) {
+            return false;
+        }
+        String name = e.getClass().getName();
+        if (name != null && name.toLowerCase().contains("timeout")) {
+            return true;
+        }
+        Throwable cause = e.getCause();
+        return (cause instanceof IOException io) && isTimeoutException(io);
     }
 }

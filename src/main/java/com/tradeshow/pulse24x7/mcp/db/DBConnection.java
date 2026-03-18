@@ -52,8 +52,4 @@ public class DBConnection {
         }
         return value;
     }
-
-    public void closeConnection() {
-        // no-op: connections are created per call and closed by try-with-resources in DAOs
-    }
 }

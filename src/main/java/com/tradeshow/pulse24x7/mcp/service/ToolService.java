@@ -43,14 +43,14 @@ public class ToolService {
         this.serverService = new ServerService();
     }
 
-    public List<Tool> fetchAndUpdateTools(Integer serverId, String serverUrl, String accessToken, String headerType) {
+    public List<Tool> fetchAndUpdateTools(Integer serverId, String serverUrl, String accessToken, String headerType, Integer timeoutMs) {
         logger.info("Fetching tools from server ID: {}", serverId);
 
         try {
             Map<String, Object> params = new HashMap<>();
             JsonObject request = JsonUtil.createMCPRequest("tools/list", params);
 
-            JsonObject response = doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request, true);
+            JsonObject response = doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request, true, timeoutMs);
 
             List<Tool> oldTools = getToolsByServer(serverId);
             Set<String> previousActiveTools = oldTools.stream()
@@ -81,23 +81,23 @@ public class ToolService {
     }
 
     public JsonObject executeTool(Integer serverId, String serverUrl, String headerType, String accessToken,
-                                  String toolName, JsonObject inputParams) {
+                                  String toolName, JsonObject inputParams, Integer timeoutMs) {
         Map<String, Object> params = new HashMap<>();
         params.put("name", toolName);
         params.put("arguments", inputParams == null ? new JsonObject() : inputParams);
 
         JsonObject request = JsonUtil.createMCPRequest("tools/call", params);
-        return doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request, false);
+        return doPostWithRefresh(serverId, serverUrl, headerType, accessToken, request, false, timeoutMs);
     }
 
     private JsonObject doPostWithRefresh(Integer serverId, String serverUrl, String headerType,
-                                         String accessToken, JsonObject request, boolean recordInRequestLogs) {
+                                         String accessToken, JsonObject request, boolean recordInRequestLogs, Integer timeoutMs) {
         long start = System.currentTimeMillis();
         JsonObject requestPayload = request == null ? new JsonObject() : request.deepCopy();
         requestPayload.addProperty("mcpServerUrl", serverUrl);
         String mcpMethod = resolveMcpMethod(requestPayload);
         try {
-            JsonObject response = HttpClientUtil.doPost(serverUrl, buildHeaders(accessToken, headerType), request.toString());
+            JsonObject response = HttpClientUtil.doPost(serverUrl, buildHeaders(accessToken, headerType), request.toString(), timeoutMs);
             if (recordInRequestLogs) {
                 recordMcpRequestLog(serverId, mcpMethod, start, requestPayload, response, null, 200);
             }
@@ -111,7 +111,7 @@ public class ToolService {
             }
             String refreshed = authTokenService.refreshAccessToken(serverId);
             try {
-                JsonObject response = HttpClientUtil.doPost(serverUrl, buildHeaders(refreshed, headerType), request.toString());
+                JsonObject response = HttpClientUtil.doPost(serverUrl, buildHeaders(refreshed, headerType), request.toString(), timeoutMs);
                 if (recordInRequestLogs) {
                     recordMcpRequestLog(serverId, mcpMethod, start, requestPayload, response, null, 200);
                 }

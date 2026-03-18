@@ -292,7 +292,13 @@ public class ToolServlet extends HttpServlet {
             return;
         }
 
-        List<Tool> tools = toolService.fetchAndUpdateTools(serverId, server.getServerUrl(), accessToken, headerType);
+        List<Tool> tools = toolService.fetchAndUpdateTools(
+                serverId,
+                server.getServerUrl(),
+                accessToken,
+                headerType,
+                server.getConnectionTimeoutMs()
+        );
         sendSuccessResponse(resp, tools);
     }
 
@@ -307,6 +313,7 @@ public class ToolServlet extends HttpServlet {
         Integer toolId = ServletUtil.getInteger(payload, "toolId", null);
         String toolName = ServletUtil.getString(payload, "toolName", null);
         String inputParamsRaw = ServletUtil.getString(payload, "inputParams", "{}");
+        Integer requestTimeoutMs = ServletUtil.getInteger(payload, "requestTimeoutMs", null);
 
         if (serverId == null || toolName == null || toolName.isBlank()) {
             sendErrorResponse(resp, "serverId and toolName are required", HttpServletResponse.SC_BAD_REQUEST);
@@ -327,6 +334,7 @@ public class ToolServlet extends HttpServlet {
             return;
         }
         JsonObject inputParams = toolService.parseJsonObjectSafely(inputParamsRaw);
+        int effectiveTimeoutMs = clampTimeoutMs(requestTimeoutMs != null ? requestTimeoutMs : server.getConnectionTimeoutMs());
 
         long start = System.currentTimeMillis();
         JsonObject responseData;
@@ -336,7 +344,15 @@ public class ToolServlet extends HttpServlet {
         boolean scopeRelatedFailure = false;
 
         try {
-            responseData = toolService.executeTool(serverId, server.getServerUrl(), headerType, accessToken, toolName, inputParams);
+            responseData = toolService.executeTool(
+                    serverId,
+                    server.getServerUrl(),
+                    headerType,
+                    accessToken,
+                    toolName,
+                    inputParams,
+                    effectiveTimeoutMs
+            );
             String payloadErrorMessage = toolService.extractMcpErrorMessage(responseData);
             if (payloadErrorMessage != null) {
                 statusCode = HttpServletResponse.SC_BAD_REQUEST;
@@ -344,6 +360,13 @@ public class ToolServlet extends HttpServlet {
                 errorMessage = payloadErrorMessage;
                 scopeRelatedFailure = toolService.hasScopeErrorPayload(responseData) || toolService.isScopeRelatedError(payloadErrorMessage);
             }
+        } catch (HttpClientUtil.HttpTimeoutException ex) {
+            responseData = new JsonObject();
+            responseData.addProperty("error", ex.getMessage());
+            responseData.addProperty("errorCode", "request_timeout");
+            statusCode = 504;
+            statusText = "TIMEOUT";
+            errorMessage = ex.getMessage();
         } catch (Exception ex) {
             responseData = new JsonObject();
             responseData.addProperty("error", ex.getMessage());
@@ -388,6 +411,10 @@ public class ToolServlet extends HttpServlet {
         );
 
         if (statusCode >= 400) {
+            if (statusCode == 504) {
+                sendErrorResponse(resp, errorMessage == null ? "Request timeout reached" : errorMessage, 504);
+                return;
+            }
             if (scopeRelatedFailure || toolService.isScopeRelatedError(errorMessage) || toolService.hasScopeErrorPayload(responseData)) {
                 sendScopeRecoveryError(resp, errorMessage, statusCode);
                 return;
@@ -420,6 +447,11 @@ public class ToolServlet extends HttpServlet {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private int clampTimeoutMs(Integer timeoutMs) {
+        int value = timeoutMs == null ? 15000 : timeoutMs;
+        return Math.max(1000, Math.min(120000, value));
     }
 
     private Timestamp parseTimestamp(String value) {

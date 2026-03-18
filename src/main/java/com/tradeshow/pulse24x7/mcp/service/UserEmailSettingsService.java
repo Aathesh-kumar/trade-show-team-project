@@ -4,11 +4,16 @@ import com.tradeshow.pulse24x7.mcp.dao.UserEmailSettingsDAO;
 import com.tradeshow.pulse24x7.mcp.model.User;
 import com.tradeshow.pulse24x7.mcp.model.UserEmailSettings;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 public class UserEmailSettingsService {
     private final UserEmailSettingsDAO userEmailSettingsDAO;
     private final UserAuthService userAuthService;
+    private static final Pattern SIMPLE_EMAIL = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
     public UserEmailSettingsService() {
         this.userEmailSettingsDAO = new UserEmailSettingsDAO();
@@ -70,10 +75,45 @@ public class UserEmailSettingsService {
     }
 
     private String resolveReceiverEmail(String requestedEmail, String userEmail) {
-        if (requestedEmail != null && !requestedEmail.isBlank()) {
-            return requestedEmail.trim().toLowerCase(Locale.ROOT);
+        String normalizedRequested = normalizeEmailListOrNull(requestedEmail);
+        if (normalizedRequested != null && !normalizedRequested.isBlank()) {
+            return normalizedRequested;
         }
-        return userEmail == null ? null : userEmail.trim().toLowerCase(Locale.ROOT);
+        return normalizeEmailListOrNull(userEmail);
+    }
+
+    static String normalizeEmailListOrNull(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String value = raw.trim();
+        if (value.isBlank()) {
+            return null;
+        }
+        String[] parts = value.split(",");
+        Set<String> unique = new LinkedHashSet<>();
+        java.util.List<String> invalid = new ArrayList<>();
+        for (String part : parts) {
+            if (part == null) {
+                continue;
+            }
+            String email = part.trim().toLowerCase(Locale.ROOT);
+            if (email.isBlank()) {
+                continue;
+            }
+            if (!SIMPLE_EMAIL.matcher(email).matches()) {
+                invalid.add(email);
+                continue;
+            }
+            unique.add(email);
+        }
+        if (!invalid.isEmpty()) {
+            throw new IllegalArgumentException("Invalid receiver email(s): " + String.join(", ", invalid));
+        }
+        if (unique.isEmpty()) {
+            return null;
+        }
+        return String.join(", ", unique);
     }
 
     private String resolveMinSeverity(String severity) {

@@ -122,12 +122,16 @@ public class UserAuthServlet extends HttpServlet {
         settings.setIncludeToolAlerts(ServletUtil.getBoolean(payload, "includeToolAlerts", true));
         settings.setIncludeSystemAlerts(ServletUtil.getBoolean(payload, "includeSystemAlerts", true));
 
-        boolean saved = userEmailSettingsService.save(settings);
-        if (!saved) {
-            sendErrorResponse(resp, "Failed to save email settings", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            return;
+        try {
+            boolean saved = userEmailSettingsService.save(settings);
+            if (!saved) {
+                sendErrorResponse(resp, "Failed to save email settings", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                return;
+            }
+            sendSuccessResponse(resp, userEmailSettingsService.getByUserId(userId));
+        } catch (IllegalArgumentException e) {
+            sendErrorResponse(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
         }
-        sendSuccessResponse(resp, userEmailSettingsService.getByUserId(userId));
     }
 
     private void handleSignup(HttpServletRequest req, HttpServletResponse resp) throws IOException {

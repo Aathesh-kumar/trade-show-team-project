@@ -9,20 +9,26 @@ import org.apache.logging.log4j.Logger;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ServerDAO {
     private static final Logger logger = LogManager.getLogger(ServerDAO.class);
+    private static final AtomicBoolean ensuredConnectionColumns = new AtomicBoolean(false);
 
-    public Integer insertServer(Long userId, String serverName, String serverUrl, Integer monitorIntervalMinutes) {
+    public Integer insertServer(Long userId, String serverName, String serverUrl, Integer monitorIntervalMinutes,
+                                Integer connectionTimeoutMs, Boolean autoReconnect) {
         logger.info("Inserting server for userId={}: {} - {}", userId, serverName, serverUrl);
 
         try (Connection con = DBConnection.getInstance().getConnection();
              PreparedStatement ps = con.prepareStatement(DBQueries.INSERT_SERVER, Statement.RETURN_GENERATED_KEYS)) {
+            ensureConnectionColumns(con);
 
             ps.setLong(1, userId);
             ps.setString(2, serverName);
             ps.setString(3, serverUrl);
             ps.setInt(4, normalizeMonitorInterval(monitorIntervalMinutes));
+            ps.setInt(5, normalizeConnectionTimeoutMs(connectionTimeoutMs));
+            ps.setBoolean(6, autoReconnect == null || autoReconnect);
 
             int affectedRows = ps.executeUpdate();
 
@@ -225,7 +231,9 @@ public class ServerDAO {
                 rs.getLong("user_id"),
                 rs.getString("server_name"),
                 rs.getString("server_url"),
-                rs.getInt("monitor_interval_minutes"),
+                safeGetInt(rs, "monitor_interval_minutes", 30),
+                safeGetInt(rs, "connection_timeout_ms", 5000),
+                safeGetBoolean(rs, "auto_reconnect", true),
                 rs.getTimestamp("created_at")
         );
     }
@@ -235,5 +243,48 @@ public class ServerDAO {
             return 30;
         }
         return Math.max(1, Math.min(1440, monitorIntervalMinutes));
+    }
+
+    private int normalizeConnectionTimeoutMs(Integer connectionTimeoutMs) {
+        int value = connectionTimeoutMs == null ? 5000 : connectionTimeoutMs;
+        return Math.max(1000, Math.min(30000, value));
+    }
+
+    private int safeGetInt(ResultSet rs, String column, int fallback) {
+        try {
+            int value = rs.getInt(column);
+            return rs.wasNull() ? fallback : value;
+        } catch (SQLException ignored) {
+            return fallback;
+        }
+    }
+
+    private boolean safeGetBoolean(ResultSet rs, String column, boolean fallback) {
+        try {
+            boolean value = rs.getBoolean(column);
+            return rs.wasNull() ? fallback : value;
+        } catch (SQLException ignored) {
+            return fallback;
+        }
+    }
+
+    private void ensureConnectionColumns(Connection con) {
+        if (!ensuredConnectionColumns.compareAndSet(false, true)) {
+            return;
+        }
+        try (PreparedStatement ps1 = con.prepareStatement(
+                "ALTER TABLE servers ADD COLUMN connection_timeout_ms INT NOT NULL DEFAULT 5000"
+        )) {
+            ps1.execute();
+        } catch (SQLException ignored) {
+            // ignore if column already exists or insufficient privileges
+        }
+        try (PreparedStatement ps2 = con.prepareStatement(
+                "ALTER TABLE servers ADD COLUMN auto_reconnect BOOLEAN NOT NULL DEFAULT TRUE"
+        )) {
+            ps2.execute();
+        } catch (SQLException ignored) {
+            // ignore if column already exists or insufficient privileges
+        }
     }
 }

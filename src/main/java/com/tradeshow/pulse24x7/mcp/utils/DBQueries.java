@@ -12,7 +12,8 @@ public class DBQueries {
 
         // Server Queries
         public static final String INSERT_SERVER =
-                "INSERT INTO servers (user_id, server_name, server_url, monitor_interval_minutes) VALUES (?, ?, ?, ?)";
+                "INSERT INTO servers (user_id, server_name, server_url, monitor_interval_minutes, connection_timeout_ms, auto_reconnect) " +
+                        "VALUES (?, ?, ?, ?, ?, ?)";
 
         public static final String GET_SERVER_BY_ID =
                 "SELECT * FROM servers WHERE server_id = ? AND user_id = ?";

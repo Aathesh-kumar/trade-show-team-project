@@ -21,6 +21,7 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
     const [testResult, setTestResult] = useState(null);
     const [errors, setErrors] = useState({});
     const [payloadCopied, setPayloadCopied] = useState(false);
+    const [requestTimeoutMs, setRequestTimeoutMs] = useState(15000);
     const [scopeRecovery, setScopeRecovery] = useState({
         active: false,
         selectedScopes: [DEFAULT_SCOPE],
@@ -78,12 +79,14 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
         }
 
         const runRequest = async (candidatePayload) => {
+            const timeout = clampRequestTimeoutMs(requestTimeoutMs);
             return testTool({
                 serverId,
                 toolId: tool.toolId && tool.toolId > 0 ? tool.toolId : null,
                 toolName: tool.toolName || tool.name,
-                inputParams: JSON.stringify(candidatePayload ?? {})
-            });
+                inputParams: JSON.stringify(candidatePayload ?? {}),
+                requestTimeoutMs: timeout
+            }, { timeoutMs: timeout });
         };
 
         const trySetErrorState = (error) => {
@@ -329,6 +332,14 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
                             </button>
                         </div>
 
+                        <InputField
+                            label="Request Timeout (ms)"
+                            type="number"
+                            value={requestTimeoutMs}
+                            onChange={(value) => setRequestTimeoutMs(value)}
+                            tooltip="Stops the test request after the timeout is reached."
+                        />
+
                         <div className={ToolsStyles.filterGroup}>
                             <button
                                 type="button"
@@ -520,6 +531,16 @@ export default function TestToolModal({ tool, serverId, onClose, onCompleted }) 
             </div>
         </div>
     );
+}
+
+function clampRequestTimeoutMs(value) {
+    const min = 1000;
+    const max = 120000;
+    const n = Number(value);
+    if (!Number.isFinite(n)) {
+        return 15000;
+    }
+    return Math.max(min, Math.min(max, Math.round(n)));
 }
 
 function SchemaFields({ schema, rootValue, path, onChange, parentRequired = [] }) {

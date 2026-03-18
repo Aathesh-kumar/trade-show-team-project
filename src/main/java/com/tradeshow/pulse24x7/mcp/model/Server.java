@@ -8,17 +8,22 @@ public class Server {
     private String serverName;
     private String serverUrl;
     private Integer monitorIntervalMinutes;
+    private Integer connectionTimeoutMs;
+    private Boolean autoReconnect;
     private Timestamp createdAt;
 
     public Server() {
     }
 
-    public Server(int serverId, Long userId, String serverName, String serverUrl, Integer monitorIntervalMinutes, Timestamp createdAt) {
+    public Server(int serverId, Long userId, String serverName, String serverUrl, Integer monitorIntervalMinutes,
+                  Integer connectionTimeoutMs, Boolean autoReconnect, Timestamp createdAt) {
         this.serverId = serverId;
         this.userId = userId;
         this.serverName = serverName;
         this.serverUrl = serverUrl;
         this.monitorIntervalMinutes = monitorIntervalMinutes;
+        this.connectionTimeoutMs = connectionTimeoutMs;
+        this.autoReconnect = autoReconnect;
         this.createdAt = createdAt;
     }
 
@@ -62,6 +67,22 @@ public class Server {
         this.monitorIntervalMinutes = monitorIntervalMinutes;
     }
 
+    public Integer getConnectionTimeoutMs() {
+        return connectionTimeoutMs;
+    }
+
+    public void setConnectionTimeoutMs(Integer connectionTimeoutMs) {
+        this.connectionTimeoutMs = connectionTimeoutMs;
+    }
+
+    public Boolean getAutoReconnect() {
+        return autoReconnect;
+    }
+
+    public void setAutoReconnect(Boolean autoReconnect) {
+        this.autoReconnect = autoReconnect;
+    }
+
     public Timestamp getCreatedAt() {
         return createdAt;
     }
@@ -78,6 +99,8 @@ public class Server {
                 ", serverName='" + serverName + '\'' +
                 ", serverUrl='" + serverUrl + '\'' +
                 ", monitorIntervalMinutes=" + monitorIntervalMinutes +
+                ", connectionTimeoutMs=" + connectionTimeoutMs +
+                ", autoReconnect=" + autoReconnect +
                 ", createdAt=" + createdAt +
                 '}';
     }

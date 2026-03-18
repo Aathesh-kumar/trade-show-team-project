@@ -355,6 +355,13 @@ export default function Settings({
       setMessage(null);
     }
     try {
+      const normalizedReceiver = normalizeEmailList(receiverEmail);
+      if (!isValidEmailList(normalizedReceiver)) {
+        if (!silent) {
+          setMessage({ type: 'error', text: 'Receiver email is required and must be valid (comma-separated allowed).' });
+        }
+        return false;
+      }
       const response = await fetch(buildUrl('/user-auth/email-settings'), {
         method: 'PUT',
         headers: {
@@ -363,7 +370,7 @@ export default function Settings({
         },
         body: JSON.stringify({
           alertsEnabled,
-          receiverEmail,
+          receiverEmail: normalizedReceiver,
           minSeverity,
           includeServerAlerts,
           includeToolAlerts,
@@ -797,12 +804,12 @@ export default function Settings({
 
           <InputField
             label="Receiver Email"
-            placeholder="receiver@example.com"
+            placeholder="receiver@example.com, other@example.com"
             value={receiverEmail}
             onChange={setReceiverEmail}
-            type="email"
+            type="text"
             required={true}
-            tooltip="Default is your login email"
+            tooltip="Comma-separated allowed. Default is your login email"
           />
 
           <SelectField
@@ -994,6 +1001,27 @@ export default function Settings({
 
 function normalize(value) {
   return value == null ? '' : String(value).trim();
+}
+
+function splitEmailList(raw) {
+  return normalize(raw)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeEmailList(raw) {
+  const parts = splitEmailList(raw).map((email) => email.toLowerCase());
+  const unique = [...new Set(parts)];
+  return unique.join(', ');
+}
+
+function isValidEmailList(raw) {
+  const parts = splitEmailList(raw);
+  if (parts.length === 0) {
+    return false;
+  }
+  return parts.every((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
 }
 
 function boolNormalize(value) {

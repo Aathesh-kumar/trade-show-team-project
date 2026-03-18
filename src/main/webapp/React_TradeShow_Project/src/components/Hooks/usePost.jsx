@@ -6,7 +6,8 @@ export const usePost = (url, options = {}) => {
         headers = {},
         onSuccess,
         onError,
-        validateData
+        validateData,
+        timeoutMs: defaultTimeoutMs
     } = options;
 
     const [data, setData] = useState(null);
@@ -14,6 +15,14 @@ export const usePost = (url, options = {}) => {
     const [error, setError] = useState(null);
 
     const execute = async (requestData, customOptions = {}) => {
+        const timeoutMsRaw = customOptions.timeoutMs ?? defaultTimeoutMs;
+        const timeoutMs = Number(timeoutMsRaw) > 0 ? Number(timeoutMsRaw) : 0;
+        const externalSignal = customOptions.signal;
+        const controller = externalSignal ? null : new AbortController();
+        const signal = externalSignal || controller?.signal;
+        let timedOut = false;
+        let timeoutId = null;
+
         try {
             if (!url) {
                 throw new Error('URL is required for POST request');
@@ -28,6 +37,17 @@ export const usePost = (url, options = {}) => {
             setLoading(true);
             setError(null);
 
+            if (timeoutMs > 0 && controller) {
+                timeoutId = setTimeout(() => {
+                    timedOut = true;
+                    try {
+                        controller.abort();
+                    } catch {
+                        // ignore abort failures
+                    }
+                }, timeoutMs);
+            }
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -36,7 +56,8 @@ export const usePost = (url, options = {}) => {
                     ...headers,
                     ...customOptions.headers
                 },
-                body: JSON.stringify(requestData)
+                body: JSON.stringify(requestData),
+                signal
             });
 
             const body = await parseApiResponse(response);
@@ -45,10 +66,20 @@ export const usePost = (url, options = {}) => {
             onSuccess?.(unwrapped, requestData);
             return unwrapped;
         } catch (err) {
+            if (err?.name === 'AbortError' && (timedOut || timeoutMs > 0)) {
+                const timeoutError = new Error(`Request timed out after ${timeoutMs}ms`);
+                timeoutError.code = 'client_timeout';
+                setError(timeoutError.message);
+                onError?.(timeoutError, requestData);
+                throw timeoutError;
+            }
             setError(err.message);
             onError?.(err, requestData);
             throw err;
         } finally {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
             setLoading(false);
         }
     };

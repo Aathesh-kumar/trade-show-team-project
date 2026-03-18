@@ -219,17 +219,19 @@ public class ServerServlet extends HttpServlet {
                 return;
             }
 
+        int effectiveTimeoutMs = clampTimeoutMs(connectionTimeout, autoReconnect);
         HttpResult result = HttpClientUtil.canPingServer(
                 serverUrl,
                 AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, accessToken),
-                JsonUtil.createMCPRequest("ping", Map.of()).toString()
+                JsonUtil.createMCPRequest("ping", Map.of()).toString(),
+                effectiveTimeoutMs
         );
         if (!result.isSuccess()) {
             sendErrorResponse(resp, "MCP ping failed: " + result.getErrorMessage(), HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
 
-        Integer serverId = serverService.registerServer(userId, serverName, serverUrl, monitorIntervalMinutes);
+        Integer serverId = serverService.registerServer(userId, serverName, serverUrl, monitorIntervalMinutes, effectiveTimeoutMs, autoReconnect);
         if (serverId == null) {
             Server existing = serverService.getServerByUrl(serverUrl, userId);
             if (existing == null) {
@@ -308,6 +310,13 @@ public class ServerServlet extends HttpServlet {
         } catch (Exception e) {
             sendErrorResponse(resp, "Failed to exchange authorization code: " + e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
         }
+    }
+
+    private int clampTimeoutMs(Integer timeoutMs, Boolean autoReconnect) {
+        int min = 1000;
+        int max = (autoReconnect == null || autoReconnect) ? 30000 : 10000;
+        int value = timeoutMs == null ? 5000 : timeoutMs;
+        return Math.max(min, Math.min(max, value));
     }
 
     private void handleGetServerById(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -511,6 +520,10 @@ public class ServerServlet extends HttpServlet {
         String serverUrl = ServletUtil.getString(payload, "serverUrl", null);
         String headerType = ServletUtil.getString(payload, "headerType", "Bearer");
         String accessToken = ServletUtil.getString(payload, "accessToken", null);
+        Integer connectionTimeout = ServletUtil.getInteger(payload, "connectionTimeout", 5000);
+        Boolean autoReconnect = payload != null && payload.has("autoReconnect")
+                ? payload.get("autoReconnect").getAsBoolean()
+                : Boolean.TRUE;
 
         if (serverUrl == null || serverUrl.isBlank()) {
             sendErrorResponse(resp, "serverUrl is required", HttpServletResponse.SC_BAD_REQUEST);
@@ -521,7 +534,8 @@ public class ServerServlet extends HttpServlet {
         HttpResult result = HttpClientUtil.canPingServer(
                 serverUrl,
                 AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, accessToken),
-                JsonUtil.createMCPRequest("ping", Map.of()).toString()
+                JsonUtil.createMCPRequest("ping", Map.of()).toString(),
+                clampTimeoutMs(connectionTimeout, autoReconnect)
         );
         long latency = System.currentTimeMillis() - start;
 
@@ -568,7 +582,8 @@ public class ServerServlet extends HttpServlet {
         HttpResult result = HttpClientUtil.canPingServer(
                 server.getServerUrl(),
                 AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, accessToken),
-                pingBody.toString()
+                pingBody.toString(),
+                server.getConnectionTimeoutMs()
         );
         long latency = System.currentTimeMillis() - start;
 

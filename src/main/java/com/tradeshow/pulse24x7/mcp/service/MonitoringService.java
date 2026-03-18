@@ -55,13 +55,30 @@ public class MonitoringService {
             String accessToken = authTokenService.ensureValidAccessToken(serverId);
             String headerType = authToken != null ? authToken.getHeaderType() : null;
             Boolean previousStatus = serverHistoryDAO.getLastServerStatus(serverId);
+            Integer connectionTimeoutMs = server.getConnectionTimeoutMs();
+            boolean autoReconnect = Boolean.TRUE.equals(server.getAutoReconnect());
 
             HttpResult pingResult = pingAndLog(
                     serverId,
                     server.getServerUrl(),
                     AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, accessToken),
-                    "primary"
+                    "primary",
+                    connectionTimeoutMs
             );
+            if (!pingResult.isSuccess() && autoReconnect && pingResult.getStatusCode() == 504) {
+                try {
+                    Thread.sleep(250L);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+                pingResult = pingAndLog(
+                        serverId,
+                        server.getServerUrl(),
+                        AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, accessToken),
+                        "reconnect_retry",
+                        connectionTimeoutMs
+                );
+            }
             if (!pingResult.isSuccess()
                     && accessToken != null
                     && !accessToken.isBlank()
@@ -72,7 +89,8 @@ public class MonitoringService {
                             serverId,
                             server.getServerUrl(),
                             AuthHeaderUtil.withAuthHeaders(Map.of("Content-Type", "application/json"), headerType, refreshedToken),
-                            "after_refresh"
+                            "after_refresh",
+                            connectionTimeoutMs
                     );
                 } catch (Exception ignored) {
                     // keep original ping failure
@@ -89,7 +107,8 @@ public class MonitoringService {
                         serverId, 
                         server.getServerUrl(), 
                         accessToken,
-                        headerType
+                        headerType,
+                        connectionTimeoutMs
                 );
                 toolCount = tools.size();
 
@@ -204,13 +223,17 @@ public class MonitoringService {
     }
 
     private HttpResult pingAndLog(Integer serverId, String serverUrl, Map<String, String> headers, String stage) {
+        return pingAndLog(serverId, serverUrl, headers, stage, null);
+    }
+
+    private HttpResult pingAndLog(Integer serverId, String serverUrl, Map<String, String> headers, String stage, Integer timeoutMs) {
         JsonObject requestPayload = JsonUtil.createMCPRequest("ping", Map.of());
         requestPayload.addProperty("mcpServerUrl", serverUrl);
         requestPayload.addProperty("source", "monitoring");
         requestPayload.addProperty("stage", stage);
 
         long start = System.currentTimeMillis();
-        HttpResult result = HttpClientUtil.canPingServer(serverUrl, headers, requestPayload.toString());
+        HttpResult result = HttpClientUtil.canPingServer(serverUrl, headers, requestPayload.toString(), timeoutMs);
         long latency = Math.max(0L, System.currentTimeMillis() - start);
         int statusCode = result.getStatusCode() > 0 ? result.getStatusCode() : (result.isSuccess() ? 200 : 502);
 

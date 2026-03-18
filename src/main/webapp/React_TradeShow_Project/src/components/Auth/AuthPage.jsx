@@ -311,8 +311,17 @@ export default function AuthPage({ onAuthenticated }) {
           onSubmit={(e) => {
             e.preventDefault();
             if (isForgotMode) {
+              if (forgotStep === 'email') {
+                sendForgotOtp();
+                return;
+              }
+              if (forgotStep === 'otp') {
+                continueForgotWithOtp();
+                return;
+              }
               if (forgotStep === 'password') {
                 resetWithForgotOtp();
+                return;
               }
               return;
             }
@@ -556,17 +565,6 @@ export default function AuthPage({ onAuthenticated }) {
                   </button>
                   <button type="button" className={AuthStyles.btnSecondary} onClick={sendForgotOtp} disabled={forgotLoading}>
                     Resend Code
-                  </button>
-                  <button
-                    type="button"
-                    className={AuthStyles.btnSecondary}
-                    onClick={() => {
-                      setForgotOtp('');
-                      setForgotStep('email');
-                    }}
-                    disabled={forgotLoading}
-                  >
-                    Back to Email Step
                   </button>
                 </div>
               ) : (

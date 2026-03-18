@@ -69,8 +69,8 @@ export default function ConfigureServer({ currentUser, onClose, onSuccess, canLo
             if (!isValidServerEndpoint(data.tokenEndpoint)) {
                 return 'Token Endpoint must be a valid URL or URI';
             }
-            if (!isValidEmail(data.receiverEmail)) {
-                return 'Receiver email is required and must be valid';
+            if (!isValidEmailList(data.receiverEmail)) {
+                return 'Receiver email is required and must be valid (comma-separated allowed)';
             }
             const interval = Number(data.monitorIntervalMinutes);
             if (!Number.isFinite(interval) || interval < 1 || interval > 1440) {
@@ -249,10 +249,18 @@ export default function ConfigureServer({ currentUser, onClose, onSuccess, canLo
         e.preventDefault();
         try {
             const loginEmail = String(currentUser?.email || '').trim().toLowerCase();
-            const receiverEmail = String(formData.receiverEmail || '').trim().toLowerCase();
+            const receiverEmail = normalizeEmailList(String(formData.receiverEmail || ''));
+            if (!isValidEmailList(receiverEmail)) {
+                setToast({ type: 'error', message: 'Receiver email is required and must be valid (comma-separated allowed).' });
+                return;
+            }
             const zohoUser = isZohoAddress(loginEmail);
-            if (zohoUser && receiverEmail && !isZohoAddress(receiverEmail)) {
-                setToast({ type: 'error', message: 'Warning: Zoho users should use a Zoho-domain receiver email.' });
+            if (zohoUser && receiverEmail) {
+                const recipients = splitEmailList(receiverEmail);
+                const invalidZoho = recipients.filter((email) => email && !isZohoAddress(email));
+                if (invalidZoho.length > 0) {
+                    setToast({ type: 'error', message: 'Warning: Zoho users should use Zoho-domain receiver emails.' });
+                }
             }
 
             const emailSettingsResp = await fetch(buildUrl('/user-auth/email-settings'), {
@@ -374,11 +382,11 @@ export default function ConfigureServer({ currentUser, onClose, onSuccess, canLo
 
                         <InputField
                             label="Receiver Email for Alerts"
-                            placeholder="name@company.com"
+                            placeholder="name@company.com, other@company.com"
                             value={formData.receiverEmail}
                             onChange={(value) => handleInputChange('receiverEmail', value)}
                             required
-                            tooltip="Default is your login email; you may change it."
+                            tooltip="Comma-separated allowed. Default is your login email; you may change it."
                         />
                     </FormSection>
 
@@ -641,9 +649,27 @@ function buildAuthorizeUrl(baseUrl, scope, clientId, redirectUri, state) {
     return `${base}${separator}scope=${encodeURIComponent(normalizedScope)}&client_id=${encodeURIComponent(normalizedClientId)}&state=${encodeURIComponent(nextState)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&access_type=offline&prompt=consent`;
 }
 
-function isValidEmail(email) {
-    const value = String(email || '').trim();
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+function splitEmailList(raw) {
+    return String(raw || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
+function normalizeEmailList(raw) {
+    const parts = splitEmailList(raw)
+        .map((email) => email.toLowerCase())
+        .filter(Boolean);
+    const unique = [...new Set(parts)];
+    return unique.join(', ');
+}
+
+function isValidEmailList(value) {
+    const emails = splitEmailList(value);
+    if (emails.length === 0) {
+        return false;
+    }
+    return emails.every((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim()));
 }
 
 function isZohoAddress(email) {

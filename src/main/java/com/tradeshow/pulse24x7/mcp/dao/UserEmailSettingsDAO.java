@@ -10,14 +10,16 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UserEmailSettingsDAO {
     private static final Logger logger = LogManager.getLogger(UserEmailSettingsDAO.class);
+    private static final AtomicBoolean ensuredColumnWidth = new AtomicBoolean(false);
     private static final String ENSURE_TABLE_SQL =
             "CREATE TABLE IF NOT EXISTS user_email_settings (" +
                     "user_id BIGINT PRIMARY KEY," +
                     "alerts_enabled BOOLEAN NOT NULL DEFAULT TRUE," +
-                    "receiver_email VARCHAR(180) NULL," +
+                    "receiver_email VARCHAR(1000) NULL," +
                     "min_severity VARCHAR(20) NOT NULL DEFAULT 'warning'," +
                     "include_server_alerts BOOLEAN NOT NULL DEFAULT TRUE," +
                     "include_tool_alerts BOOLEAN NOT NULL DEFAULT TRUE," +
@@ -90,6 +92,20 @@ public class UserEmailSettingsDAO {
     private void ensureTable(Connection con) throws SQLException {
         try (PreparedStatement ps = con.prepareStatement(ENSURE_TABLE_SQL)) {
             ps.execute();
+        }
+        ensureReceiverEmailWidth(con);
+    }
+
+    private void ensureReceiverEmailWidth(Connection con) {
+        if (!ensuredColumnWidth.compareAndSet(false, true)) {
+            return;
+        }
+        try (PreparedStatement ps = con.prepareStatement(
+                "ALTER TABLE user_email_settings MODIFY receiver_email VARCHAR(1000) NULL"
+        )) {
+            ps.execute();
+        } catch (SQLException ignored) {
+            // best-effort: ignore if DB user lacks privileges or column is already widened
         }
     }
 

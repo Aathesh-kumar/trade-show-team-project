@@ -18,6 +18,8 @@ CREATE TABLE servers (
     server_name VARCHAR(100) NOT NULL,
     server_url VARCHAR(255) NOT NULL,
     monitor_interval_minutes INT NOT NULL DEFAULT 30,
+    connection_timeout_ms INT NOT NULL DEFAULT 5000,
+    auto_reconnect BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_servers_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT uk_servers_user_url UNIQUE (user_id, server_url),
@@ -120,7 +122,7 @@ CREATE TABLE notifications (
 CREATE TABLE user_email_settings (
     user_id BIGINT PRIMARY KEY,
     alerts_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    receiver_email VARCHAR(180) NULL,
+    receiver_email VARCHAR(1000) NULL,
     min_severity VARCHAR(20) NOT NULL DEFAULT 'warning',
     include_server_alerts BOOLEAN NOT NULL DEFAULT TRUE,
     include_tool_alerts BOOLEAN NOT NULL DEFAULT TRUE,

@@ -22,7 +22,8 @@ public class ServerService {
         this.notificationService = new NotificationService();
     }
 
-    public Integer registerServer(Long userId, String serverName, String serverUrl, Integer monitorIntervalMinutes) {
+    public Integer registerServer(Long userId, String serverName, String serverUrl, Integer monitorIntervalMinutes,
+                                  Integer connectionTimeoutMs, Boolean autoReconnect) {
         logger.info("Registering new server for userId={}: {} - {}", userId, serverName, serverUrl);
         if (userId == null || userId <= 0) {
             logger.error("Invalid userId: {}", userId);
@@ -52,7 +53,7 @@ public class ServerService {
             return null;
         }
 
-        return serverDAO.insertServer(userId, serverName, serverUrl, monitorIntervalMinutes);
+        return serverDAO.insertServer(userId, serverName, serverUrl, monitorIntervalMinutes, connectionTimeoutMs, autoReconnect);
     }
 
     public Server getServerById(Integer serverId, Long userId) {
