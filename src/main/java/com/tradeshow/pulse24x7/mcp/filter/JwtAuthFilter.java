@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 public class JwtAuthFilter extends HttpFilter {
     @Override
     protected void doFilter(HttpServletRequest req, HttpServletResponse resp, FilterChain chain) throws IOException, ServletException {
+        System.out.println("I am running");
         if (!isAuthEnabled()) {
             chain.doFilter(req, resp);
             return;
